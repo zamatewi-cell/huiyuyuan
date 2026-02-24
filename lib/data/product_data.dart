@@ -508,7 +508,7 @@ final List<ProductModel> realProductData = [
     material: '南红玛瑙',
     origin: '云南保山',
     images: [
-      'https://images.unsplash.com/photo-1583484963886-cfe2bff2945f?w=800&h=800&fit=crop',
+      'https://images.unsplash.com/photo-1761210875101-1273b9ae5600?w=800&h=800&fit=crop',
     ],
     stock: 98,
     rating: 4.7,
@@ -531,7 +531,7 @@ final List<ProductModel> realProductData = [
     material: '珍珠',
     origin: '中国浙江',
     images: [
-      'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=800&h=800&fit=crop&q=80',
+      'https://images.unsplash.com/photo-1739700285847-2f173370e8a7?w=800&h=800&fit=crop',
     ],
     stock: 120,
     rating: 4.6,
@@ -666,7 +666,7 @@ String getDefaultImageForMaterial(String material) {
     '碧玉': 'photo-1610375461246-83df859d849d',
     '蜜蜡': 'photo-1608042314453-ae338d80c427',
     '钻石': 'photo-1605100804763-247f67b3557e',
-    '珍珠': 'photo-1515562141207-7a88fb7ce338',
+    '珍珠': 'photo-1739700285847-2f173370e8a7',
   };
   final photoId = imageMap[material] ?? 'photo-1611591437281-460bfbe1220a';
   return 'https://images.unsplash.com/$photoId?w=800&h=800&fit=crop';
