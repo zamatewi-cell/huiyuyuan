@@ -16,6 +16,7 @@ import '../../themes/colors.dart';
 import '../../l10n/l10n_provider.dart';
 import '../../data/product_data.dart';
 import '../../models/user_model.dart';
+import 'inventory_screen.dart';
 
 /// 管理员仪表盘
 class AdminDashboard extends ConsumerStatefulWidget {
@@ -33,7 +34,7 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 4, vsync: this);
   }
 
   @override
@@ -63,6 +64,7 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard>
                 children: [
                   _buildDashboardTab(),
                   _buildProductManagementTab(),
+                  const InventoryScreen(),
                   _buildOperatorTab(),
                 ],
               ),
@@ -92,9 +94,46 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard>
         labelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
         dividerColor: Colors.transparent,
         tabs: [
-          Tab(text: '📊 ${ref.tr('admin_dashboard')}'),
-          Tab(text: '🏪 ${ref.tr('admin_products')}'),
-          Tab(text: '👥 ${ref.tr('admin_operators')}'),
+          Tab(
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.dashboard_rounded, size: 15),
+                SizedBox(width: 5),
+                Text(ref.tr('admin_dashboard')),
+              ],
+            ),
+          ),
+          Tab(
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.storefront_rounded, size: 15),
+                SizedBox(width: 5),
+                Text(ref.tr('admin_products')),
+              ],
+            ),
+          ),
+          const Tab(
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.inventory_2_rounded, size: 15),
+                SizedBox(width: 5),
+                Text('库存'),
+              ],
+            ),
+          ),
+          Tab(
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.people_rounded, size: 15),
+                SizedBox(width: 5),
+                Text(ref.tr('admin_operators')),
+              ],
+            ),
+          ),
         ],
       ),
     );
@@ -111,16 +150,29 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard>
 
     return Row(
       children: [
+        // Avatar
         Container(
-          width: 50,
-          height: 50,
+          width: 48,
+          height: 48,
           decoration: BoxDecoration(
-            gradient: JewelryColors.primaryGradient,
-            borderRadius: BorderRadius.circular(15),
+            gradient: const LinearGradient(
+              colors: [Color(0xFF10B981), Color(0xFF059669)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(14),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF10B981).withOpacity(0.3),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
+              ),
+            ],
           ),
-          child: const Icon(Icons.admin_panel_settings, color: Colors.white),
+          child: const Icon(Icons.diamond_rounded,
+              color: Colors.white, size: 22),
         ),
-        const SizedBox(width: 16),
+        const SizedBox(width: 14),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -129,200 +181,191 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard>
                 '$greeting，超级管理员',
                 style: const TextStyle(
                   color: Colors.white,
-                  fontSize: 20,
+                  fontSize: 18,
                   fontWeight: FontWeight.bold,
+                  letterSpacing: 0.3,
                 ),
               ),
+              const SizedBox(height: 2),
               Text(
                 '账号: 18937766669',
                 style: TextStyle(
-                  color: Colors.white.withOpacity(0.6),
-                  fontSize: 13,
+                  color: Colors.white.withOpacity(0.4),
+                  fontSize: 12,
                 ),
               ),
             ],
           ),
         ),
-        IconButton(
-          icon: Container(
-            padding: const EdgeInsets.all(10),
+        // Notification bell
+        GestureDetector(
+          onTap: () {},
+          child: Container(
+            width: 42,
+            height: 42,
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.1),
+              color: const Color(0xFF0F172A),
               borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.white.withOpacity(0.06)),
             ),
-            child:
-                const Icon(Icons.notifications_outlined, color: Colors.white),
+            child: const Icon(Icons.notifications_none_rounded,
+                color: Colors.white70, size: 20),
           ),
-          onPressed: () {},
         ),
       ],
     );
   }
 
+  // ═══════════════════════════ 数据看板 Tab (Image-2 风格) ═══════════════════════════
+
   Widget _buildDashboardTab() {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildAddProductBanner(),
-          const SizedBox(height: 16),
-          _buildOverviewCards(),
+          _buildStoreInfoCard(),
+          const SizedBox(height: 20),
+          _buildGlassStatsGrid(),
           const SizedBox(height: 24),
-          _buildQuickActions(),
+          _buildActivitySection(),
           const SizedBox(height: 24),
-          _buildSystemStatus(),
+          _buildQuickActionsSection(),
+          const SizedBox(height: 24),
+          _buildSystemPanel(),
         ],
       ),
     );
   }
 
-  /// 添加商品醒目横幅按钮
-  Widget _buildAddProductBanner() {
-    return GestureDetector(
-      onTap: () {
-        _tabController.animateTo(1);
-        Future.delayed(const Duration(milliseconds: 300), () {
-          _showAddProductDialog();
-        });
-      },
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [Color(0xFF6366F1), Color(0xFF8B5CF6), Color(0xFFA855F7)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
+  // ─── 门店信息卡片 ───
+  Widget _buildStoreInfoCard() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF0F172A),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withOpacity(0.06)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: const Color(0xFF06B6D4).withOpacity(0.12),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Icon(Icons.store_rounded,
+                color: Color(0xFF06B6D4), size: 22),
           ),
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: const Color(0xFF6366F1).withOpacity(0.4),
-              blurRadius: 20,
-              offset: const Offset(0, 8),
-            ),
-          ],
-        ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: const Icon(Icons.add_circle_outline,
-                  color: Colors.white, size: 28),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    '➕ ${ref.tr('admin_add_product')}',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 17,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    '当前共 ${realProductData.length} 件商品 · 点击立即上架新商品',
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('汇玉源珠宝总店',
                     style: TextStyle(
-                      color: Colors.white.withOpacity(0.85),
-                      fontSize: 12,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: const Text(
-                '立即添加',
-                style: TextStyle(
-                  color: Color(0xFF6366F1),
-                  fontSize: 13,
-                  fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600)),
+                const SizedBox(height: 3),
+                Text(
+                  '商品 ${realProductData.length} 件 · 运营正常',
+                  style: TextStyle(
+                      color: Colors.white.withOpacity(0.4), fontSize: 12),
                 ),
-              ),
+              ],
             ),
-          ],
-        ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+            decoration: BoxDecoration(
+              color: const Color(0xFF10B981).withOpacity(0.12),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                  color: const Color(0xFF10B981).withOpacity(0.3)),
+            ),
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.circle, color: Color(0xFF10B981), size: 6),
+                SizedBox(width: 5),
+                Text('在线',
+                    style: TextStyle(
+                        color: Color(0xFF10B981),
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500)),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildOverviewCards() {
+  // ─── 2x2 玻璃态统计卡片 ───
+  Widget _buildGlassStatsGrid() {
     return GridView.count(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       crossAxisCount: 2,
-      crossAxisSpacing: 14,
-      mainAxisSpacing: 14,
-      childAspectRatio: 1.4,
+      crossAxisSpacing: 12,
+      mainAxisSpacing: 12,
+      childAspectRatio: 1.5,
       children: [
-        _buildStatCard(
+        _buildGlassStatCard(
           title: '今日订单',
-          value: '¥12,580',
-          change: '+18.5%',
-          icon: Icons.shopping_cart,
-          gradient: JewelryColors.primaryGradient,
+          value: '12,580',
+          prefix: '\u00a5',
+          subtitle: '+18.5% 较昨日',
+          icon: Icons.trending_up_rounded,
+          accentColor: const Color(0xFF06B6D4),
         ),
-        _buildStatCard(
-          title: '活跃操作员',
-          value: '8/10',
-          change: '在线',
-          icon: Icons.people,
-          gradient: JewelryColors.goldGradient,
-        ),
-        _buildStatCard(
+        _buildGlassStatCard(
           title: '商品总数',
           value: '${realProductData.length}',
-          change: '上架中',
-          icon: Icons.inventory_2,
-          gradient: const LinearGradient(
-            colors: [Color(0xFF667eea), Color(0xFF764ba2)],
-          ),
+          subtitle: '全部上架中',
+          icon: Icons.diamond_rounded,
+          accentColor: const Color(0xFF10B981),
         ),
-        _buildStatCard(
-          title: 'AI使用量',
+        _buildGlassStatCard(
+          title: '活跃操作员',
+          value: '8',
+          subtitle: '/ 10 在线',
+          icon: Icons.people_alt_rounded,
+          accentColor: const Color(0xFFF59E0B),
+        ),
+        _buildGlassStatCard(
+          title: 'AI 鉴定量',
           value: '1,280',
-          change: '次对话',
-          icon: Icons.smart_toy,
-          gradient: const LinearGradient(
-            colors: [Color(0xFF11998e), Color(0xFF38ef7d)],
-          ),
+          subtitle: '次对话',
+          icon: Icons.auto_awesome_rounded,
+          accentColor: const Color(0xFF8B5CF6),
         ),
       ],
     );
   }
 
-  Widget _buildStatCard({
+  Widget _buildGlassStatCard({
     required String title,
     required String value,
-    required String change,
+    String? prefix,
+    required String subtitle,
     required IconData icon,
-    required LinearGradient gradient,
+    required Color accentColor,
   }) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        gradient: gradient,
-        borderRadius: BorderRadius.circular(18),
+        color: const Color(0xFF0F172A),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: accentColor.withOpacity(0.15)),
         boxShadow: [
           BoxShadow(
-            color: gradient.colors.first.withOpacity(0.4),
-            blurRadius: 15,
-            offset: const Offset(0, 8),
-          ),
+              color: accentColor.withOpacity(0.06),
+              blurRadius: 24,
+              offset: const Offset(0, 4)),
         ],
       ),
       child: Column(
@@ -330,37 +373,42 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard>
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                title,
-                style: TextStyle(
-                  color: Colors.white.withOpacity(0.9),
-                  fontSize: 13,
-                ),
-              ),
-              Icon(icon, color: Colors.white.withOpacity(0.9), size: 20),
+              Icon(icon, color: accentColor.withOpacity(0.6), size: 16),
+              const SizedBox(width: 6),
+              Text(title,
+                  style: TextStyle(
+                      color: Colors.white.withOpacity(0.5), fontSize: 12)),
             ],
           ),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                value,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                ),
+              RichText(
+                text: TextSpan(children: [
+                  if (prefix != null)
+                    TextSpan(
+                      text: prefix,
+                      style: TextStyle(
+                          color: accentColor,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500),
+                    ),
+                  TextSpan(
+                    text: value,
+                    style: TextStyle(
+                      color: accentColor,
+                      fontSize: 26,
+                      fontWeight: FontWeight.bold,
+                      height: 1.1,
+                    ),
+                  ),
+                ]),
               ),
               const SizedBox(height: 2),
-              Text(
-                change,
-                style: TextStyle(
-                  color: Colors.white.withOpacity(0.8),
-                  fontSize: 11,
-                ),
-              ),
+              Text(subtitle,
+                  style: TextStyle(
+                      color: Colors.white.withOpacity(0.3), fontSize: 11)),
             ],
           ),
         ],
@@ -368,17 +416,243 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard>
     );
   }
 
-  Widget _buildQuickActions() {
+  // ─── 实时动态（新闻流） ───
+  String _activityFilter = '全部';
+
+  Widget _buildActivitySection() {
+    final activities = _getMockActivities();
+    final filtered = _activityFilter == '全部'
+        ? activities
+        : activities.where((a) => a['tag'] == _activityFilter).toList();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Section header
+        Row(
+          children: [
+            const Icon(Icons.bolt_rounded, color: Color(0xFFFBBF24), size: 20),
+            const SizedBox(width: 8),
+            const Text('实时动态',
+                style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600)),
+            const Spacer(),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.06),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Text('每30分钟自动更新',
+                  style: TextStyle(
+                      color: Colors.white.withOpacity(0.3), fontSize: 10)),
+            ),
+          ],
+        ),
+        const SizedBox(height: 14),
+        // Filter chips
+        SizedBox(
+          height: 32,
+          child: ListView(
+            scrollDirection: Axis.horizontal,
+            children: ['全部', '订单', '库存', '系统', 'AI'].map((tag) {
+              final selected = _activityFilter == tag;
+              return Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: GestureDetector(
+                  onTap: () => setState(() => _activityFilter = tag),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: selected
+                          ? const Color(0xFF06B6D4).withOpacity(0.15)
+                          : Colors.white.withOpacity(0.04),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: selected
+                            ? const Color(0xFF06B6D4).withOpacity(0.4)
+                            : Colors.white.withOpacity(0.08),
+                      ),
+                    ),
+                    child: Text(
+                      tag,
+                      style: TextStyle(
+                        color: selected
+                            ? const Color(0xFF06B6D4)
+                            : Colors.white.withOpacity(0.45),
+                        fontSize: 12,
+                        fontWeight:
+                            selected ? FontWeight.w600 : FontWeight.normal,
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+        ),
+        const SizedBox(height: 14),
+        // Activity items
+        ...filtered
+            .take(5)
+            .map((a) => _buildActivityItem(
+                  tag: a['tag'] as String,
+                  title: a['title'] as String,
+                  subtitle: a['subtitle'] as String,
+                  time: a['time'] as String,
+                  color: a['color'] as Color,
+                  icon: a['icon'] as IconData,
+                ))
+            .toList(),
+      ],
+    );
+  }
+
+  List<Map<String, dynamic>> _getMockActivities() {
+    return [
+      {
+        'tag': '订单',
+        'title': '新订单: 和田玉手链 x2',
+        'subtitle': '客户 135****8821 · \u00a5 1,580',
+        'time': '3分钟前',
+        'color': const Color(0xFF10B981),
+        'icon': Icons.shopping_bag_rounded,
+      },
+      {
+        'tag': 'AI',
+        'title': 'AI鉴定完成: 缅甸翡翠吊坠',
+        'subtitle': '鉴定结果: A级 · 置信度 97.2%',
+        'time': '8分钟前',
+        'color': const Color(0xFF8B5CF6),
+        'icon': Icons.auto_awesome_rounded,
+      },
+      {
+        'tag': '库存',
+        'title': '库存预警: 南红玛瑙手串',
+        'subtitle': '当前库存 3 件 · 低于安全线 5 件',
+        'time': '15分钟前',
+        'color': const Color(0xFFF59E0B),
+        'icon': Icons.warning_amber_rounded,
+      },
+      {
+        'tag': '系统',
+        'title': '数据备份完成',
+        'subtitle': '全量备份 2.3GB · 耗时 45s',
+        'time': '1小时前',
+        'color': const Color(0xFF06B6D4),
+        'icon': Icons.cloud_done_rounded,
+      },
+      {
+        'tag': '订单',
+        'title': '订单已发货: HYY-20260225001',
+        'subtitle': '紫水晶戒指 · 顺丰速运',
+        'time': '2小时前',
+        'color': const Color(0xFF10B981),
+        'icon': Icons.local_shipping_rounded,
+      },
+      {
+        'tag': '系统',
+        'title': 'API服务健康检查通过',
+        'subtitle': '响应时间 32ms · 可用率 99.9%',
+        'time': '3小时前',
+        'color': const Color(0xFF06B6D4),
+        'icon': Icons.monitor_heart_rounded,
+      },
+    ];
+  }
+
+  Widget _buildActivityItem({
+    required String tag,
+    required String title,
+    required String subtitle,
+    required String time,
+    required Color color,
+    required IconData icon,
+  }) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFF0F172A),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.white.withOpacity(0.05)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Icon badge
+          Container(
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, color: color, size: 18),
+          ),
+          const SizedBox(width: 12),
+          // Content
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: color.withOpacity(0.12),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(tag,
+                          style: TextStyle(
+                              color: color,
+                              fontSize: 9,
+                              fontWeight: FontWeight.w600)),
+                    ),
+                    const Spacer(),
+                    Text(time,
+                        style: TextStyle(
+                            color: Colors.white.withOpacity(0.25),
+                            fontSize: 10)),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Text(title,
+                    style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500)),
+                const SizedBox(height: 3),
+                Text(subtitle,
+                    style: TextStyle(
+                        color: Colors.white.withOpacity(0.4), fontSize: 11)),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ─── 快捷操作（卡片式） ───
+  Widget _buildQuickActionsSection() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           children: [
-            Icon(Icons.flash_on, color: JewelryColors.gold, size: 20),
-            SizedBox(width: 8),
+            Icon(Icons.flash_on_rounded,
+                color: const Color(0xFFFBBF24), size: 20),
+            const SizedBox(width: 8),
             Text(
               ref.tr('admin_quick_actions'),
-              style: TextStyle(
+              style: const TextStyle(
                 color: Colors.white,
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
@@ -386,86 +660,113 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard>
             ),
           ],
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 14),
+        // Row 1
         Row(
           children: [
             Expanded(
-                child: _buildActionButton(
-                    ref.tr('admin_add_product'), Icons.add_box, onTap: () {
-              _tabController.animateTo(1);
-              Future.delayed(const Duration(milliseconds: 300), () {
-                _showAddProductDialog();
-              });
-            })),
-            const SizedBox(width: 12),
+              child: _buildQuickActionCard(
+                label: ref.tr('admin_add_product'),
+                icon: Icons.add_circle_rounded,
+                color: const Color(0xFF6366F1),
+                onTap: () {
+                  _tabController.animateTo(1);
+                  Future.delayed(const Duration(milliseconds: 300), () {
+                    _showAddProductDialog();
+                  });
+                },
+              ),
+            ),
+            const SizedBox(width: 10),
             Expanded(
-                child: _buildActionButton(
-                    ref.tr('admin_audit_log'), Icons.history)),
+              child: _buildQuickActionCard(
+                label: '库存管理',
+                icon: Icons.inventory_2_rounded,
+                color: const Color(0xFF06B6D4),
+                onTap: () => _tabController.animateTo(2),
+              ),
+            ),
           ],
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 10),
         Row(
           children: [
             Expanded(
-                child: _buildActionButton(ref.tr('admin_account_settings'),
-                    Icons.account_balance_wallet)),
-            const SizedBox(width: 12),
+              child: _buildQuickActionCard(
+                label: ref.tr('admin_audit_log'),
+                icon: Icons.history_rounded,
+                color: const Color(0xFFF59E0B),
+              ),
+            ),
+            const SizedBox(width: 10),
             Expanded(
-                child: _buildActionButton(
-                    ref.tr('admin_blockchain_verify'), Icons.verified_user)),
+              child: _buildQuickActionCard(
+                label: ref.tr('admin_blockchain_verify'),
+                icon: Icons.verified_user_rounded,
+                color: const Color(0xFF10B981),
+              ),
+            ),
           ],
         ),
       ],
     );
   }
 
-  Widget _buildActionButton(String label, IconData icon,
-      {VoidCallback? onTap}) {
+  Widget _buildQuickActionCard({
+    required String label,
+    required IconData icon,
+    required Color color,
+    VoidCallback? onTap,
+  }) {
     return GestureDetector(
       onTap: onTap ?? () {},
       child: Container(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
         decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.06),
+          color: const Color(0xFF0F172A),
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: Colors.white.withOpacity(0.1)),
+          border: Border.all(color: color.withOpacity(0.12)),
         ),
         child: Row(
           children: [
-            Icon(icon, color: JewelryColors.primary, size: 22),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                label,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
-                ),
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(10),
               ),
+              child: Icon(icon, color: color, size: 18),
             ),
-            Icon(
-              Icons.arrow_forward_ios,
-              color: Colors.white.withOpacity(0.4),
-              size: 14,
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(label,
+                  style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500)),
             ),
+            Icon(Icons.chevron_right_rounded,
+                color: Colors.white.withOpacity(0.2), size: 18),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildSystemStatus() {
+  // ─── 系统状态面板 ───
+  Widget _buildSystemPanel() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           children: [
-            Icon(Icons.monitor_heart, color: JewelryColors.success, size: 20),
-            SizedBox(width: 8),
+            const Icon(Icons.monitor_heart_rounded,
+                color: Color(0xFF10B981), size: 20),
+            const SizedBox(width: 8),
             Text(
               ref.tr('admin_system_status'),
-              style: TextStyle(
+              style: const TextStyle(
                 color: Colors.white,
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
@@ -473,33 +774,50 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard>
             ),
           ],
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 14),
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.06),
-            borderRadius: BorderRadius.circular(14),
+            color: const Color(0xFF0F172A),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Colors.white.withOpacity(0.06)),
           ),
           child: Column(
             children: [
-              _buildStatusRow('API服务', '正常运行', true),
-              _buildStatusRow('AI引擎', 'DeepSeek 在线', true),
-              _buildStatusRow('区块链节点', '已连接', true),
-              _buildStatusRow('数据备份', '3小时前', true),
-              const Divider(color: Colors.white12, height: 24),
-              Row(
-                children: [
-                  const Icon(Icons.shield,
-                      color: JewelryColors.success, size: 16),
-                  const SizedBox(width: 8),
-                  Text(
-                    '等保三级认证 · 数据加密传输',
-                    style: TextStyle(
-                      color: Colors.white.withOpacity(0.6),
-                      fontSize: 12,
+              _buildStatusItem('API 服务', '正常运行', '32ms',
+                  const Color(0xFF10B981), true),
+              _buildStatusDivider(),
+              _buildStatusItem('AI 引擎', 'DeepSeek 在线', '可用',
+                  const Color(0xFF10B981), true),
+              _buildStatusDivider(),
+              _buildStatusItem('区块链节点', '已连接', '同步中',
+                  const Color(0xFF10B981), true),
+              _buildStatusDivider(),
+              _buildStatusItem('数据备份', '3小时前', '2.3GB',
+                  const Color(0xFF06B6D4), true),
+              const SizedBox(height: 14),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF10B981).withOpacity(0.06),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                      color: const Color(0xFF10B981).withOpacity(0.15)),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.shield_rounded,
+                        color: Color(0xFF10B981), size: 14),
+                    const SizedBox(width: 6),
+                    Text(
+                      '等保三级认证 · 数据加密传输 · 可用率 99.9%',
+                      style: TextStyle(
+                          color: Colors.white.withOpacity(0.4), fontSize: 11),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ],
           ),
@@ -508,39 +826,55 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard>
     );
   }
 
-  Widget _buildStatusRow(String label, String status, bool isHealthy) {
+  Widget _buildStatusItem(String label, String status, String detail,
+      Color color, bool isHealthy) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
+      padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
         children: [
           Container(
             width: 8,
             height: 8,
             decoration: BoxDecoration(
-              color: isHealthy ? JewelryColors.success : JewelryColors.error,
+              color: color,
               shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                    color: color.withOpacity(0.4),
+                    blurRadius: 6,
+                    spreadRadius: 1),
+              ],
             ),
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: 12),
           Expanded(
-            child: Text(
-              label,
-              style: TextStyle(
-                color: Colors.white.withOpacity(0.7),
-                fontSize: 13,
-              ),
-            ),
+            child: Text(label,
+                style: TextStyle(
+                    color: Colors.white.withOpacity(0.6), fontSize: 13)),
           ),
-          Text(
-            status,
-            style: TextStyle(
-              color: isHealthy ? JewelryColors.success : JewelryColors.error,
-              fontSize: 12,
+          Text(status,
+              style: TextStyle(
+                  color: Colors.white.withOpacity(0.8),
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500)),
+          const SizedBox(width: 10),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(4),
             ),
+            child: Text(detail,
+                style: TextStyle(color: color, fontSize: 10)),
           ),
         ],
       ),
     );
+  }
+
+  Widget _buildStatusDivider() {
+    return Divider(
+        color: Colors.white.withOpacity(0.04), height: 1, thickness: 1);
   }
 
   // ============ 商品管理 Tab ============

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../models/user_model.dart';
+import '../../models/cart_item_model.dart';
 import '../../services/storage_service.dart';
 import '../../services/ai_service.dart';
 import '../../themes/jewelry_theme.dart';
@@ -9,6 +10,7 @@ import '../../themes/colors.dart';
 import '../../widgets/common/glassmorphic_card.dart';
 import '../../widgets/product_reviews_widget.dart';
 import 'dart:ui';
+import 'checkout_screen.dart';
 
 /// 产品详情页面
 class ProductDetailScreen extends ConsumerStatefulWidget {
@@ -24,9 +26,11 @@ class ProductDetailScreen extends ConsumerStatefulWidget {
 class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
   final _storage = StorageService();
   final _aiService = AIService();
+  final _pageController = PageController();
   bool _isFavorite = false;
   bool _isGeneratingDesc = false;
   String? _aiDescription;
+  int _currentImagePage = 0;
   int _quantity = 1;
 
   @override
@@ -38,6 +42,12 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
   Future<void> _checkFavorite() async {
     final isFav = await _storage.isFavorite(widget.product.id);
     setState(() => _isFavorite = isFav);
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
   }
 
   @override
@@ -56,24 +66,57 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
               background: Hero(
                 tag: 'product_image_${widget.product.id}',
                 child: widget.product.images.isNotEmpty
-                    ? PageView.builder(
-                        itemCount: widget.product.images.length,
-                        itemBuilder: (context, index) {
-                          return CachedNetworkImage(
-                            imageUrl: widget.product.images[index],
-                            fit: BoxFit.cover,
-                            placeholder: (context, url) => Container(
-                              color: Colors.grey[100],
-                              child: const Center(
-                                  child: CircularProgressIndicator()),
+                    ? Stack(
+                        children: [
+                          PageView.builder(
+                            controller: _pageController,
+                            itemCount: widget.product.images.length,
+                            onPageChanged: (index) {
+                              setState(() => _currentImagePage = index);
+                            },
+                            itemBuilder: (context, index) {
+                              return CachedNetworkImage(
+                                imageUrl: widget.product.images[index],
+                                fit: BoxFit.cover,
+                                memCacheWidth: 800,
+                                placeholder: (context, url) => Container(
+                                  color: Colors.grey[100],
+                                  child: const Center(
+                                      child: CircularProgressIndicator()),
+                                ),
+                                errorWidget: (context, url, error) => Container(
+                                  color: Colors.grey[100],
+                                  child: Icon(Icons.broken_image,
+                                      size: 60, color: Colors.grey[400]),
+                                ),
+                              );
+                            },
+                          ),
+                          if (widget.product.images.length > 1)
+                            Positioned(
+                              bottom: 16,
+                              left: 0,
+                              right: 0,
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: List.generate(
+                                  widget.product.images.length,
+                                  (index) => AnimatedContainer(
+                                    duration: const Duration(milliseconds: 300),
+                                    margin: const EdgeInsets.symmetric(horizontal: 3),
+                                    width: _currentImagePage == index ? 20 : 8,
+                                    height: 8,
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(4),
+                                      color: _currentImagePage == index
+                                          ? JewelryColors.primary
+                                          : Colors.white.withOpacity(0.5),
+                                    ),
+                                  ),
+                                ),
+                              ),
                             ),
-                            errorWidget: (context, url, error) => Container(
-                              color: Colors.grey[100],
-                              child: Icon(Icons.broken_image,
-                                  size: 60, color: Colors.grey[400]),
-                            ),
-                          );
-                        },
+                        ],
                       )
                     : Container(
                         decoration: BoxDecoration(
@@ -622,45 +665,15 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
   }
 
   void _buyNow() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('确认订单'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('商品：${widget.product.name}'),
-            Text('数量：$_quantity'),
-            const SizedBox(height: 8),
-            Text(
-              '总计：¥${(widget.product.price * _quantity).toInt()}',
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFFE53935),
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('取消'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('订单已提交，请完成支付'),
-                  backgroundColor: Color(0xFF2E8B57),
-                ),
-              );
-            },
-            child: const Text('确认支付'),
-          ),
-        ],
+    final cartItem = CartItemModel(
+      product: widget.product,
+      quantity: _quantity,
+    );
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => CheckoutScreen(items: [cartItem]),
       ),
     );
   }

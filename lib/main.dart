@@ -95,13 +95,16 @@ class _HuiYuYuanAppState extends ConsumerState<HuiYuYuanApp> {
             WidgetsBinding.instance.platformDispatcher.platformBrightness ==
                 Brightness.dark);
 
-    SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
-      statusBarColor: Colors.transparent,
-      statusBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
-      systemNavigationBarColor: isDark ? const Color(0xFF121218) : Colors.white,
-      systemNavigationBarIconBrightness:
-          isDark ? Brightness.light : Brightness.dark,
-    ));
+    // 延迟到帧结束后设置，避免 build() 中每帧重复调用平台通道
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
+        systemNavigationBarColor: isDark ? const Color(0xFF121218) : Colors.white,
+        systemNavigationBarIconBrightness:
+            isDark ? Brightness.light : Brightness.dark,
+      ));
+    });
 
     // 根据语言设置确定 locale
     Locale appLocale;
@@ -389,7 +392,8 @@ class _ErrorScreen extends StatelessWidget {
               const SizedBox(height: 30),
               ElevatedButton.icon(
                 onPressed: () {
-                  // 重新加载
+                  // 重启应用 - 重新触发初始化流程
+                  Navigator.of(context).pushNamedAndRemoveUntil('/', (_) => false);
                 },
                 icon: const Icon(Icons.refresh),
                 label: const Text('重试'),

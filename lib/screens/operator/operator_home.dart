@@ -847,9 +847,9 @@ class _OperatorHomeState extends ConsumerState<OperatorHome> {
 
   Widget _buildReminderSwitch(
       String title, String subtitle, bool defaultValue) {
+    bool isOn = defaultValue;
     return StatefulBuilder(
       builder: (context, setSwState) {
-        bool isOn = defaultValue;
         return Container(
           margin: const EdgeInsets.only(bottom: 10),
           padding: const EdgeInsets.all(14),

@@ -14,6 +14,8 @@ import '../../themes/jewelry_theme.dart';
 import '../../themes/colors.dart';
 import 'dart:ui';
 import '../../widgets/common/glassmorphic_card.dart';
+import '../product/search_screen.dart';
+import '../notification/notification_screen.dart';
 
 /// 产品列表 Provider
 final productListProvider =
@@ -122,10 +124,18 @@ class _ProductListScreenState extends ConsumerState<ProductListScreen> {
             centerTitle: false,
             actions: [
               IconButton(
-                  onPressed: () {},
+                  onPressed: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (_) => const SearchScreen()),
+                      ),
                   icon: Icon(Icons.search, color: context.adaptiveTextPrimary)),
               IconButton(
-                  onPressed: () {},
+                  onPressed: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (_) => const NotificationScreen()),
+                      ),
                   icon: Icon(Icons.notifications_none,
                       color: context.adaptiveTextPrimary)),
             ],

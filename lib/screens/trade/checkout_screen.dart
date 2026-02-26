@@ -2,19 +2,21 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'dart:ui';
 import '../../models/address_model.dart';
+import '../../models/cart_item_model.dart';
+import '../../models/order_model.dart';
 import '../../services/address_service.dart';
-import 'cart_screen.dart'; // import cartProvider
+import '../../services/order_service.dart';
+import '../../providers/cart_provider.dart';
 import '../../themes/colors.dart';
 import '../../themes/jewelry_theme.dart';
 import '../../widgets/common/glassmorphic_card.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../profile/address_list_screen.dart';
 import '../order/order_list_screen.dart';
-import '../../models/user_model.dart'; // For ProductModel
 
 /// 确认订单 (结算) 页面
 class CheckoutScreen extends ConsumerStatefulWidget {
-  final List<Map<String, dynamic>> items;
+  final List<CartItemModel> items;
 
   const CheckoutScreen({super.key, required this.items});
 
@@ -62,11 +64,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   }
 
   double get _totalAmount {
-    return widget.items.fold(0, (sum, item) {
-      final product = item['product'] as ProductModel;
-      final quantity = item['quantity'] as int;
-      return sum + (product.price * quantity);
-    });
+    return widget.items.fold(0.0, (sum, item) => sum + item.subtotal);
   }
 
   void _processPayment() async {
@@ -79,15 +77,41 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
 
     setState(() => _isProcessingPayment = true);
 
-    // 模拟支付与订单创建过程
-    await Future.delayed(const Duration(seconds: 2));
+    try {
+      // 通过 OrderNotifier 创建订单
+      final orderNotifier = ref.read(orderProvider.notifier);
+      final paymentMethod = _paymentMethod == 'wechat'
+          ? PaymentMethod.wechat
+          : PaymentMethod.alipay;
 
-    if (mounted) {
+      final order = await orderNotifier.createOrder(
+        productName: widget.items.length == 1
+            ? widget.items.first.product.name
+            : '${widget.items.first.product.name} 等${widget.items.length}件商品',
+        amount: _totalAmount,
+        quantity: widget.items.fold(0, (sum, item) => sum + item.quantity),
+        productImage: widget.items.first.product.images.isNotEmpty
+            ? widget.items.first.product.images.first
+            : '',
+        paymentMethod: paymentMethod,
+        recipientName: _selectedAddress!.recipientName,
+        recipientPhone: _selectedAddress!.phoneNumber,
+        shippingAddress: _selectedAddress!.fullAddress,
+      );
+
+      // 模拟支付过程（企业沙箱级）
+      if (order != null) {
+        await orderNotifier.updateOrderStatus(order.id, OrderStatus.paid);
+      }
+
+      if (!mounted) return;
       setState(() => _isProcessingPayment = false);
 
-      // 清空购物车中的已勾选商品
-      // 这里简便处理为直接调用清空，实际应按 ID 移除
-      ref.read(cartProvider.notifier).clearCart();
+      // 从购物车移除已结算的商品
+      final cartNotifier = ref.read(cartProvider.notifier);
+      for (final item in widget.items) {
+        cartNotifier.removeItem(item.product.id);
+      }
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -106,6 +130,17 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
             builder: (context) => const OrderListScreen(initialTab: 2)),
         (route) => route.isFirst,
       );
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isProcessingPayment = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('支付失败: $e'),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
     }
   }
 
@@ -248,8 +283,8 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                   color: context.adaptiveTextPrimary)),
           const SizedBox(height: 16),
           ...widget.items.map((item) {
-            final product = item['product'] as ProductModel;
-            final quantity = item['quantity'] as int;
+            final product = item.product;
+            final quantity = item.quantity;
 
             return Padding(
               padding: const EdgeInsets.only(bottom: 16),

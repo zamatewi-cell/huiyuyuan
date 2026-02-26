@@ -1,63 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import '../../services/storage_service.dart';
+import '../../providers/cart_provider.dart';
+import '../../models/cart_item_model.dart';
 import '../../themes/jewelry_theme.dart';
 import '../../themes/colors.dart';
 import '../../widgets/common/glassmorphic_card.dart';
 import 'dart:ui';
 import 'checkout_screen.dart';
 
-/// 购物车 Provider
-final cartProvider =
-    StateNotifierProvider<CartNotifier, List<Map<String, dynamic>>>((ref) {
-  return CartNotifier();
-});
-
-class CartNotifier extends StateNotifier<List<Map<String, dynamic>>> {
-  final _storage = StorageService();
-
-  CartNotifier() : super([]) {
-    _loadCart();
-  }
-
-  Future<void> _loadCart() async {
-    final cart = await _storage.getCart();
-    state = cart;
-  }
-
-  Future<void> refresh() async {
-    await _loadCart();
-  }
-
-  Future<void> updateQuantity(String productId, int quantity) async {
-    final cart = await _storage.getCart();
-    final index = cart.indexWhere((e) => e['id'] == productId);
-    if (index >= 0) {
-      cart[index]['quantity'] = quantity;
-      await _storage.saveCart(cart);
-      state = cart;
-    }
-  }
-
-  Future<void> removeItem(String productId) async {
-    await _storage.removeFromCart(productId);
-    await _loadCart();
-  }
-
-  Future<void> clearCart() async {
-    await _storage.clearCart();
-    state = [];
-  }
-
-  double get totalAmount {
-    return state.fold(0.0, (sum, item) {
-      final price = (item['price'] ?? 0).toDouble();
-      final quantity = item['quantity'] ?? 1;
-      return sum + price * quantity;
-    });
-  }
-}
+// 向后兼容：旧代码如果 import cart_screen.dart 获取 cartProvider 仍然可用
+export '../../providers/cart_provider.dart' show cartProvider;
 
 /// 购物车页面
 class CartScreen extends ConsumerStatefulWidget {
@@ -186,17 +139,17 @@ class _CartScreenState extends ConsumerState<CartScreen> {
     );
   }
 
-  Widget _buildCartItem(Map<String, dynamic> item, CartNotifier notifier) {
-    final name = item['name'] ?? '未知商品';
-    final price = (item['price'] ?? 0).toDouble();
-    final quantity = item['quantity'] ?? 1;
-    final material = item['material'] ?? '';
-    final images = item['images'] as List?;
+  Widget _buildCartItem(CartItemModel item, CartNotifier notifier) {
+    final product = item.product;
+    final name = product.name;
+    final price = product.price;
+    final quantity = item.quantity;
+    final material = product.material;
     final imageUrl =
-        (images != null && images.isNotEmpty) ? images.first : null;
+        product.images.isNotEmpty ? product.images.first : null;
 
     return Dismissible(
-      key: Key(item['id'] ?? ''),
+      key: Key(product.id),
       direction: DismissDirection.endToStart,
       background: Container(
         alignment: Alignment.centerRight,
@@ -207,7 +160,7 @@ class _CartScreenState extends ConsumerState<CartScreen> {
         ),
         child: const Icon(Icons.delete, color: Colors.white),
       ),
-      onDismissed: (_) => notifier.removeItem(item['id']),
+      onDismissed: (_) => notifier.removeItem(product.id),
       child: PremiumCard(
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.all(12),
@@ -283,7 +236,7 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                             InkWell(
                               onTap: quantity > 1
                                   ? () => notifier.updateQuantity(
-                                      item['id'], quantity - 1)
+                                      product.id, quantity - 1)
                                   : null,
                               borderRadius: BorderRadius.circular(20),
                               child: Container(
@@ -310,7 +263,7 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                             ),
                             InkWell(
                               onTap: () => notifier.updateQuantity(
-                                  item['id'], quantity + 1),
+                                  product.id, quantity + 1),
                               borderRadius: BorderRadius.circular(20),
                               child: Container(
                                 padding: const EdgeInsets.all(6),
@@ -465,11 +418,13 @@ class _CartScreenState extends ConsumerState<CartScreen> {
   }
 
   void _checkout(CartNotifier notifier) {
-    final selectedItems = ref
-        .read(cartProvider)
-        .where((item) => item['isSelected'] == true)
-        .toList();
-    if (selectedItems.isEmpty) return;
+    final selectedItems = notifier.selectedItems;
+    if (selectedItems.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('请选择要结算的商品')),
+      );
+      return;
+    }
 
     Navigator.push(
       context,

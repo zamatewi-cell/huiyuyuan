@@ -7,7 +7,9 @@
 library;
 
 import 'package:dio/dio.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../models/user_model.dart';
+import '../config/api_config.dart';
 
 /// 后端服务类
 class BackendService {
@@ -18,7 +20,8 @@ class BackendService {
   late final Dio _dio;
   bool _initialized = false;
 
-  static const String baseUrl = 'http://localhost:8000';
+  /// 使用 ApiConfig 统一配置的 baseUrl
+  static String get baseUrl => ApiConfig.baseUrl;
 
   /// 初始化
   void initialize() {
@@ -26,10 +29,26 @@ class BackendService {
 
     _dio = Dio(BaseOptions(
       baseUrl: baseUrl,
-      connectTimeout: const Duration(seconds: 3),
-      receiveTimeout: const Duration(seconds: 5),
+      connectTimeout: const Duration(seconds: 5),
+      receiveTimeout: const Duration(seconds: 8),
       headers: {
         'Content-Type': 'application/json',
+      },
+    ));
+
+    // 自动注入 Auth Token
+    _dio.interceptors.add(InterceptorsWrapper(
+      onRequest: (options, handler) async {
+        try {
+          const storage = FlutterSecureStorage();
+          final token = await storage.read(key: 'auth_token');
+          if (token != null && token.isNotEmpty) {
+            options.headers['Authorization'] = 'Bearer $token';
+          }
+        } catch (_) {
+          // 无 token 时继续匿名请求
+        }
+        handler.next(options);
       },
     ));
 

@@ -1,20 +1,24 @@
-/// 汇玉源 - 商品搜索页面
+/// 汇玉源 - 商品搜索页面（完整版）
 ///
 /// 功能:
-/// - 搜索历史
-/// - 热门搜索
-/// - 实时搜索建议
-/// - 搜索结果筛选
+/// - 真实商品数据搜索（名称/材质/分类/编号/描述）
+/// - 搜索历史（本地持久化）
+/// - 热门搜索标签（排名高亮）
+/// - 实时搜索建议（边输入边推荐）
+/// - 搜索结果分类筛选 + 价格/销量排序
+/// - 搜索结果点击跳转商品详情
+/// - 发现好物推荐（热销 Top4）
 library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'dart:ui';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../themes/colors.dart';
 import '../../themes/jewelry_theme.dart';
 import '../../services/storage_service.dart';
-import '../../widgets/common/empty_state.dart';
-import '../../widgets/common/skeleton.dart';
+import '../../data/product_data.dart';
+import '../../models/user_model.dart';
+import '../trade/product_detail_screen.dart';
 
 /// 搜索历史Provider
 final searchHistoryProvider = FutureProvider<List<String>>((ref) async {
@@ -26,144 +30,209 @@ final searchHistoryProvider = FutureProvider<List<String>>((ref) async {
 /// 热门搜索
 const List<String> hotSearches = [
   '和田玉',
-  '翡翠',
-  '南红',
-  '手链',
-  '吊坠',
-  '福利款',
+  '翡翠手链',
+  '南红玛瑙',
   '平安扣',
-  '转运珠',
+  '貔貅',
+  '福利款',
+  '紫水晶',
+  '蜜蜡',
 ];
 
+/// 排序方式
+enum _SortType { relevance, priceLow, priceHigh, sales }
+
 class SearchScreen extends ConsumerStatefulWidget {
-  const SearchScreen({super.key});
+  final String? initialQuery;
+  const SearchScreen({super.key, this.initialQuery});
 
   @override
   ConsumerState<SearchScreen> createState() => _SearchScreenState();
 }
 
-class _SearchScreenState extends ConsumerState<SearchScreen> {
+class _SearchScreenState extends ConsumerState<SearchScreen>
+    with SingleTickerProviderStateMixin {
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _focusNode = FocusNode();
-  List<Map<String, dynamic>> _searchResults = [];
+  List<ProductModel> _searchResults = [];
+  List<ProductModel> _suggestions = [];
   bool _isSearching = false;
   bool _showResults = false;
+  String _filterCategory = '全部';
+  _SortType _sortType = _SortType.relevance;
+  late AnimationController _animController;
 
   @override
   void initState() {
     super.initState();
+    _animController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 350),
+    );
     _focusNode.requestFocus();
+    if (widget.initialQuery != null && widget.initialQuery!.isNotEmpty) {
+      _searchController.text = widget.initialQuery!;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _performSearch(widget.initialQuery!);
+      });
+    }
   }
 
   @override
   void dispose() {
     _searchController.dispose();
     _focusNode.dispose();
+    _animController.dispose();
     super.dispose();
   }
 
+  /// 执行真实商品搜索
   Future<void> _performSearch(String keyword) async {
-    if (keyword.trim().isEmpty) return;
+    final kw = keyword.trim();
+    if (kw.isEmpty) return;
 
-    setState(() => _isSearching = true);
+    setState(() {
+      _isSearching = true;
+      _showResults = true;
+      _filterCategory = '全部';
+      _sortType = _SortType.relevance;
+      _suggestions = [];
+    });
 
     // 保存搜索历史
     final storage = StorageService();
-    await storage.addSearchHistory(keyword.trim());
+    await storage.init();
+    await storage.addSearchHistory(kw);
+    ref.invalidate(searchHistoryProvider);
 
-    // 模拟搜索延迟
-    await Future.delayed(const Duration(milliseconds: 500));
+    // 在真实商品数据中搜索（名称/材质/分类/编号/产地/描述）
+    final kwLower = kw.toLowerCase();
+    _searchResults = realProductData.where((p) {
+      return p.name.toLowerCase().contains(kwLower) ||
+          p.material.toLowerCase().contains(kwLower) ||
+          p.category.toLowerCase().contains(kwLower) ||
+          p.id.toLowerCase().contains(kwLower) ||
+          (p.origin?.toLowerCase().contains(kwLower) ?? false) ||
+          p.description.toLowerCase().contains(kwLower);
+    }).toList();
 
-    // 模拟搜索结果
-    _searchResults = _getMockSearchResults(keyword);
+    // 相关度排序：名称匹配优先
+    _searchResults.sort((a, b) {
+      final aNameMatch = a.name.toLowerCase().contains(kwLower) ? 0 : 1;
+      final bNameMatch = b.name.toLowerCase().contains(kwLower) ? 0 : 1;
+      if (aNameMatch != bNameMatch) return aNameMatch.compareTo(bNameMatch);
+      return b.salesCount.compareTo(a.salesCount);
+    });
 
+    await Future.delayed(const Duration(milliseconds: 200));
+
+    if (mounted) {
+      setState(() => _isSearching = false);
+      _animController.forward(from: 0.0);
+    }
+  }
+
+  /// 实时搜索建议
+  void _onSearchChanged(String value) {
+    if (value.trim().isEmpty) {
+      setState(() {
+        _suggestions = [];
+        if (!_showResults) return;
+      });
+      return;
+    }
+    final kw = value.trim().toLowerCase();
     setState(() {
-      _isSearching = false;
-      _showResults = true;
+      _suggestions = realProductData
+          .where((p) =>
+              p.name.toLowerCase().contains(kw) ||
+              p.material.toLowerCase().contains(kw) ||
+              p.category.toLowerCase().contains(kw))
+          .take(6)
+          .toList();
     });
   }
 
-  List<Map<String, dynamic>> _getMockSearchResults(String keyword) {
-    final allProducts = [
-      {'id': '1', 'name': '和田玉福运手链', 'price': 299, 'material': '和田玉'},
-      {'id': '2', 'name': '和田玉平安扣吊坠', 'price': 399, 'material': '和田玉'},
-      {'id': '3', 'name': '缅甸翡翠手镯', 'price': 2999, 'material': '翡翠'},
-      {'id': '4', 'name': '冰种翡翠观音吊坠', 'price': 1599, 'material': '翡翠'},
-      {'id': '5', 'name': '南红玛瑙转运珠手链', 'price': 199, 'material': '南红'},
-      {'id': '6', 'name': '南红玛瑙貔貅吊坠', 'price': 599, 'material': '南红'},
-      {'id': '7', 'name': '紫水晶手链', 'price': 159, 'material': '紫水晶'},
-      {'id': '8', 'name': '蜜蜡琥珀平安扣', 'price': 899, 'material': '蜜蜡'},
-    ];
+  /// 获取已筛选/排序的结果
+  List<ProductModel> get _filteredResults {
+    var results = _filterCategory == '全部'
+        ? List<ProductModel>.from(_searchResults)
+        : _searchResults.where((p) => p.category == _filterCategory).toList();
 
-    return allProducts.where((p) {
-      final name = p['name'] as String;
-      final material = p['material'] as String;
-      return name.contains(keyword) || material.contains(keyword);
-    }).toList();
+    switch (_sortType) {
+      case _SortType.priceLow:
+        results.sort((a, b) => a.price.compareTo(b.price));
+      case _SortType.priceHigh:
+        results.sort((a, b) => b.price.compareTo(a.price));
+      case _SortType.sales:
+        results.sort((a, b) => b.salesCount.compareTo(a.salesCount));
+      case _SortType.relevance:
+        break;
+    }
+    return results;
   }
 
   @override
   Widget build(BuildContext context) {
+    final isDark = context.isDark;
     return Scaffold(
       backgroundColor: context.adaptiveBackground,
       body: SafeArea(
         child: Column(
           children: [
-            _buildSearchBar(),
-            Expanded(
-              child: _showResults
-                  ? _buildSearchResults()
-                  : _buildSearchSuggestions(),
-            ),
+            _buildSearchBar(isDark),
+            // 实时建议（仅搜索未提交时显示）
+            if (!_showResults && _suggestions.isNotEmpty)
+              _buildSuggestionList(isDark),
+            // 历史 + 热搜 + 推荐
+            if (!_showResults && _suggestions.isEmpty)
+              Expanded(child: _buildSearchSuggestions(isDark)),
+            // 搜索结果
+            if (_showResults) ...[
+              if (_searchResults.isNotEmpty) _buildFilterSortBar(isDark),
+              Expanded(child: _buildSearchResults(isDark)),
+            ],
           ],
         ),
       ),
     );
   }
 
-  Widget _buildSearchBar() {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+  // ─────────────── 搜索栏 ───────────────
+  Widget _buildSearchBar(bool isDark) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(8, 12, 16, 12),
       decoration: BoxDecoration(
         color: isDark ? JewelryColors.darkSurface : Colors.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(isDark ? 0.2 : 0.05),
-            blurRadius: 10,
+            color: Colors.black.withOpacity(isDark ? 0.2 : 0.04),
+            blurRadius: 8,
             offset: const Offset(0, 2),
           ),
         ],
       ),
       child: Row(
         children: [
-          // 返回按钮
-          GestureDetector(
-            onTap: () => Navigator.pop(context),
-            child: const Icon(
-              Icons.arrow_back_ios,
-              color: JewelryColors.textSecondary,
-              size: 20,
-            ),
+          IconButton(
+            onPressed: () => Navigator.pop(context),
+            icon: Icon(Icons.arrow_back_ios_new_rounded,
+                color: context.adaptiveTextSecondary, size: 20),
           ),
-          const SizedBox(width: 12),
-
-          // 搜索框
           Expanded(
             child: Container(
-              height: 44,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
+              height: 42,
+              padding: const EdgeInsets.symmetric(horizontal: 14),
               decoration: BoxDecoration(
-                color: isDark ? const Color(0xFF2A2A3A) : Colors.grey.shade100,
-                borderRadius: BorderRadius.circular(22),
+                color: isDark
+                    ? Colors.white.withOpacity(0.07)
+                    : const Color(0xFFF5F5F8),
+                borderRadius: BorderRadius.circular(21),
               ),
               child: Row(
                 children: [
-                  Icon(
-                    Icons.search,
-                    color: JewelryColors.textHint,
-                    size: 20,
-                  ),
+                  Icon(Icons.search_rounded,
+                      color: JewelryColors.textHint, size: 20),
                   const SizedBox(width: 8),
                   Expanded(
                     child: TextField(
@@ -177,27 +246,34 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                         ),
                         border: InputBorder.none,
                         contentPadding: EdgeInsets.zero,
+                        isDense: true,
                       ),
-                      style: const TextStyle(fontSize: 14),
+                      style: TextStyle(
+                          fontSize: 14,
+                          color: context.adaptiveTextPrimary),
                       textInputAction: TextInputAction.search,
                       onSubmitted: _performSearch,
-                      onChanged: (value) {
-                        if (value.isEmpty && _showResults) {
-                          setState(() => _showResults = false);
-                        }
-                      },
+                      onChanged: _onSearchChanged,
                     ),
                   ),
                   if (_searchController.text.isNotEmpty)
                     GestureDetector(
                       onTap: () {
                         _searchController.clear();
-                        setState(() => _showResults = false);
+                        setState(() {
+                          _showResults = false;
+                          _suggestions = [];
+                        });
                       },
-                      child: Icon(
-                        Icons.cancel,
-                        color: JewelryColors.textHint,
-                        size: 18,
+                      child: Container(
+                        padding: const EdgeInsets.all(2),
+                        decoration: BoxDecoration(
+                          color: Colors.grey.withOpacity(0.3),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(Icons.close_rounded,
+                            color: isDark ? Colors.white60 : Colors.grey[600],
+                            size: 14),
                       ),
                     ),
                 ],
@@ -205,15 +281,17 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
             ),
           ),
           const SizedBox(width: 12),
-
-          // 搜索按钮
           GestureDetector(
-            onTap: () => _performSearch(_searchController.text),
+            onTap: () {
+              _performSearch(_searchController.text);
+              FocusScope.of(context).unfocus();
+            },
             child: Text(
               '搜索',
               style: TextStyle(
                 color: JewelryColors.primary,
                 fontWeight: FontWeight.w600,
+                fontSize: 15,
               ),
             ),
           ),
@@ -222,11 +300,77 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     );
   }
 
-  Widget _buildSearchSuggestions() {
-    final historyAsync = ref.watch(searchHistoryProvider);
+  // ─────────────── 实时搜索建议 ───────────────
+  Widget _buildSuggestionList(bool isDark) {
+    return Container(
+      constraints: const BoxConstraints(maxHeight: 280),
+      decoration: BoxDecoration(
+        color: isDark ? JewelryColors.darkCard : Colors.white,
+        border: Border(
+          bottom: BorderSide(color: Colors.grey.withOpacity(0.15)),
+        ),
+      ),
+      child: ListView(
+        shrinkWrap: true,
+        padding: EdgeInsets.zero,
+        children: _suggestions.map((product) {
+          return InkWell(
+            onTap: () {
+              _searchController.text = product.name;
+              _performSearch(product.name);
+              FocusScope.of(context).unfocus();
+            },
+            child: Padding(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              child: Row(
+                children: [
+                  Icon(Icons.search, size: 16, color: Colors.grey[400]),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: RichText(
+                      text: _highlightText(
+                          product.name, _searchController.text.trim()),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  Text(product.category,
+                      style:
+                          TextStyle(color: Colors.grey[400], fontSize: 12)),
+                  const SizedBox(width: 8),
+                  Icon(Icons.north_west, size: 14, color: Colors.grey[400]),
+                ],
+              ),
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
 
+  TextSpan _highlightText(String text, String query) {
+    final base = TextStyle(
+        color: context.adaptiveTextPrimary, fontSize: 14);
+    if (query.isEmpty) return TextSpan(text: text, style: base);
+    final idx = text.toLowerCase().indexOf(query.toLowerCase());
+    if (idx == -1) return TextSpan(text: text, style: base);
+    return TextSpan(children: [
+      if (idx > 0) TextSpan(text: text.substring(0, idx), style: base),
+      TextSpan(
+        text: text.substring(idx, idx + query.length),
+        style: base.copyWith(
+            color: JewelryColors.primary, fontWeight: FontWeight.bold),
+      ),
+      if (idx + query.length < text.length)
+        TextSpan(text: text.substring(idx + query.length), style: base),
+    ]);
+  }
+
+  // ─────────────── 历史 + 热门 + 推荐好物 ───────────────
+  Widget _buildSearchSuggestions(bool isDark) {
+    final historyAsync = ref.watch(searchHistoryProvider);
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -240,24 +384,28 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text(
-                        '搜索历史',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: JewelryColors.textPrimary,
-                        ),
-                      ),
+                      Text('搜索历史',
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                            color: context.adaptiveTextPrimary,
+                          )),
                       GestureDetector(
                         onTap: () async {
                           final storage = StorageService();
+                          await storage.init();
                           await storage.clearSearchHistory();
                           ref.invalidate(searchHistoryProvider);
                         },
-                        child: Icon(
-                          Icons.delete_outline,
-                          color: JewelryColors.textHint,
-                          size: 20,
+                        child: Row(
+                          children: [
+                            Icon(Icons.delete_outline_rounded,
+                                color: Colors.grey[400], size: 16),
+                            const SizedBox(width: 4),
+                            Text('清空',
+                                style: TextStyle(
+                                    color: Colors.grey[400], fontSize: 12)),
+                          ],
                         ),
                       ),
                     ],
@@ -265,15 +413,12 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                   const SizedBox(height: 12),
                   Wrap(
                     spacing: 8,
-                    runSpacing: 8,
+                    runSpacing: 10,
                     children: history.map((keyword) {
-                      return _buildTag(keyword, onTap: () {
-                        _searchController.text = keyword;
-                        _performSearch(keyword);
-                      });
+                      return _buildHistoryTag(keyword, isDark);
                     }).toList(),
                   ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 28),
                 ],
               );
             },
@@ -282,176 +427,545 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           ),
 
           // 热门搜索
-          const Text(
-            '热门搜索',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              color: JewelryColors.textPrimary,
-            ),
+          Row(
+            children: [
+              Text('热门搜索',
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: context.adaptiveTextPrimary,
+                  )),
+              const SizedBox(width: 6),
+              const Icon(Icons.local_fire_department_rounded,
+                  color: Color(0xFFFF6B6B), size: 18),
+            ],
           ),
           const SizedBox(height: 12),
           Wrap(
             spacing: 8,
-            runSpacing: 8,
-            children: hotSearches.map((keyword) {
-              return _buildTag(
-                keyword,
-                isHot: true,
-                onTap: () {
-                  _searchController.text = keyword;
-                  _performSearch(keyword);
-                },
-              );
-            }).toList(),
+            runSpacing: 10,
+            children: List.generate(hotSearches.length, (i) {
+              return _buildHotTag(hotSearches[i], i, isDark);
+            }),
           ),
+
+          const SizedBox(height: 36),
+          // 发现好物
+          Text('发现好物',
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+                color: context.adaptiveTextPrimary,
+              )),
+          const SizedBox(height: 12),
+          _buildRecommendGrid(isDark),
         ],
       ),
     );
   }
 
-  Widget _buildTag(String text, {bool isHot = false, VoidCallback? onTap}) {
+  Widget _buildHistoryTag(String text, bool isDark) {
     return GestureDetector(
-      onTap: onTap,
+      onTap: () {
+        _searchController.text = text;
+        _performSearch(text);
+      },
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
-          color: isHot
-              ? JewelryColors.primary.withOpacity(0.1)
-              : Colors.grey.shade100,
-          borderRadius: BorderRadius.circular(16),
-          border: isHot
-              ? Border.all(color: JewelryColors.primary.withOpacity(0.3))
+          color: isDark
+              ? Colors.white.withOpacity(0.06)
+              : const Color(0xFFF2F3F5),
+          borderRadius: BorderRadius.circular(18),
+        ),
+        child: Text(text,
+            style: TextStyle(
+                fontSize: 13, color: context.adaptiveTextSecondary)),
+      ),
+    );
+  }
+
+  Widget _buildHotTag(String text, int index, bool isDark) {
+    final isTop3 = index < 3;
+    return GestureDetector(
+      onTap: () {
+        _searchController.text = text;
+        _performSearch(text);
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          color: isTop3
+              ? JewelryColors.primary.withOpacity(isDark ? 0.2 : 0.08)
+              : (isDark
+                  ? Colors.white.withOpacity(0.06)
+                  : const Color(0xFFF2F3F5)),
+          borderRadius: BorderRadius.circular(18),
+          border: isTop3
+              ? Border.all(
+                  color: JewelryColors.primary.withOpacity(0.3), width: 0.5)
               : null,
         ),
-        child: Text(
-          text,
-          style: TextStyle(
-            fontSize: 13,
-            color: isHot ? JewelryColors.primary : JewelryColors.textSecondary,
-          ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (isTop3)
+              Padding(
+                padding: const EdgeInsets.only(right: 4),
+                child: Text('${index + 1}',
+                    style: TextStyle(
+                      color: JewelryColors.primary,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                    )),
+              ),
+            Text(text,
+                style: TextStyle(
+                  fontSize: 13,
+                  color: isTop3
+                      ? JewelryColors.primary
+                      : context.adaptiveTextSecondary,
+                  fontWeight: isTop3 ? FontWeight.w500 : FontWeight.normal,
+                )),
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildSearchResults() {
-    if (_isSearching) {
-      return const ProductListSkeleton(itemCount: 4);
-    }
+  /// 推荐好物网格 — 热销前 4 个商品
+  Widget _buildRecommendGrid(bool isDark) {
+    final hotItems = List<ProductModel>.from(realProductData)
+      ..sort((a, b) => b.salesCount.compareTo(a.salesCount));
+    final top4 = hotItems.take(4).toList();
 
-    if (_searchResults.isEmpty) {
-      return const EmptyStateWidget(type: EmptyType.search);
-    }
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // 结果数量
-        Padding(
-          padding: const EdgeInsets.all(16),
-          child: Text(
-            '找到 ${_searchResults.length} 件相关商品',
-            style: TextStyle(
-              fontSize: 13,
-              color: JewelryColors.textSecondary,
-            ),
-          ),
-        ),
-
-        // 结果列表
-        Expanded(
-          child: ListView.separated(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            itemCount: _searchResults.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 12),
-            itemBuilder: (context, index) {
-              final product = _searchResults[index];
-              return _SearchResultCard(product: product);
-            },
-          ),
-        ),
-      ],
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        childAspectRatio: 0.82,
+        crossAxisSpacing: 10,
+        mainAxisSpacing: 10,
+      ),
+      itemCount: top4.length,
+      itemBuilder: (_, i) => _buildMiniProductCard(top4[i], isDark),
     );
   }
-}
 
-class _SearchResultCard extends StatelessWidget {
-  final Map<String, dynamic> product;
+  Widget _buildMiniProductCard(ProductModel product, bool isDark) {
+    return GestureDetector(
+      onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(
+              builder: (_) => ProductDetailScreen(product: product))),
+      child: Container(
+        decoration: BoxDecoration(
+          color: isDark ? JewelryColors.darkCard : Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(isDark ? 0.15 : 0.04),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: ClipRRect(
+                borderRadius:
+                    const BorderRadius.vertical(top: Radius.circular(14)),
+                child: CachedNetworkImage(
+                  imageUrl:
+                      product.images.isNotEmpty ? product.images.first : '',
+                  fit: BoxFit.cover,
+                  width: double.infinity,
+                  memCacheWidth: 300,
+                  errorWidget: (_, __, ___) => Container(
+                    color: isDark ? Colors.grey[800] : Colors.grey[100],
+                    child: Icon(Icons.diamond_rounded,
+                        color: Colors.grey[400], size: 32),
+                  ),
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(10),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(product.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                          color: context.adaptiveTextPrimary)),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Text('¥${product.price.toInt()}',
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                            color: JewelryColors.price,
+                          )),
+                      const Spacer(),
+                      Text('${product.salesCount}人付款',
+                          style: TextStyle(
+                              color: Colors.grey[400], fontSize: 10)),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
-  const _SearchResultCard({required this.product});
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+  // ─────────────── 筛选/排序栏 ───────────────
+  Widget _buildFilterSortBar(bool isDark) {
+    final cats = ['全部', ...{..._searchResults.map((p) => p.category)}];
     return Container(
-      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: isDark ? JewelryColors.darkCard : Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(isDark ? 0.2 : 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        color: isDark ? JewelryColors.darkSurface : Colors.white,
+        border: Border(
+          bottom: BorderSide(color: Colors.grey.withOpacity(0.12)),
+        ),
       ),
-      child: Row(
+      child: Column(
         children: [
-          // 商品图片
-          Container(
-            width: 80,
-            height: 80,
-            decoration: BoxDecoration(
-              color: JewelryColors.primary.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Icon(
-              Icons.diamond_outlined,
-              size: 36,
-              color: JewelryColors.primary.withOpacity(0.5),
+          // 分类标签
+          SizedBox(
+            height: 42,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              itemCount: cats.length,
+              itemBuilder: (_, i) {
+                final cat = cats[i];
+                final selected = cat == _filterCategory;
+                return GestureDetector(
+                  onTap: () => setState(() => _filterCategory = cat),
+                  child: Container(
+                    margin: const EdgeInsets.symmetric(horizontal: 4),
+                    padding: const EdgeInsets.symmetric(horizontal: 14),
+                    decoration: BoxDecoration(
+                      gradient:
+                          selected ? JewelryColors.primaryGradient : null,
+                      color: selected
+                          ? null
+                          : (isDark
+                              ? Colors.white.withOpacity(0.06)
+                              : const Color(0xFFF2F3F5)),
+                      borderRadius: BorderRadius.circular(18),
+                    ),
+                    child: Center(
+                      child: Text(cat,
+                          style: TextStyle(
+                            color: selected
+                                ? Colors.white
+                                : context.adaptiveTextSecondary,
+                            fontSize: 12,
+                            fontWeight: selected
+                                ? FontWeight.w600
+                                : FontWeight.normal,
+                          )),
+                    ),
+                  ),
+                );
+              },
             ),
           ),
-          const SizedBox(width: 12),
-
-          // 商品信息
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          // 排序栏
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+            child: Row(
               children: [
-                Text(
-                  product['name'] ?? '',
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: JewelryColors.textPrimary,
-                  ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  product['material'] ?? '',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: JewelryColors.textSecondary,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  '¥${product['price']}',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: JewelryColors.price,
-                  ),
-                ),
+                Text('共 ${_filteredResults.length} 件',
+                    style:
+                        TextStyle(color: Colors.grey[400], fontSize: 12)),
+                const Spacer(),
+                _buildSortChip('综合', _SortType.relevance, isDark),
+                _buildSortChip('价格↑', _SortType.priceLow, isDark),
+                _buildSortChip('价格↓', _SortType.priceHigh, isDark),
+                _buildSortChip('销量', _SortType.sales, isDark),
               ],
             ),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildSortChip(String label, _SortType type, bool isDark) {
+    final selected = _sortType == type;
+    return GestureDetector(
+      onTap: () => setState(() => _sortType = type),
+      child: Container(
+        margin: const EdgeInsets.only(left: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        decoration: BoxDecoration(
+          color: selected
+              ? JewelryColors.primary.withOpacity(0.12)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Text(label,
+            style: TextStyle(
+              color: selected ? JewelryColors.primary : Colors.grey[500],
+              fontSize: 12,
+              fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
+            )),
+      ),
+    );
+  }
+
+  // ─────────────── 搜索结果列表 ───────────────
+  Widget _buildSearchResults(bool isDark) {
+    if (_isSearching) {
+      return ListView.builder(
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 20),
+        itemCount: 5,
+        itemBuilder: (_, __) => Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          height: 114,
+          decoration: BoxDecoration(
+            color: isDark
+                ? Colors.white.withOpacity(0.05)
+                : Colors.grey[100],
+            borderRadius: BorderRadius.circular(14),
+          ),
+        ),
+      );
+    }
+
+    final results = _filteredResults;
+    if (results.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.search_off_rounded,
+                size: 64, color: Colors.grey[300]),
+            const SizedBox(height: 16),
+            Text('未找到相关商品',
+                style: TextStyle(
+                    color: Colors.grey[400],
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500)),
+            const SizedBox(height: 8),
+            Text('换个关键词试试吧',
+                style:
+                    TextStyle(color: Colors.grey[400], fontSize: 13)),
+          ],
+        ),
+      );
+    }
+
+    return ListView.builder(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 20),
+      itemCount: results.length,
+      itemBuilder: (_, i) => _buildResultCard(results[i], isDark, i),
+    );
+  }
+
+  Widget _buildResultCard(ProductModel product, bool isDark, int index) {
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0.0, end: 1.0),
+      duration: Duration(milliseconds: 300 + index * 50),
+      curve: Curves.easeOut,
+      builder: (context, value, child) => Opacity(
+        opacity: value,
+        child: Transform.translate(
+          offset: Offset(0, (1 - value) * 12),
+          child: child,
+        ),
+      ),
+      child: GestureDetector(
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(
+              builder: (_) => ProductDetailScreen(product: product)),
+        ),
+        child: Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: isDark ? JewelryColors.darkCard : Colors.white,
+            borderRadius: BorderRadius.circular(14),
+            boxShadow: [
+              BoxShadow(
+                color:
+                    Colors.black.withOpacity(isDark ? 0.15 : 0.04),
+                blurRadius: 10,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              // 商品图片
+              Hero(
+                tag: 'search_product_${product.id}',
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(10),
+                  child: product.images.isNotEmpty
+                      ? CachedNetworkImage(
+                          imageUrl: product.images.first,
+                          width: 90,
+                          height: 90,
+                          fit: BoxFit.cover,
+                          memCacheWidth: 180,
+                          errorWidget: (_, __, ___) =>
+                              _buildImagePlaceholder(isDark),
+                        )
+                      : _buildImagePlaceholder(isDark),
+                ),
+              ),
+              const SizedBox(width: 12),
+              // 商品信息
+              Expanded(
+                child: SizedBox(
+                  height: 90,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            product.name,
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: context.adaptiveTextPrimary,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 4),
+                          Row(
+                            children: [
+                              _buildSmallTag(product.material, isDark),
+                              const SizedBox(width: 6),
+                              _buildSmallTag(product.category, isDark),
+                              if (product.isHot) ...[
+                                const SizedBox(width: 6),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFFF6B6B)
+                                        .withOpacity(0.12),
+                                    borderRadius:
+                                        BorderRadius.circular(6),
+                                  ),
+                                  child: const Text('热销',
+                                      style: TextStyle(
+                                          color: Color(0xFFFF6B6B),
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.w500)),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ],
+                      ),
+                      Row(
+                        mainAxisAlignment:
+                            MainAxisAlignment.spaceBetween,
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Row(
+                            crossAxisAlignment:
+                                CrossAxisAlignment.end,
+                            children: [
+                              Text('¥',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                    color: JewelryColors.price,
+                                  )),
+                              Text('${product.price.toInt()}',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                    color: JewelryColors.price,
+                                    height: 1,
+                                  )),
+                              if (product.originalPrice != null) ...[
+                                const SizedBox(width: 6),
+                                Text(
+                                    '¥${product.originalPrice!.toInt()}',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: Colors.grey[400],
+                                      decoration:
+                                          TextDecoration.lineThrough,
+                                    )),
+                              ],
+                            ],
+                          ),
+                          Row(
+                            children: [
+                              const Icon(Icons.star_rounded,
+                                  color: Color(0xFFFFB800), size: 14),
+                              Text('${product.rating}',
+                                  style: TextStyle(
+                                      color: Colors.grey[500],
+                                      fontSize: 11)),
+                              Text(' · ${product.salesCount}付款',
+                                  style: TextStyle(
+                                      color: Colors.grey[400],
+                                      fontSize: 11)),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSmallTag(String text, bool isDark) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: isDark
+            ? Colors.white.withOpacity(0.08)
+            : const Color(0xFFF2F3F5),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Text(text,
+          style: TextStyle(
+              color: context.adaptiveTextSecondary, fontSize: 10)),
+    );
+  }
+
+  Widget _buildImagePlaceholder(bool isDark) {
+    return Container(
+      width: 90,
+      height: 90,
+      decoration: BoxDecoration(
+        color: isDark ? Colors.grey[800] : Colors.grey[100],
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child:
+          Icon(Icons.diamond_rounded, color: Colors.grey[400], size: 36),
     );
   }
 }

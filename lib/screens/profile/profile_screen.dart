@@ -12,6 +12,7 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../themes/colors.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/app_settings_provider.dart';
@@ -303,9 +304,80 @@ class ProfileScreen extends ConsumerWidget {
               ),
               child: const Icon(Icons.edit, color: Colors.white70, size: 18),
             ),
-            onPressed: () {},
+            onPressed: () => _showEditProfileSheet(context),
           ),
         ],
+      ),
+    );
+  }
+
+  void _showEditProfileSheet(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final nameCtrl = TextEditingController(text: '');
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: isDark ? const Color(0xFF1A1A2E) : Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => Padding(
+        padding: EdgeInsets.fromLTRB(
+            20, 20, 20, MediaQuery.of(ctx).viewInsets.bottom + 20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 36,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text('编辑资料',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: isDark ? Colors.white : JewelryColors.textPrimary,
+                )),
+            const SizedBox(height: 20),
+            TextField(
+              controller: nameCtrl,
+              decoration: InputDecoration(
+                labelText: '昵称',
+                border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12)),
+              ),
+            ),
+            const SizedBox(height: 20),
+            SizedBox(
+              width: double.infinity,
+              height: 48,
+              child: ElevatedButton(
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('✅ 资料已更新'),
+                      backgroundColor: JewelryColors.success,
+                    ),
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: JewelryColors.primary,
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
+                ),
+                child: const Text('保存'),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1098,7 +1170,7 @@ class ProfileScreen extends ConsumerWidget {
   }
 }
 
-/// 提醒设置弹窗
+/// 提醒设置弹窗（持久化版）
 class _ReminderSettingsSheet extends StatefulWidget {
   @override
   State<_ReminderSettingsSheet> createState() => _ReminderSettingsSheetState();
@@ -1109,6 +1181,32 @@ class _ReminderSettingsSheetState extends State<_ReminderSettingsSheet> {
   bool _orderReminder = true;
   bool _dailyReport = false;
   bool _aiReminder = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSettings();
+  }
+
+  Future<void> _loadSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (mounted) {
+      setState(() {
+        _customerReminder = prefs.getBool('reminder_customer') ?? true;
+        _orderReminder = prefs.getBool('reminder_order') ?? true;
+        _dailyReport = prefs.getBool('reminder_daily') ?? false;
+        _aiReminder = prefs.getBool('reminder_ai') ?? true;
+      });
+    }
+  }
+
+  Future<void> _saveSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('reminder_customer', _customerReminder);
+    await prefs.setBool('reminder_order', _orderReminder);
+    await prefs.setBool('reminder_daily', _dailyReport);
+    await prefs.setBool('reminder_ai', _aiReminder);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -1155,14 +1253,17 @@ class _ReminderSettingsSheetState extends State<_ReminderSettingsSheet> {
             width: double.infinity,
             height: 48,
             child: ElevatedButton(
-              onPressed: () {
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('✅ 提醒设置已保存'),
-                    backgroundColor: JewelryColors.success,
-                  ),
-                );
+              onPressed: () async {
+                await _saveSettings();
+                if (context.mounted) {
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('✅ 提醒设置已保存'),
+                      backgroundColor: JewelryColors.success,
+                    ),
+                  );
+                }
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: JewelryColors.primary,

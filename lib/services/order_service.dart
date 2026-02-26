@@ -85,10 +85,20 @@ class OrderNotifier extends StateNotifier<List<OrderModel>> {
 
   /// 创建订单
   Future<OrderModel?> createOrder({
-    required String productId,
     required String productName,
     required int quantity,
     required double amount,
+    String? productId,
+    String? productImage,
+    String? productSpec,
+    double? unitPrice,
+    PaymentMethod? paymentMethod,
+    String? recipientName,
+    String? recipientPhone,
+    String? shippingAddress,
+    double shippingFee = 0,
+    double discount = 0,
+    String? remark,
     String? operatorId,
   }) async {
     if (!ApiConfig.useMockApi) {
@@ -97,10 +107,15 @@ class OrderNotifier extends StateNotifier<List<OrderModel>> {
         final result = await api.post<Map<String, dynamic>>(
           ApiConfig.orders,
           data: {
-            'product_id': productId,
+            'product_id': productId ?? '',
             'product_name': productName,
             'quantity': quantity,
             'amount': amount,
+            'product_image': productImage,
+            'payment_method': paymentMethod?.name,
+            'recipient_name': recipientName,
+            'recipient_phone': recipientPhone,
+            'shipping_address': shippingAddress,
             'operator_id': operatorId,
           },
         );
@@ -108,10 +123,15 @@ class OrderNotifier extends StateNotifier<List<OrderModel>> {
           final json = result.data!;
           final order = OrderModel(
             id: json['id'] ?? 'ORD${DateTime.now().millisecondsSinceEpoch}',
-            productId: productId,
+            productId: productId ?? '',
             productName: productName,
             quantity: quantity,
             amount: amount,
+            productImage: productImage,
+            paymentMethod: paymentMethod ?? PaymentMethod.wechat,
+            recipientName: recipientName,
+            recipientPhone: recipientPhone,
+            shippingAddress: shippingAddress,
             status: OrderStatus.pending,
             createdAt: json['created_at'] != null
                 ? DateTime.parse(json['created_at'])
@@ -126,10 +146,15 @@ class OrderNotifier extends StateNotifier<List<OrderModel>> {
 
     final order = OrderModel(
       id: 'ORD${DateTime.now().millisecondsSinceEpoch}',
-      productId: productId,
+      productId: productId ?? '',
       productName: productName,
       quantity: quantity,
       amount: amount,
+      productImage: productImage,
+      paymentMethod: paymentMethod ?? PaymentMethod.wechat,
+      recipientName: recipientName,
+      recipientPhone: recipientPhone,
+      shippingAddress: shippingAddress,
       status: OrderStatus.pending,
       createdAt: DateTime.now(),
       operatorId: operatorId,
@@ -157,16 +182,7 @@ class OrderNotifier extends StateNotifier<List<OrderModel>> {
     final index = state.indexWhere((o) => o.id == orderId);
     if (index < 0) return false;
 
-    final updatedOrder = OrderModel(
-      id: state[index].id,
-      productId: state[index].productId,
-      productName: state[index].productName,
-      quantity: state[index].quantity,
-      amount: state[index].amount,
-      status: newStatus,
-      createdAt: state[index].createdAt,
-      operatorId: state[index].operatorId,
-    );
+    final updatedOrder = state[index].copyWith(status: newStatus);
 
     state = [
       ...state.sublist(0, index),

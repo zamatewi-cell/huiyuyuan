@@ -15,3 +15,13 @@
 
 # Flutter Secure Storage
 -keep class com.it_nomads.fluttersecurestorage.** { *; }
+
+# AndroidX Navigation
+-keep class androidx.navigation.** { *; }
+-keep class androidx.navigationevent.** { *; }
+-dontwarn androidx.navigation.**
+-dontwarn androidx.navigationevent.**
+
+# Keep all annotations
+-keepattributes *Annotation*
+-dontwarn javax.annotation.**
