@@ -14,50 +14,37 @@ import '../../themes/jewelry_theme.dart';
 import '../../services/storage_service.dart';
 import '../../widgets/common/empty_state.dart';
 import '../../widgets/common/skeleton.dart';
+import '../../data/product_data.dart';
 
-/// 收藏Provider
+/// \u6536\u85CFProvider
 final favoritesProvider =
     FutureProvider<List<Map<String, dynamic>>>((ref) async {
   final storage = StorageService();
   await storage.init();
   final favoriteIds = await storage.getFavorites();
 
-  // 模拟获取商品详情
-  return favoriteIds.map((id) => _getMockProduct(id)).toList();
+  // \u4ECE\u771F\u5B9E\u5546\u54C1\u6570\u636E\u4E2D\u67E5\u627E
+  return favoriteIds.map((id) => _findProduct(id)).toList();
 });
 
-Map<String, dynamic> _getMockProduct(String id) {
-  final products = {
-    'prod_001': {
-      'id': 'prod_001',
-      'name': '和田玉福运手链',
-      'price': 299,
-      'originalPrice': 499,
-      'material': '和田玉',
-    },
-    'prod_002': {
-      'id': 'prod_002',
-      'name': '缅甸翡翠平安扣',
-      'price': 599,
-      'originalPrice': 899,
-      'material': '缅甸翡翠',
-    },
-    'prod_003': {
-      'id': 'prod_003',
-      'name': '南红玛瑙转运珠',
-      'price': 199,
-      'originalPrice': 299,
-      'material': '南红玛瑙',
-    },
+Map<String, dynamic> _findProduct(String id) {
+  final match = realProductData.where((p) => p.id == id);
+  if (match.isNotEmpty) {
+    final p = match.first;
+    return {
+      'id': p.id,
+      'name': p.name,
+      'price': p.price,
+      'originalPrice': p.originalPrice ?? p.price,
+      'material': p.material,
+    };
+  }
+  return {
+    'id': id,
+    'name': '\u672A\u77E5\u5546\u54C1',
+    'price': 0,
+    'material': '',
   };
-
-  return products[id] ??
-      {
-        'id': id,
-        'name': '未知商品',
-        'price': 0,
-        'material': '',
-      };
 }
 
 class FavoriteListScreen extends ConsumerWidget {

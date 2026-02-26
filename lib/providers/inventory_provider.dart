@@ -115,7 +115,6 @@ class InventoryNotifier extends StateNotifier<List<InventoryItem>> {
 
   /// 获取统计快照
   InventoryStats get stats {
-    final now = DateTime.now();
     return InventoryStats(
       totalSkus: state.length,
       totalUnits: state.fold(0, (s, e) => s + e.currentStock),

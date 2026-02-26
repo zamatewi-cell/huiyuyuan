@@ -681,7 +681,199 @@ class _ShopRadarState extends State<ShopRadar>
   }
 
   void _viewShopDetail(ShopModel shop) {
-    // TODO: 跳转店铺详情
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => DraggableScrollableSheet(
+        initialChildSize: 0.7,
+        maxChildSize: 0.95,
+        minChildSize: 0.4,
+        builder: (_, controller) => Container(
+          decoration: const BoxDecoration(
+            color: Color(0xFF0F172A),
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: ListView(
+            controller: controller,
+            padding: const EdgeInsets.all(20),
+            children: [
+              // \u62D6\u62FD\u624B\u67C4
+              Center(
+                child: Container(
+                  width: 40, height: 4,
+                  margin: const EdgeInsets.only(bottom: 20),
+                  decoration: BoxDecoration(
+                    color: Colors.white24,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              // \u5E97\u94FA\u540D\u79F0 + \u5E73\u53F0
+              Row(
+                children: [
+                  Container(
+                    width: 56, height: 56,
+                    decoration: BoxDecoration(
+                      gradient: JewelryColors.goldGradient,
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: const Icon(Icons.store, color: Colors.black87, size: 28),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(shop.name,
+                          style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+                        const SizedBox(height: 4),
+                        Row(children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: JewelryColors.primary.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(shop.platform,
+                              style: const TextStyle(color: JewelryColors.primary, fontSize: 12)),
+                          ),
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: JewelryColors.gold.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(shop.category,
+                              style: const TextStyle(color: JewelryColors.gold, fontSize: 12)),
+                          ),
+                        ]),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+              // \u6838\u5FC3\u6307\u6807
+              Row(
+                children: [
+                  _buildDetailStat('\u8BC4\u5206', shop.rating.toStringAsFixed(1), Icons.star, JewelryColors.gold),
+                  _buildDetailStat('\u7C89\u4E1D', '${shop.followers}', Icons.people, JewelryColors.primary),
+                  _buildDetailStat('\u8F6C\u5316\u7387', '${(shop.conversionRate * 100).toStringAsFixed(1)}%', Icons.trending_up, JewelryColors.success),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  _buildDetailStat('\u6708\u9500', '${shop.monthlySales ?? 0}', Icons.shopping_cart, const Color(0xFF667eea)),
+                  _buildDetailStat('\u5DEE\u8BC4\u7387', '${((shop.negativeRate ?? 0) * 100).toStringAsFixed(1)}%', Icons.thumb_down, JewelryColors.error),
+                  _buildDetailStat('AI\u4F18\u5148\u7EA7', '${shop.aiPriority ?? 0}', Icons.auto_awesome, const Color(0xFF8B5CF6)),
+                ],
+              ),
+              const SizedBox(height: 24),
+              // \u8054\u7CFB\u72B6\u6001
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.05),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: Colors.white.withOpacity(0.1)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('\u8054\u7CFB\u72B6\u6001',
+                      style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600)),
+                    const SizedBox(height: 10),
+                    Text(
+                      shop.contactStatus.name == 'pending' ? '\u5F85\u8054\u7CFB'
+                        : shop.contactStatus.name == 'contacted' ? '\u5DF2\u8054\u7CFB'
+                        : shop.contactStatus.name == 'interested' ? '\u6709\u610F\u5411'
+                        : shop.contactStatus.name == 'cooperating' ? '\u5408\u4F5C\u4E2D'
+                        : '\u5DF2\u62D2\u7EDD',
+                      style: TextStyle(
+                        color: shop.contactStatus.name == 'cooperating' ? JewelryColors.success : JewelryColors.gold,
+                        fontSize: 14,
+                      ),
+                    ),
+                    if (shop.lastContactAt != null) ...[
+                      const SizedBox(height: 6),
+                      Text('\u4E0A\u6B21\u8054\u7CFB: ${shop.lastContactAt!.toString().substring(0, 16)}',
+                        style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 12)),
+                    ],
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+              // \u64CD\u4F5C\u6309\u94AE
+              Row(
+                children: [
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        Navigator.pop(ctx);
+                        showDialog(
+                          context: context,
+                          builder: (_) => _AIDialogueDialog(shop: shop),
+                        );
+                      },
+                      icon: const Icon(Icons.auto_awesome, size: 18),
+                      label: const Text('AI\u751F\u6210\u8BDD\u672F'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: JewelryColors.primary,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () => Navigator.pop(ctx),
+                      icon: const Icon(Icons.close, size: 18),
+                      label: const Text('\u5173\u95ED'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.white70,
+                        side: const BorderSide(color: Colors.white24),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDetailStat(String label, String value, IconData icon, Color color) {
+    return Expanded(
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 4),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: color.withOpacity(0.3)),
+        ),
+        child: Column(
+          children: [
+            Icon(icon, color: color, size: 20),
+            const SizedBox(height: 6),
+            Text(value,
+              style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 2),
+            Text(label,
+              style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 11)),
+          ],
+        ),
+      ),
+    );
   }
 }
 

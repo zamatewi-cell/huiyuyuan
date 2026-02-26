@@ -18,6 +18,7 @@ import '../../widgets/common/skeleton.dart';
 import '../../widgets/common/glassmorphic_card.dart';
 import 'order_detail_screen.dart';
 import 'publish_review_screen.dart';
+import '../payment/payment_screen.dart';
 import 'shipping_dialog.dart';
 import 'logistics_screen.dart';
 
@@ -460,25 +461,9 @@ class _OrderCard extends ConsumerWidget {
   // ---- Action dialog helpers ----
 
   void _showPaymentDialog(BuildContext context, WidgetRef ref) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('\u6A21\u62DF\u652F\u4ED8'),
-        content: Text('\u786E\u8BA4\u652F\u4ED8 \u00A5${order.amount.toStringAsFixed(2)} \uFF1F'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('\u53D6\u6D88')),
-          TextButton(
-            onPressed: () {
-              ref.read(orderProvider.notifier).simulatePayment(order.id);
-              Navigator.pop(ctx);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('\u652F\u4ED8\u6210\u529F\uFF01')),
-              );
-            },
-            child: const Text('\u786E\u8BA4\u652F\u4ED8'),
-          ),
-        ],
-      ),
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => PaymentScreen(order: order)),
     );
   }
 

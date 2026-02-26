@@ -248,7 +248,16 @@ class Order(BaseModel):
     payment_method: Optional[str] = None
     paid_at: Optional[str] = None
     shipped_at: Optional[str] = None
+    delivered_at: Optional[str] = None
+    completed_at: Optional[str] = None
+    cancelled_at: Optional[str] = None
+    cancel_reason: Optional[str] = None
     tracking_number: Optional[str] = None
+    logistics_company: Optional[str] = None
+    refund_reason: Optional[str] = None
+    refund_amount: Optional[float] = None
+    logistics_entries: List[Dict[str, Any]] = []
+    payment_id: Optional[str] = None
 
 class OrderCreate(BaseModel):
     items: List[Dict[str, Any]]
@@ -1490,6 +1499,18 @@ async def create_order(order: OrderCreate, authorization: str = None):
         
         product = PRODUCTS_DB[item["product_id"]]
         quantity = item.get("quantity", 1)
+
+        # 库存校验 + 原子扣减
+        if product.stock < quantity:
+            raise HTTPException(
+                status_code=400,
+                detail=f"商品 {product.name} 库存不足 (剩余{product.stock}件)"
+            )
+        PRODUCTS_DB[item["product_id"]] = Product(
+            **{**product.dict(), "stock": product.stock - quantity,
+               "sales_count": product.sales_count + quantity}
+        )
+
         total += product.price * quantity
         items.append({
             "product_id": item["product_id"],
@@ -1531,6 +1552,389 @@ async def checkout(data: dict, authorization: str = None):
         "payment_url": f"https://pay.example.com/{data.get('order_id')}",
         "message": "请完成支付"
     }
+
+
+# --- 支付网关(模拟) ---
+
+# 内存支付记录
+PAYMENTS_DB: Dict[str, Dict] = {}
+
+@app.post("/api/orders/{order_id}/pay")
+async def pay_order(order_id: str, data: dict = None, authorization: str = None):
+    """发起支付 — 创建支付记录，3秒后自动模拟回调成功"""
+    user_id = verify_token(authorization)
+    data = data or {}
+
+    if order_id not in ORDERS_DB:
+        raise HTTPException(status_code=404, detail="订单不存在")
+
+    order = ORDERS_DB[order_id]
+    if order.user_id != user_id:
+        raise HTTPException(status_code=403, detail="没有权限")
+    if order.status != "pending":
+        raise HTTPException(status_code=400, detail=f"订单状态为{order.status}，无法支付")
+
+    payment_id = f"PAY{datetime.now().strftime('%Y%m%d%H%M%S')}{random.randint(1000,9999)}"
+    method = data.get("method", order.payment_method or "wechat")
+
+    PAYMENTS_DB[payment_id] = {
+        "id": payment_id,
+        "order_id": order_id,
+        "amount": order.total_amount,
+        "method": method,
+        "status": "pending",
+        "created_at": datetime.now().isoformat(),
+    }
+
+    # 标记订单的 payment_id
+    ORDERS_DB[order_id] = Order(**{**order.dict(), "payment_id": payment_id})
+
+    return {
+        "success": True,
+        "payment_id": payment_id,
+        "amount": order.total_amount,
+        "method": method,
+        "status": "pending",
+        "message": "支付已创建，请等待确认",
+    }
+
+
+@app.get("/api/orders/{order_id}/pay-status")
+async def get_pay_status(order_id: str, authorization: str = None):
+    """轮询支付状态 — 自动在创建3秒后标记为成功"""
+    user_id = verify_token(authorization)
+
+    if order_id not in ORDERS_DB:
+        raise HTTPException(status_code=404, detail="订单不存在")
+
+    order = ORDERS_DB[order_id]
+    if order.user_id != user_id:
+        raise HTTPException(status_code=403, detail="没有权限")
+
+    pid = order.payment_id
+    if not pid or pid not in PAYMENTS_DB:
+        return {"status": "no_payment", "message": "未找到支付记录"}
+
+    pay = PAYMENTS_DB[pid]
+
+    # 自动回调逻辑: 创建超过3秒即视为成功
+    if pay["status"] == "pending":
+        created = datetime.fromisoformat(pay["created_at"])
+        if (datetime.now() - created).total_seconds() >= 3:
+            pay["status"] = "success"
+            pay["paid_at"] = datetime.now().isoformat()
+            PAYMENTS_DB[pid] = pay
+
+            # 同步更新订单状态
+            now_str = datetime.now().isoformat()
+            ORDERS_DB[order_id] = Order(**{
+                **order.dict(),
+                "status": "paid",
+                "paid_at": now_str,
+                "logistics_entries": [{
+                    "time": now_str,
+                    "status": "支付成功",
+                    "description": f"订单已支付 ¥{order.total_amount:.2f} ({pay['method']})",
+                }] + order.logistics_entries,
+            })
+
+    return {
+        "payment_id": pid,
+        "status": pay["status"],
+        "amount": pay["amount"],
+        "method": pay["method"],
+        "paid_at": pay.get("paid_at"),
+    }
+
+
+@app.post("/api/orders/{order_id}/cancel")
+async def cancel_order(order_id: str, data: dict = None, authorization: str = None):
+    """取消订单 + 恢复库存"""
+    user_id = verify_token(authorization)
+    data = data or {}
+
+    if order_id not in ORDERS_DB:
+        raise HTTPException(status_code=404, detail="订单不存在")
+
+    order = ORDERS_DB[order_id]
+    if order.user_id != user_id:
+        raise HTTPException(status_code=403, detail="没有权限")
+    if order.status not in ("pending", "paid"):
+        raise HTTPException(status_code=400, detail=f"订单状态为{order.status}，无法取消")
+
+    # 恢复库存
+    for item in order.items:
+        pid = item.get("product_id")
+        qty = item.get("quantity", 1)
+        if pid and pid in PRODUCTS_DB:
+            p = PRODUCTS_DB[pid]
+            PRODUCTS_DB[pid] = Product(**{**p.dict(), "stock": p.stock + qty,
+                                          "sales_count": max(0, p.sales_count - qty)})
+
+    now_str = datetime.now().isoformat()
+    reason = data.get("reason", "用户主动取消")
+    ORDERS_DB[order_id] = Order(**{
+        **order.dict(),
+        "status": "cancelled",
+        "cancelled_at": now_str,
+        "cancel_reason": reason,
+        "logistics_entries": [{
+            "time": now_str,
+            "status": "订单已取消",
+            "description": reason,
+        }] + order.logistics_entries,
+    })
+
+    return {"success": True, "message": "订单已取消，库存已恢复"}
+
+
+@app.post("/api/admin/orders/{order_id}/ship")
+async def ship_order(order_id: str, data: dict, authorization: str = None):
+    """管理员/商家发货"""
+    user_id = verify_token(authorization)
+
+    # 简单权限检查: 管理员
+    user = USERS_DB.get(user_id, {})
+    if not user.get("is_admin"):
+        raise HTTPException(status_code=403, detail="需要管理员权限")
+
+    if order_id not in ORDERS_DB:
+        raise HTTPException(status_code=404, detail="订单不存在")
+
+    order = ORDERS_DB[order_id]
+    if order.status != "paid":
+        raise HTTPException(status_code=400, detail=f"订单状态为{order.status}，无法发货")
+
+    carrier = data.get("carrier", "顺丰速运")
+    tracking = data.get("tracking_number", f"SF{random.randint(10**11, 10**12-1)}")
+    now_str = datetime.now().isoformat()
+
+    entries = [
+        {"time": now_str, "status": "已发货",
+         "description": f"商家已发货，{carrier} 运单号 {tracking}"},
+        {"time": now_str, "status": "揽收",
+         "description": f"快件已被{carrier}揽收"},
+    ]
+
+    ORDERS_DB[order_id] = Order(**{
+        **order.dict(),
+        "status": "shipped",
+        "shipped_at": now_str,
+        "logistics_company": carrier,
+        "tracking_number": tracking,
+        "logistics_entries": entries + order.logistics_entries,
+    })
+
+    return {"success": True, "tracking_number": tracking, "carrier": carrier}
+
+
+@app.post("/api/orders/{order_id}/confirm-receipt")
+async def confirm_receipt(order_id: str, authorization: str = None):
+    """确认收货"""
+    user_id = verify_token(authorization)
+
+    if order_id not in ORDERS_DB:
+        raise HTTPException(status_code=404, detail="订单不存在")
+
+    order = ORDERS_DB[order_id]
+    if order.user_id != user_id:
+        raise HTTPException(status_code=403, detail="没有权限")
+    if order.status != "shipped":
+        raise HTTPException(status_code=400, detail=f"订单状态为{order.status}，无法确认收货")
+
+    now_str = datetime.now().isoformat()
+    ORDERS_DB[order_id] = Order(**{
+        **order.dict(),
+        "status": "completed",
+        "delivered_at": now_str,
+        "completed_at": now_str,
+        "logistics_entries": [{
+            "time": now_str,
+            "status": "已签收",
+            "description": "买家已确认收货，交易完成",
+        }] + order.logistics_entries,
+    })
+
+    return {"success": True, "message": "已确认收货"}
+
+
+@app.post("/api/orders/{order_id}/refund")
+async def request_refund(order_id: str, data: dict = None, authorization: str = None):
+    """申请退款"""
+    user_id = verify_token(authorization)
+    data = data or {}
+
+    if order_id not in ORDERS_DB:
+        raise HTTPException(status_code=404, detail="订单不存在")
+
+    order = ORDERS_DB[order_id]
+    if order.user_id != user_id:
+        raise HTTPException(status_code=403, detail="没有权限")
+    if order.status not in ("paid", "shipped", "completed"):
+        raise HTTPException(status_code=400, detail=f"订单状态为{order.status}，无法退款")
+
+    reason = data.get("reason", "买家申请退款")
+    now_str = datetime.now().isoformat()
+
+    ORDERS_DB[order_id] = Order(**{
+        **order.dict(),
+        "status": "refunding",
+        "refund_reason": reason,
+        "refund_amount": order.total_amount,
+        "logistics_entries": [{
+            "time": now_str,
+            "status": "退款申请",
+            "description": f"买家申请退款: {reason}",
+        }] + order.logistics_entries,
+    })
+
+    return {"success": True, "message": "退款申请已提交", "refund_amount": order.total_amount}
+
+
+@app.get("/api/orders/{order_id}/logistics")
+async def get_order_logistics(order_id: str, authorization: str = None):
+    """获取物流轨迹"""
+    user_id = verify_token(authorization)
+
+    if order_id not in ORDERS_DB:
+        raise HTTPException(status_code=404, detail="订单不存在")
+
+    order = ORDERS_DB[order_id]
+    if order.user_id != user_id:
+        # 管理员也可以查看
+        user = USERS_DB.get(user_id, {})
+        if not user.get("is_admin"):
+            raise HTTPException(status_code=403, detail="没有权限")
+
+    return {
+        "order_id": order_id,
+        "carrier": order.logistics_company,
+        "tracking_number": order.tracking_number,
+        "status": order.status,
+        "entries": order.logistics_entries,
+    }
+
+
+@app.get("/api/orders/stats")
+async def get_order_stats(authorization: str = None):
+    """获取当前用户的订单统计"""
+    user_id = verify_token(authorization)
+
+    my_orders = [o for o in ORDERS_DB.values() if o.user_id == user_id]
+    total_amount = sum(o.total_amount for o in my_orders if o.status in ("paid", "shipped", "completed"))
+    status_counts = {}
+    for o in my_orders:
+        status_counts[o.status] = status_counts.get(o.status, 0) + 1
+
+    return {
+        "total": len(my_orders),
+        "total_amount": round(total_amount, 2),
+        "pending": status_counts.get("pending", 0),
+        "paid": status_counts.get("paid", 0),
+        "shipped": status_counts.get("shipped", 0),
+        "completed": status_counts.get("completed", 0),
+        "cancelled": status_counts.get("cancelled", 0),
+        "refunding": status_counts.get("refunding", 0),
+    }
+
+
+@app.get("/api/admin/dashboard")
+async def get_admin_dashboard(authorization: str = None):
+    """管理端统计面板"""
+    user_id = verify_token(authorization)
+    user = USERS_DB.get(user_id, {})
+    if not user.get("is_admin"):
+        raise HTTPException(status_code=403, detail="需要管理员权限")
+
+    all_orders = list(ORDERS_DB.values())
+    today = datetime.now().date()
+    today_orders = [o for o in all_orders
+                    if datetime.fromisoformat(o.created_at).date() == today]
+
+    total_revenue = sum(o.total_amount for o in all_orders if o.status in ("paid", "shipped", "completed"))
+    today_revenue = sum(o.total_amount for o in today_orders if o.status in ("paid", "shipped", "completed"))
+
+    # 待处理汇总
+    pending_ship = sum(1 for o in all_orders if o.status == "paid")
+    pending_refund = sum(1 for o in all_orders if o.status == "refunding")
+
+    # 操作员数量
+    operators = [u for u in USERS_DB.values() if u.get("user_type") == "operator"]
+
+    return {
+        "total_orders": len(all_orders),
+        "today_orders": len(today_orders),
+        "total_revenue": round(total_revenue, 2),
+        "today_revenue": round(today_revenue, 2),
+        "total_products": len(PRODUCTS_DB),
+        "pending_ship": pending_ship,
+        "pending_refund": pending_refund,
+        "operator_count": len(operators),
+        "low_stock_items": sum(1 for p in PRODUCTS_DB.values() if p.stock <= 5),
+    }
+
+
+@app.get("/api/admin/activities")
+async def get_admin_activities(limit: int = 10, authorization: str = None):
+    """最近操作动态 — 从真实订单生成"""
+    user_id = verify_token(authorization)
+    user = USERS_DB.get(user_id, {})
+    if not user.get("is_admin"):
+        raise HTTPException(status_code=403, detail="需要管理员权限")
+
+    activities = []
+
+    # 从订单生成活动
+    recent_orders = sorted(ORDERS_DB.values(),
+                           key=lambda o: o.created_at, reverse=True)[:limit]
+    for o in recent_orders:
+        item_name = o.items[0].get("product_name", "商品") if o.items else "商品"
+        qty = sum(i.get("quantity", 1) for i in o.items)
+
+        if o.status == "pending":
+            activities.append({
+                "tag": "订单", "title": f"新订单: {item_name} x{qty}",
+                "subtitle": f"¥{o.total_amount:.0f}",
+                "time": o.created_at, "type": "order_new",
+            })
+        elif o.status == "paid":
+            activities.append({
+                "tag": "支付", "title": f"支付完成: {item_name}",
+                "subtitle": f"¥{o.total_amount:.0f}",
+                "time": o.paid_at or o.created_at, "type": "order_paid",
+            })
+        elif o.status == "shipped":
+            activities.append({
+                "tag": "物流", "title": f"已发货: {o.tracking_number or ''}",
+                "subtitle": f"{o.logistics_company or ''} · {item_name}",
+                "time": o.shipped_at or o.created_at, "type": "order_shipped",
+            })
+        elif o.status == "completed":
+            activities.append({
+                "tag": "完成", "title": f"交易完成: {item_name}",
+                "subtitle": f"¥{o.total_amount:.0f}",
+                "time": o.completed_at or o.created_at, "type": "order_completed",
+            })
+        elif o.status == "refunding":
+            activities.append({
+                "tag": "退款", "title": f"退款申请: {item_name}",
+                "subtitle": o.refund_reason or "",
+                "time": o.created_at, "type": "order_refund",
+            })
+
+    # 低库存预警
+    for p in PRODUCTS_DB.values():
+        if p.stock <= 5:
+            activities.append({
+                "tag": "库存", "title": f"库存预警: {p.name}",
+                "subtitle": f"当前库存 {p.stock} 件",
+                "time": datetime.now().isoformat(), "type": "stock_warning",
+            })
+
+    # 按时间排序
+    activities.sort(key=lambda a: a.get("time", ""), reverse=True)
+    return {"items": activities[:limit], "total": len(activities)}
+
 
 # --- 收藏 ---
 

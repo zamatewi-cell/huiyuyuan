@@ -12,7 +12,7 @@ import '../../themes/jewelry_theme.dart';
 import '../../widgets/common/glassmorphic_card.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../profile/address_list_screen.dart';
-import '../order/order_list_screen.dart';
+import '../payment/payment_screen.dart';
 
 /// 确认订单 (结算) 页面
 class CheckoutScreen extends ConsumerStatefulWidget {
@@ -70,7 +70,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   void _processPayment() async {
     if (_selectedAddress == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('请先选择收货地址')),
+        const SnackBar(content: Text('\u8BF7\u5148\u9009\u62E9\u6536\u8D27\u5730\u5740')),
       );
       return;
     }
@@ -78,7 +78,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
     setState(() => _isProcessingPayment = true);
 
     try {
-      // 通过 OrderNotifier 创建订单
+      // \u901A\u8FC7 OrderNotifier \u521B\u5EFA\u8BA2\u5355
       final orderNotifier = ref.read(orderProvider.notifier);
       final paymentMethod = _paymentMethod == 'wechat'
           ? PaymentMethod.wechat
@@ -87,7 +87,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       final order = await orderNotifier.createOrder(
         productName: widget.items.length == 1
             ? widget.items.first.product.name
-            : '${widget.items.first.product.name} 等${widget.items.length}件商品',
+            : '${widget.items.first.product.name} \u7B49${widget.items.length}\u4EF6\u5546\u54C1',
         amount: _totalAmount,
         quantity: widget.items.fold(0, (sum, item) => sum + item.quantity),
         productImage: widget.items.first.product.images.isNotEmpty
@@ -99,43 +99,30 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
         shippingAddress: _selectedAddress!.fullAddress,
       );
 
-      // 模拟支付过程（企业沙箱级）
-      if (order != null) {
-        await orderNotifier.updateOrderStatus(order.id, OrderStatus.paid);
-      }
-
       if (!mounted) return;
       setState(() => _isProcessingPayment = false);
 
-      // 从购物车移除已结算的商品
-      final cartNotifier = ref.read(cartProvider.notifier);
-      for (final item in widget.items) {
-        cartNotifier.removeItem(item.product.id);
+      if (order != null) {
+        // \u4ECE\u8D2D\u7269\u8F66\u79FB\u9664\u5DF2\u7ED3\u7B97\u7684\u5546\u54C1
+        final cartNotifier = ref.read(cartProvider.notifier);
+        for (final item in widget.items) {
+          cartNotifier.removeItem(item.product.id);
+        }
+
+        // \u8DF3\u8F6C\u5230\u72EC\u7ACB\u652F\u4ED8\u9875\u9762
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (_) => PaymentScreen(order: order),
+          ),
+        );
       }
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('支付成功！已为您生成专属订单'),
-          backgroundColor: const Color(0xFF2E8B57),
-          behavior: SnackBarBehavior.floating,
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        ),
-      );
-
-      // 跳转到订单列表的"待发货"页面，移除之前所有路由
-      Navigator.pushAndRemoveUntil(
-        context,
-        MaterialPageRoute(
-            builder: (context) => const OrderListScreen(initialTab: 2)),
-        (route) => route.isFirst,
-      );
     } catch (e) {
       if (mounted) {
         setState(() => _isProcessingPayment = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('支付失败: $e'),
+            content: Text('\u521B\u5EFA\u8BA2\u5355\u5931\u8D25: $e'),
             backgroundColor: Colors.red,
             behavior: SnackBarBehavior.floating,
           ),

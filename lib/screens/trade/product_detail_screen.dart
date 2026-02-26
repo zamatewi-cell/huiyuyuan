@@ -5,6 +5,7 @@ import '../../models/user_model.dart';
 import '../../models/cart_item_model.dart';
 import '../../services/storage_service.dart';
 import '../../services/ai_service.dart';
+import '../../providers/cart_provider.dart';
 import '../../themes/jewelry_theme.dart';
 import '../../themes/colors.dart';
 import '../../widgets/common/glassmorphic_card.dart';
@@ -653,7 +654,10 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
   }
 
   Future<void> _addToCart() async {
-    await _storage.addToCart(widget.product.toJson());
+    await ref.read(cartProvider.notifier).addItem(
+      widget.product,
+      quantity: _quantity,
+    );
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(

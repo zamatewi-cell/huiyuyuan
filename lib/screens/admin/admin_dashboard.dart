@@ -533,56 +533,95 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard>
   }
 
   List<Map<String, dynamic>> _getMockActivities() {
-    return [
-      {
-        'tag': '订单',
-        'title': '新订单: 和田玉手链 x2',
-        'subtitle': '客户 135****8821 · \u00a5 1,580',
-        'time': '3分钟前',
-        'color': const Color(0xFF10B981),
-        'icon': Icons.shopping_bag_rounded,
-      },
-      {
-        'tag': 'AI',
-        'title': 'AI鉴定完成: 缅甸翡翠吊坠',
-        'subtitle': '鉴定结果: A级 · 置信度 97.2%',
-        'time': '8分钟前',
-        'color': const Color(0xFF8B5CF6),
-        'icon': Icons.auto_awesome_rounded,
-      },
-      {
-        'tag': '库存',
-        'title': '库存预警: 南红玛瑙手串',
-        'subtitle': '当前库存 3 件 · 低于安全线 5 件',
-        'time': '15分钟前',
-        'color': const Color(0xFFF59E0B),
-        'icon': Icons.warning_amber_rounded,
-      },
-      {
-        'tag': '系统',
-        'title': '数据备份完成',
-        'subtitle': '全量备份 2.3GB · 耗时 45s',
-        'time': '1小时前',
-        'color': const Color(0xFF06B6D4),
-        'icon': Icons.cloud_done_rounded,
-      },
-      {
-        'tag': '订单',
-        'title': '订单已发货: HYY-20260225001',
-        'subtitle': '紫水晶戒指 · 顺丰速运',
-        'time': '2小时前',
-        'color': const Color(0xFF10B981),
-        'icon': Icons.local_shipping_rounded,
-      },
-      {
-        'tag': '系统',
-        'title': 'API服务健康检查通过',
-        'subtitle': '响应时间 32ms · 可用率 99.9%',
-        'time': '3小时前',
-        'color': const Color(0xFF06B6D4),
-        'icon': Icons.monitor_heart_rounded,
-      },
-    ];
+    final orders = ref.read(orderProvider);
+    final activities = <Map<String, dynamic>>[];
+
+    // \u4ECE\u8BA2\u5355\u751F\u6210\u771F\u5B9E\u6D3B\u52A8
+    for (final order in orders.take(10)) {
+      final itemName = order.productName;
+      final timeAgo = _formatTimeAgo(order.createdAt);
+
+      switch (order.status) {
+        case OrderStatus.pending:
+          activities.add({
+            'tag': '\u8BA2\u5355',
+            'title': '\u65B0\u8BA2\u5355: $itemName',
+            'subtitle': '\u00A5${order.amount.toStringAsFixed(0)} \u00B7 \u5F85\u4ED8\u6B3E',
+            'time': timeAgo,
+            'color': const Color(0xFF10B981),
+            'icon': Icons.shopping_bag_rounded,
+          });
+          break;
+        case OrderStatus.paid:
+          activities.add({
+            'tag': '\u8BA2\u5355',
+            'title': '\u5DF2\u4ED8\u6B3E: $itemName',
+            'subtitle': '\u00A5${order.amount.toStringAsFixed(0)} \u00B7 \u5F85\u53D1\u8D27',
+            'time': timeAgo,
+            'color': const Color(0xFF3B82F6),
+            'icon': Icons.payment_rounded,
+          });
+          break;
+        case OrderStatus.shipped:
+          activities.add({
+            'tag': '\u8BA2\u5355',
+            'title': '\u5DF2\u53D1\u8D27: $itemName',
+            'subtitle': '\u8FD0\u8F93\u4E2D \u00B7 ${order.trackingNumber ?? ''}',
+            'time': timeAgo,
+            'color': const Color(0xFF10B981),
+            'icon': Icons.local_shipping_rounded,
+          });
+          break;
+        case OrderStatus.completed:
+        case OrderStatus.delivered:
+          activities.add({
+            'tag': '\u8BA2\u5355',
+            'title': '\u5DF2\u5B8C\u6210: $itemName',
+            'subtitle': '\u00A5${order.amount.toStringAsFixed(0)} \u00B7 \u4EA4\u6613\u5B8C\u6210',
+            'time': timeAgo,
+            'color': const Color(0xFF06B6D4),
+            'icon': Icons.check_circle_rounded,
+          });
+          break;
+        default:
+          break;
+      }
+    }
+
+    // \u5E93\u5B58\u9884\u8B66
+    for (final product in realProductData) {
+      if (product.stock <= 5) {
+        activities.add({
+          'tag': '\u5E93\u5B58',
+          'title': '\u5E93\u5B58\u9884\u8B66: ${product.name}',
+          'subtitle': '\u5F53\u524D\u5E93\u5B58 ${product.stock} \u4EF6 \u00B7 \u4F4E\u4E8E\u5B89\u5168\u7EBF 5 \u4EF6',
+          'time': '\u5B9E\u65F6',
+          'color': const Color(0xFFF59E0B),
+          'icon': Icons.warning_amber_rounded,
+        });
+      }
+    }
+
+    // \u7CFB\u7EDF\u72B6\u6001
+    activities.add({
+      'tag': '\u7CFB\u7EDF',
+      'title': '\u7CFB\u7EDF\u8FD0\u884C\u6B63\u5E38',
+      'subtitle': 'API\u670D\u52A1\u5065\u5EB7 \u00B7 \u53EF\u7528\u7387 99.9%',
+      'time': '\u5B9E\u65F6',
+      'color': const Color(0xFF06B6D4),
+      'icon': Icons.monitor_heart_rounded,
+    });
+
+    // \u6309\u65F6\u95F4\u6392\u5E8F\uFF0C\u6700\u65B0\u7684\u5148\u663E\u793A
+    return activities;
+  }
+
+  String _formatTimeAgo(DateTime dateTime) {
+    final diff = DateTime.now().difference(dateTime);
+    if (diff.inMinutes < 1) return '\u521A\u521A';
+    if (diff.inMinutes < 60) return '${diff.inMinutes}\u5206\u949F\u524D';
+    if (diff.inHours < 24) return '${diff.inHours}\u5C0F\u65F6\u524D';
+    return '${diff.inDays}\u5929\u524D';
   }
 
   Widget _buildActivityItem({

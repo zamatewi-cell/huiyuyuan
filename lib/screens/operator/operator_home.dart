@@ -12,6 +12,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../themes/colors.dart';
 import '../../providers/auth_provider.dart';
 import '../../l10n/l10n_provider.dart';
+import '../../services/order_service.dart';
+import '../../models/order_model.dart';
 import '../chat/ai_assistant_screen.dart';
 import '../payment_management_screen.dart';
 
@@ -181,6 +183,16 @@ class _OperatorHomeState extends ConsumerState<OperatorHome> {
   }
 
   Widget _buildTodayStats() {
+    final stats = ref.watch(orderStatsProvider);
+    final totalAmount = stats['totalAmount'] as double? ?? 0.0;
+    final amountStr = totalAmount >= 10000
+        ? '\u00A5${(totalAmount / 10000).toStringAsFixed(1)}\u4E07'
+        : '\u00A5${totalAmount.toStringAsFixed(0)}';
+    final pending = stats['pending'] as int? ?? 0;
+    final paid = stats['paid'] as int? ?? 0;
+    final shipped = stats['shipped'] as int? ?? 0;
+    final completed = stats['completed'] as int? ?? 0;
+    final total = stats['total'] as int? ?? 0;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -203,8 +215,8 @@ class _OperatorHomeState extends ConsumerState<OperatorHome> {
           children: [
             Expanded(
               child: _buildStatItem(
-                icon: Icons.phone_callback,
-                value: '15',
+                icon: Icons.receipt_long,
+                value: '$total',
                 label: ref.tr('work_contact_shop'),
                 color: JewelryColors.primary,
               ),
@@ -212,8 +224,8 @@ class _OperatorHomeState extends ConsumerState<OperatorHome> {
             const SizedBox(width: 12),
             Expanded(
               child: _buildStatItem(
-                icon: Icons.thumb_up,
-                value: '5',
+                icon: Icons.pending_actions,
+                value: '$pending',
                 label: ref.tr('work_interest'),
                 color: JewelryColors.gold,
               ),
@@ -221,8 +233,8 @@ class _OperatorHomeState extends ConsumerState<OperatorHome> {
             const SizedBox(width: 12),
             Expanded(
               child: _buildStatItem(
-                icon: Icons.handshake,
-                value: '2',
+                icon: Icons.local_shipping,
+                value: '${paid + shipped}',
                 label: ref.tr('work_cooperation'),
                 color: JewelryColors.success,
               ),
@@ -234,8 +246,8 @@ class _OperatorHomeState extends ConsumerState<OperatorHome> {
           children: [
             Expanded(
               child: _buildStatItem(
-                icon: Icons.smart_toy,
-                value: '68',
+                icon: Icons.check_circle,
+                value: '$completed',
                 label: ref.tr('work_ai_usage'),
                 color: const Color(0xFF667eea),
               ),
@@ -244,7 +256,7 @@ class _OperatorHomeState extends ConsumerState<OperatorHome> {
             Expanded(
               child: _buildStatItem(
                 icon: Icons.shopping_bag,
-                value: '¥3,280',
+                value: amountStr,
                 label: ref.tr('work_order_amount'),
                 color: const Color(0xFF11998e),
               ),
@@ -253,7 +265,7 @@ class _OperatorHomeState extends ConsumerState<OperatorHome> {
             Expanded(
               child: _buildStatItem(
                 icon: Icons.people,
-                value: '8',
+                value: '${pending + paid}',
                 label: ref.tr('work_new_customer'),
                 color: const Color(0xFFf093fb),
               ),
@@ -305,12 +317,40 @@ class _OperatorHomeState extends ConsumerState<OperatorHome> {
   }
 
   Widget _buildTodoList() {
-    final todos = [
-      {'title': '跟进翡翠世家合作意向', 'time': '10:00', 'priority': 'high'},
-      {'title': '回复玉缘珠宝咨询', 'time': '11:30', 'priority': 'medium'},
-      {'title': '准备直播合作方案', 'time': '14:00', 'priority': 'high'},
-      {'title': '整理今日工作简报', 'time': '18:00', 'priority': 'normal'},
-    ];
+    final orders = ref.watch(orderProvider);
+    final todos = <Map<String, String>>[];
+
+    // Generate real todos from pending/paid orders
+    for (final order in orders) {
+      if (order.status == OrderStatus.pending) {
+        todos.add({
+          'title': '\u50AC\u4ED8: \u8BA2\u5355 #${order.id.substring(0, 8)}',
+          'time': '${DateTime.now().hour}:00',
+          'priority': 'high',
+        });
+      } else if (order.status == OrderStatus.paid) {
+        todos.add({
+          'title': '\u5F85\u53D1\u8D27: \u8BA2\u5355 #${order.id.substring(0, 8)}',
+          'time': '${DateTime.now().hour}:30',
+          'priority': 'high',
+        });
+      } else if (order.status == OrderStatus.shipped) {
+        todos.add({
+          'title': '\u8DDF\u8E2A\u7269\u6D41: \u8BA2\u5355 #${order.id.substring(0, 8)}',
+          'time': '${DateTime.now().hour + 1}:00',
+          'priority': 'medium',
+        });
+      }
+    }
+
+    // Add a default daily todo if no order todos
+    if (todos.isEmpty) {
+      todos.add({
+        'title': '\u6574\u7406\u4ECA\u65E5\u5DE5\u4F5C\u7B80\u62A5',
+        'time': '18:00',
+        'priority': 'normal',
+      });
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

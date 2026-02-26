@@ -17,6 +17,7 @@ import '../../themes/colors.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/app_settings_provider.dart';
 import '../../l10n/l10n_provider.dart';
+import '../../services/order_service.dart';
 import '../payment_management_screen.dart';
 import '../order/order_list_screen.dart';
 import 'favorite_list_screen.dart';
@@ -46,7 +47,7 @@ class ProfileScreen extends ConsumerWidget {
               _buildUserCard(context, user?.username ?? '用户', isAdmin),
 
               // 资产卡片
-              _buildAssetsCard(context),
+              _buildAssetsCard(context, ref),
 
               // 订单入口
               _buildOrderSection(context),
@@ -382,8 +383,17 @@ class ProfileScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildAssetsCard(BuildContext context) {
+  Widget _buildAssetsCard(BuildContext context, WidgetRef ref) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final stats = ref.watch(orderStatsProvider);
+    final total = stats['total'] as int? ?? 0;
+    final totalAmount = stats['totalAmount'] as double? ?? 0.0;
+    final pending = stats['pending'] as int? ?? 0;
+    final paid = stats['paid'] as int? ?? 0;
+    final pendingWork = pending + paid;
+    final amountStr = totalAmount >= 10000
+        ? '\u00A5${(totalAmount / 10000).toStringAsFixed(1)}\u4E07'
+        : '\u00A5${totalAmount.toStringAsFixed(0)}';
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       padding: const EdgeInsets.all(20),
@@ -402,11 +412,11 @@ class ProfileScreen extends ConsumerWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          _buildAssetItem('今日订单', '12', Icons.shopping_bag),
+          _buildAssetItem('\u8BA2\u5355\u603B\u6570', '$total', Icons.shopping_bag),
           _buildDivider(),
-          _buildAssetItem('本月业绩', '¥8.5万', Icons.trending_up),
+          _buildAssetItem('\u7D2F\u8BA1\u4E1A\u7EE9', amountStr, Icons.trending_up),
           _buildDivider(),
-          _buildAssetItem('待处理', '3', Icons.pending_actions),
+          _buildAssetItem('\u5F85\u5904\u7406', '$pendingWork', Icons.pending_actions),
         ],
       ),
     );
