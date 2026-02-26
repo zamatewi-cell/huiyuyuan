@@ -9,6 +9,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/auth_provider.dart';
+import '../models/user_model.dart';
 import 'dart:ui';
 import '../themes/colors.dart';
 import '../l10n/l10n_provider.dart';
@@ -20,6 +21,8 @@ import 'profile/profile_screen.dart';
 import 'admin/admin_dashboard.dart';
 import 'operator/operator_home.dart';
 import 'shop/shop_radar.dart';
+
+import 'order/order_list_screen.dart';
 
 /// 主界面
 class MainScreen extends ConsumerStatefulWidget {
@@ -54,7 +57,7 @@ class _MainScreenState extends ConsumerState<MainScreen>
 
   @override
   Widget build(BuildContext context) {
-    final isAdmin = ref.watch(isAdminProvider);
+    final role = ref.watch(userRoleProvider);
 
     return Scaffold(
       body: PageView(
@@ -63,39 +66,46 @@ class _MainScreenState extends ConsumerState<MainScreen>
         onPageChanged: (index) {
           setState(() => _currentIndex = index);
         },
-        children: _getPages(isAdmin),
+        children: _getPages(role),
       ),
-      bottomNavigationBar: _buildBottomNavBar(isAdmin),
+      bottomNavigationBar: _buildBottomNavBar(role),
       floatingActionButton: _buildFAB(),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
     );
   }
 
-  /// 获取页面列表
-  List<Widget> _getPages(bool isAdmin) {
-    if (isAdmin) {
-      // 管理员页面
-      return [
-        const AdminDashboard(), // 仪表盘
-        const ProductListScreen(), // 商城
-        const ShopRadar(), // 店铺雷达
-        const AIAssistantScreen(), // AI助手
-        const ProfileScreen(), // 个人中心
-      ];
-    } else {
-      // 操作员页面
-      return [
-        const OperatorHome(), // 工作台
-        const ProductListScreen(), // 商城
-        const ShopRadar(), // 店铺雷达
-        const AIAssistantScreen(), // AI助手
-        const ProfileScreen(), // 个人中心
-      ];
+  /// \u83B7\u53D6\u9875\u9762\u5217\u8868 - \u6839\u636E\u89D2\u8272\u533A\u5206
+  List<Widget> _getPages(UserType role) {
+    switch (role) {
+      case UserType.admin:
+        return const [
+          AdminDashboard(),       // \u4EEA\u8868\u76D8
+          ProductListScreen(),    // \u5546\u57CE
+          ShopRadar(),            // \u5E97\u94FA\u96F7\u8FBE
+          AIAssistantScreen(),    // AI\u52A9\u624B
+          ProfileScreen(),        // \u4E2A\u4EBA\u4E2D\u5FC3
+        ];
+      case UserType.operator:
+        return const [
+          OperatorHome(),         // \u5DE5\u4F5C\u53F0
+          ProductListScreen(),    // \u5546\u57CE
+          ShopRadar(),            // \u5E97\u94FA\u96F7\u8FBE
+          AIAssistantScreen(),    // AI\u52A9\u624B
+          ProfileScreen(),        // \u4E2A\u4EBA\u4E2D\u5FC3
+        ];
+      case UserType.customer:
+        return const [
+          ProductListScreen(),    // \u5546\u57CE\u9996\u9875
+          OrderListScreen(),      // \u6211\u7684\u8BA2\u5355
+          ShopRadar(),            // \u5E97\u94FA\u96F7\u8FBE
+          AIAssistantScreen(),    // AI\u52A9\u624B
+          ProfileScreen(),        // \u4E2A\u4EBA\u4E2D\u5FC3
+        ];
     }
   }
 
-  /// 底部导航栏
-  Widget _buildBottomNavBar(bool isAdmin) {
+  /// \u5E95\u90E8\u5BFC\u822A\u680F
+  Widget _buildBottomNavBar(UserType role) {
     return ClipRRect(
       borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
       child: BackdropFilter(
@@ -127,16 +137,33 @@ class _MainScreenState extends ConsumerState<MainScreen>
                 children: [
                   _buildNavItem(
                     index: 0,
-                    icon:
-                        isAdmin ? Icons.dashboard_outlined : Icons.work_outline,
-                    activeIcon: isAdmin ? Icons.dashboard : Icons.work,
-                    label: isAdmin ? ref.tr('admin_dashboard') : '工作台',
+                    icon: role == UserType.admin
+                        ? Icons.dashboard_outlined
+                        : role == UserType.operator
+                            ? Icons.work_outline
+                            : Icons.storefront_outlined,
+                    activeIcon: role == UserType.admin
+                        ? Icons.dashboard
+                        : role == UserType.operator
+                            ? Icons.work
+                            : Icons.storefront,
+                    label: role == UserType.admin
+                        ? ref.tr('admin_dashboard')
+                        : role == UserType.operator
+                            ? '\u5DE5\u4F5C\u53F0'
+                            : ref.tr('nav_products'),
                   ),
                   _buildNavItem(
                     index: 1,
-                    icon: Icons.storefront_outlined,
-                    activeIcon: Icons.storefront,
-                    label: ref.tr('nav_products'),
+                    icon: role == UserType.customer
+                        ? Icons.receipt_long_outlined
+                        : Icons.storefront_outlined,
+                    activeIcon: role == UserType.customer
+                        ? Icons.receipt_long
+                        : Icons.storefront,
+                    label: role == UserType.customer
+                        ? '\u6211\u7684\u8BA2\u5355'
+                        : ref.tr('nav_products'),
                   ),
                   const SizedBox(width: 60), // FAB空间
                   _buildNavItem(

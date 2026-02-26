@@ -16,6 +16,8 @@ import '../../themes/colors.dart';
 import '../../l10n/l10n_provider.dart';
 import '../../data/product_data.dart';
 import '../../models/user_model.dart';
+import '../../providers/auth_provider.dart';
+import '../../services/order_service.dart';
 import 'inventory_screen.dart';
 
 /// 管理员仪表盘
@@ -141,12 +143,17 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard>
 
   Widget _buildHeader() {
     final hour = DateTime.now().hour;
-    String greeting = '早上好';
+    String greeting = '\u65E9\u4E0A\u597D';
     if (hour >= 12 && hour < 18) {
-      greeting = '下午好';
+      greeting = '\u4E0B\u5348\u597D';
     } else if (hour >= 18) {
-      greeting = '晚上好';
+      greeting = '\u665A\u4E0A\u597D';
     }
+
+    final user = ref.watch(authProvider).valueOrNull;
+    final displayName = user?.username ?? '\u7BA1\u7406\u5458';
+    final displayPhone = user?.phone ?? '';
+    final roleLabel = user?.isSuperAdmin == true ? '\u8D85\u7EA7\u7BA1\u7406\u5458' : '\u7BA1\u7406\u5458';
 
     return Row(
       children: [
@@ -178,7 +185,7 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard>
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                '$greeting，超级管理员',
+                '$greeting\uFF0C$roleLabel',
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 18,
@@ -188,7 +195,7 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard>
               ),
               const SizedBox(height: 2),
               Text(
-                '账号: 18937766669',
+                displayPhone.isNotEmpty ? '$displayName ($displayPhone)' : displayName,
                 style: TextStyle(
                   color: Colors.white.withOpacity(0.4),
                   fontSize: 12,
@@ -304,8 +311,21 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard>
     );
   }
 
-  // ─── 2x2 玻璃态统计卡片 ───
+  // ─── 2x2 \u73BB\u7483\u6001\u7EDF\u8BA1\u5361\u7247 ───
   Widget _buildGlassStatsGrid() {
+    final orderStats = ref.watch(orderStatsProvider);
+    final totalOrders = orderStats['total'] as int? ?? 0;
+    final totalAmount = orderStats['totalAmount'] as double? ?? 0.0;
+    final pendingCount = orderStats['pending'] as int? ?? 0;
+    final shippedCount = orderStats['shipped'] as int? ?? 0;
+
+    String formatAmount(double amount) {
+      if (amount >= 10000) {
+        return '${(amount / 10000).toStringAsFixed(1)}w';
+      }
+      return amount.toStringAsFixed(0);
+    }
+
     return GridView.count(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
@@ -315,31 +335,31 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard>
       childAspectRatio: 1.5,
       children: [
         _buildGlassStatCard(
-          title: '今日订单',
-          value: '12,580',
+          title: '\u8BA2\u5355\u603B\u989D',
+          value: formatAmount(totalAmount),
           prefix: '\u00a5',
-          subtitle: '+18.5% 较昨日',
+          subtitle: '\u5171 $totalOrders \u5355',
           icon: Icons.trending_up_rounded,
           accentColor: const Color(0xFF06B6D4),
         ),
         _buildGlassStatCard(
-          title: '商品总数',
+          title: '\u5546\u54C1\u603B\u6570',
           value: '${realProductData.length}',
-          subtitle: '全部上架中',
+          subtitle: '\u5168\u90E8\u4E0A\u67B6\u4E2D',
           icon: Icons.diamond_rounded,
           accentColor: const Color(0xFF10B981),
         ),
         _buildGlassStatCard(
-          title: '活跃操作员',
-          value: '8',
-          subtitle: '/ 10 在线',
-          icon: Icons.people_alt_rounded,
+          title: '\u5F85\u53D1\u8D27',
+          value: '$pendingCount',
+          subtitle: '\u5DF2\u53D1\u8D27 $shippedCount \u5355',
+          icon: Icons.local_shipping_rounded,
           accentColor: const Color(0xFFF59E0B),
         ),
         _buildGlassStatCard(
-          title: 'AI 鉴定量',
-          value: '1,280',
-          subtitle: '次对话',
+          title: '\u5546\u54C1\u79CD\u7C7B',
+          value: '${realProductData.length}',
+          subtitle: '\u73E0\u5B9D\u9996\u9970',
           icon: Icons.auto_awesome_rounded,
           accentColor: const Color(0xFF8B5CF6),
         ),

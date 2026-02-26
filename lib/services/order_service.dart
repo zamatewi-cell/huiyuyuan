@@ -193,8 +193,139 @@ class OrderNotifier extends StateNotifier<List<OrderModel>> {
   }
 
   /// 取消订单
-  Future<bool> cancelOrder(String orderId) async {
-    return updateOrderStatus(orderId, OrderStatus.cancelled);
+  Future<bool> cancelOrder(String orderId, {String? reason}) async {
+    final index = state.indexWhere((o) => o.id == orderId);
+    if (index < 0) return false;
+
+    final updatedOrder = state[index].copyWith(
+      status: OrderStatus.cancelled,
+      cancelReason: reason,
+      cancelledAt: DateTime.now(),
+    );
+    state = [
+      ...state.sublist(0, index),
+      updatedOrder,
+      ...state.sublist(index + 1),
+    ];
+    return true;
+  }
+
+  /// 模拟支付订单
+  Future<bool> simulatePayment(String orderId, {PaymentMethod? method}) async {
+    final index = state.indexWhere((o) => o.id == orderId);
+    if (index < 0) return false;
+    if (state[index].status != OrderStatus.pending) return false;
+
+    final updatedOrder = state[index].copyWith(
+      status: OrderStatus.paid,
+      paymentMethod: method ?? PaymentMethod.wechat,
+      paymentId: 'PAY${DateTime.now().millisecondsSinceEpoch}',
+      paidAt: DateTime.now(),
+    );
+    state = [
+      ...state.sublist(0, index),
+      updatedOrder,
+      ...state.sublist(index + 1),
+    ];
+    return true;
+  }
+
+  /// 商家发货
+  Future<bool> shipOrder(
+    String orderId, {
+    required String carrier,
+    required String trackingNumber,
+  }) async {
+    final index = state.indexWhere((o) => o.id == orderId);
+    if (index < 0) return false;
+    if (state[index].status != OrderStatus.paid) return false;
+
+    final now = DateTime.now();
+    final updatedOrder = state[index].copyWith(
+      status: OrderStatus.shipped,
+      logisticsCompany: carrier,
+      trackingNumber: trackingNumber,
+      shippedAt: now,
+      logisticsEntries: [
+        LogisticsEntry(
+          description: '\u5546\u5BB6\u5DF2\u53D1\u8D27\uFF0C$carrier\u8FD0\u9001\u4E2D',
+          time: now,
+        ),
+        LogisticsEntry(
+          description: '\u5546\u5BB6\u6B63\u5728\u5904\u7406\u60A8\u7684\u8BA2\u5355',
+          time: now.subtract(const Duration(hours: 1)),
+        ),
+      ],
+    );
+    state = [
+      ...state.sublist(0, index),
+      updatedOrder,
+      ...state.sublist(index + 1),
+    ];
+    return true;
+  }
+
+  /// 确认收货
+  Future<bool> confirmReceipt(String orderId) async {
+    final index = state.indexWhere((o) => o.id == orderId);
+    if (index < 0) return false;
+    if (!state[index].canConfirmReceipt) return false;
+
+    final now = DateTime.now();
+    final existing = state[index].logisticsEntries ?? [];
+    final updatedOrder = state[index].copyWith(
+      status: OrderStatus.completed,
+      deliveredAt: now,
+      completedAt: now,
+      logisticsEntries: [
+        LogisticsEntry(
+          description: '\u5DF2\u7B7E\u6536\uFF0C\u8BA2\u5355\u5B8C\u6210',
+          time: now,
+        ),
+        ...existing,
+      ],
+    );
+    state = [
+      ...state.sublist(0, index),
+      updatedOrder,
+      ...state.sublist(index + 1),
+    ];
+    return true;
+  }
+
+  /// 申请退货/退款
+  Future<bool> requestReturn(String orderId, {String? reason}) async {
+    final index = state.indexWhere((o) => o.id == orderId);
+    if (index < 0) return false;
+    if (!state[index].canRefund) return false;
+
+    final updatedOrder = state[index].copyWith(
+      status: OrderStatus.refunding,
+      refundReason: reason ?? '\u4E70\u5BB6\u7533\u8BF7\u9000\u6B3E',
+      refundAmount: state[index].totalPaid,
+    );
+    state = [
+      ...state.sublist(0, index),
+      updatedOrder,
+      ...state.sublist(index + 1),
+    ];
+    return true;
+  }
+
+  /// 删除订单（仅已取消/已完成/已退款的订单可删除）
+  Future<bool> deleteOrder(String orderId) async {
+    final index = state.indexWhere((o) => o.id == orderId);
+    if (index < 0) return false;
+
+    final order = state[index];
+    if (order.status != OrderStatus.cancelled &&
+        order.status != OrderStatus.completed &&
+        order.status != OrderStatus.refunded) {
+      return false;
+    }
+
+    state = [...state]..removeAt(index);
+    return true;
   }
 
   /// 获取订单详情

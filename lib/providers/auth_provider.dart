@@ -306,6 +306,21 @@ final isAdminProvider = Provider<bool>((ref) {
   return ref.watch(currentUserProvider)?.isAdmin ?? false;
 });
 
+/// \u662F\u5426\u4E3A\u64CD\u4F5C\u5458Provider
+final isOperatorProvider = Provider<bool>((ref) {
+  return ref.watch(currentUserProvider)?.userType == UserType.operator;
+});
+
+/// \u662F\u5426\u4E3A\u666E\u901A\u7528\u6237Provider
+final isCustomerProvider = Provider<bool>((ref) {
+  return ref.watch(currentUserProvider)?.isCustomer ?? true;
+});
+
+/// \u5F53\u524D\u7528\u6237\u89D2\u8272Provider
+final userRoleProvider = Provider<UserType>((ref) {
+  return ref.watch(currentUserProvider)?.userType ?? UserType.customer;
+});
+
 /// 操作员编号Provider
 final operatorNumberProvider = Provider<int?>((ref) {
   return ref.watch(currentUserProvider)?.operatorNumber;

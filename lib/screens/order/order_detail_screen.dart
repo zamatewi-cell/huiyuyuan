@@ -13,6 +13,8 @@ import 'dart:ui';
 import '../../themes/colors.dart';
 import '../../themes/jewelry_theme.dart';
 import 'publish_review_screen.dart';
+import 'shipping_dialog.dart';
+import 'logistics_screen.dart';
 import '../../services/order_service.dart';
 import '../../models/user_model.dart';
 import '../../widgets/common/glassmorphic_card.dart';
@@ -516,11 +518,25 @@ class OrderDetailScreen extends ConsumerWidget {
                 boxShadow: JewelryShadows.light,
               ),
               child: ElevatedButton(
-                onPressed: () {
-                  ref
-                      .read(orderProvider.notifier)
-                      .updateOrderStatus(order.id, OrderStatus.shipped);
-                  Navigator.pop(context);
+                onPressed: () async {
+                  final result = await ShippingDialog.show(
+                    context,
+                    orderId: order.id,
+                    productName: order.productName,
+                  );
+                  if (result != null && context.mounted) {
+                    await ref.read(orderProvider.notifier).shipOrder(
+                          order.id,
+                          carrier: result.carrier,
+                          trackingNumber: result.trackingNumber,
+                        );
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('\u53D1\u8D27\u6210\u529F\uFF01')),
+                      );
+                      Navigator.pop(context);
+                    }
+                  }
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.transparent,
@@ -531,7 +547,7 @@ class OrderDetailScreen extends ConsumerWidget {
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(20)),
                 ),
-                child: const Text('去发货 (模拟现实发货)',
+                child: const Text('\u53BB\u53D1\u8D27',
                     style:
                         TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
               ),
@@ -543,7 +559,12 @@ class OrderDetailScreen extends ConsumerWidget {
         return [
           Expanded(
             child: OutlinedButton(
-              onPressed: () {},
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => LogisticsScreen(order: order)),
+                );
+              },
               style: OutlinedButton.styleFrom(
                 foregroundColor: context.adaptiveTextSecondary,
                 side: BorderSide(color: Colors.grey.withOpacity(0.3)),
@@ -551,7 +572,7 @@ class OrderDetailScreen extends ConsumerWidget {
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(20)),
               ),
-              child: const Text('查看物流',
+              child: const Text('\u67E5\u770B\u7269\u6D41',
                   style: TextStyle(fontWeight: FontWeight.w600)),
             ),
           ),
@@ -566,11 +587,24 @@ class OrderDetailScreen extends ConsumerWidget {
               ),
               child: ElevatedButton(
                 onPressed: () {
-                  ref.read(orderProvider.notifier).updateOrderStatus(
-                        order.id,
-                        OrderStatus.completed,
-                      );
-                  Navigator.pop(context);
+                  showDialog(
+                    context: context,
+                    builder: (ctx) => AlertDialog(
+                      title: const Text('\u786E\u8BA4\u6536\u8D27'),
+                      content: const Text('\u8BF7\u786E\u8BA4\u5DF2\u6536\u5230\u5546\u54C1'),
+                      actions: [
+                        TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('\u53D6\u6D88')),
+                        TextButton(
+                          onPressed: () {
+                            ref.read(orderProvider.notifier).confirmReceipt(order.id);
+                            Navigator.pop(ctx);
+                            Navigator.pop(context);
+                          },
+                          child: const Text('\u786E\u8BA4'),
+                        ),
+                      ],
+                    ),
+                  );
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.transparent,
@@ -581,7 +615,7 @@ class OrderDetailScreen extends ConsumerWidget {
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(20)),
                 ),
-                child: const Text('确认收货',
+                child: const Text('\u786E\u8BA4\u6536\u8D27',
                     style:
                         TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
               ),
@@ -592,7 +626,46 @@ class OrderDetailScreen extends ConsumerWidget {
         return [
           Expanded(
             child: OutlinedButton(
-              onPressed: () {},
+              onPressed: () {
+                final controller = TextEditingController();
+                showDialog(
+                  context: context,
+                  builder: (ctx) => AlertDialog(
+                    title: const Text('\u7533\u8BF7\u9000\u8D27'),
+                    content: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Text('\u8BF7\u586B\u5199\u9000\u8D27\u539F\u56E0\uFF1A'),
+                        const SizedBox(height: 12),
+                        TextField(
+                          controller: controller,
+                          maxLines: 3,
+                          decoration: const InputDecoration(
+                            hintText: '\u8BF7\u8F93\u5165\u9000\u8D27\u539F\u56E0...',
+                            border: OutlineInputBorder(),
+                          ),
+                        ),
+                      ],
+                    ),
+                    actions: [
+                      TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('\u53D6\u6D88')),
+                      TextButton(
+                        onPressed: () {
+                          ref.read(orderProvider.notifier).requestReturn(
+                                order.id,
+                                reason: controller.text.trim().isNotEmpty
+                                    ? controller.text.trim()
+                                    : null,
+                              );
+                          Navigator.pop(ctx);
+                          Navigator.pop(context);
+                        },
+                        child: const Text('\u63D0\u4EA4'),
+                      ),
+                    ],
+                  ),
+                );
+              },
               style: OutlinedButton.styleFrom(
                 foregroundColor: context.adaptiveTextSecondary,
                 side: BorderSide(color: Colors.grey.withOpacity(0.3)),

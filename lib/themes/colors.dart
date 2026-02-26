@@ -19,6 +19,9 @@ class JewelryColors {
   static const Color goldLight = Color(0xFFFFE44D);
   static const Color goldDark = Color(0xFFDAA520);
 
+  /// 别名 - 方便直接引用
+  static const Color primaryGreen = primary;
+
   // ============ 材质色彩 ============
   /// 和田玉色系
   static const Color hetianYu = Color(0xFFF5F5DC);
@@ -86,8 +89,8 @@ class JewelryColors {
   /// 成功 - 翠绿色
   static const Color success = Color(0xFF28A745);
 
-  /// 警告 - 金橙色
-  static const Color warning = Color(0xFFFFC107);
+  /// 警告 - 金橙色（WCAG AA 对比度 ≥ 4.5:1）
+  static const Color warning = Color(0xFFE09200);
 
   /// 错误 - 珊瑚红
   static const Color error = Color(0xFFDC3545);
@@ -107,7 +110,7 @@ class JewelryColors {
   /// 文字颜色
   static const Color textPrimary = Color(0xFF212529);
   static const Color textSecondary = Color(0xFF6C757D);
-  static const Color textHint = Color(0xFFADB5BD);
+  static const Color textHint = Color(0xFF8B95A1);
   static const Color textOnPrimary = Color(0xFFFFFFFF);
 
   // ============ 阴影色 ============
@@ -170,7 +173,7 @@ class JewelryColors {
   /// 暗色模式文字颜色
   static const Color darkTextPrimary = Color(0xFFE8E8EC);
   static const Color darkTextSecondary = Color(0xFF9999AC);
-  static const Color darkTextHint = Color(0xFF666680);
+  static const Color darkTextHint = Color(0xFF8888A0);
 }
 
 /// 阴影预设

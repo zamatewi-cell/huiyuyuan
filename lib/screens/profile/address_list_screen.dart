@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../models/address_model.dart';
 import '../../services/address_service.dart';
+import '../../themes/colors.dart';
+import '../../widgets/common/region_picker.dart';
 
 /// 收货地址列表页面
 class AddressListScreen extends StatefulWidget {
@@ -77,12 +79,11 @@ class _AddressListScreenState extends State<AddressListScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
+      backgroundColor: isDark ? JewelryColors.darkBackground : const Color(0xFFF8F9FA),
       appBar: AppBar(
         title: Text(widget.isSelectMode ? '选择收货地址' : '收货地址管理'),
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
         elevation: 0,
       ),
       body: _isLoading
@@ -92,9 +93,9 @@ class _AddressListScreenState extends State<AddressListScreen> {
               : _buildAddressList(),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _navigateToEdit(null),
-        backgroundColor: const Color(0xFF2E8B57),
-        icon: const Icon(Icons.add),
-        label: const Text('新增地址'),
+        backgroundColor: JewelryColors.primaryGreen,
+        icon: const Icon(Icons.add, color: Colors.white),
+        label: const Text('新增地址', style: TextStyle(color: Colors.white)),
       ),
     );
   }
@@ -132,15 +133,20 @@ class _AddressListScreenState extends State<AddressListScreen> {
   }
 
   Widget _buildAddressCard(AddressModel address) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardBg = isDark ? const Color(0xFF1E1E2E) : Colors.white;
+    final textPrimary = isDark ? Colors.white : const Color(0xFF1A1A2E);
+    final textSecondary = isDark ? const Color(0xFFB0B0C0) : const Color(0xFF6B7280);
+
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: cardBg,
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
+            color: (isDark ? Colors.black : Colors.black).withOpacity(isDark ? 0.2 : 0.06),
+            blurRadius: 12,
             offset: const Offset(0, 2),
           ),
         ],
@@ -156,46 +162,56 @@ class _AddressListScreenState extends State<AddressListScreen> {
               // 姓名和电话
               Row(
                 children: [
+                  if (address.isDefault)
+                    Container(
+                      margin: const EdgeInsets.only(right: 8),
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: JewelryColors.primaryGreen,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: const Text(
+                        '\u9ED8\u8BA4', // Default
+                        style: TextStyle(fontSize: 10, color: Colors.white, fontWeight: FontWeight.w500),
+                      ),
+                    ),
                   Text(
                     address.recipientName,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 16,
-                      fontWeight: FontWeight.bold,
+                      fontWeight: FontWeight.w600,
+                      color: textPrimary,
                     ),
                   ),
                   const SizedBox(width: 12),
                   Text(
                     address.maskedPhone,
-                    style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                    style: TextStyle(fontSize: 14, color: textSecondary),
                   ),
                   const Spacer(),
                   if (address.tag != null)
                     Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 2,
-                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF2E8B57).withOpacity(0.1),
+                        color: JewelryColors.primaryGreen.withAlpha(25),
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Text(
                         address.tag!,
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: Color(0xFF2E8B57),
-                        ),
+                        style: const TextStyle(fontSize: 12, color: JewelryColors.primaryGreen),
                       ),
                     ),
                 ],
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 10),
               // 完整地址
               Text(
                 address.fullAddress,
-                style: TextStyle(fontSize: 14, color: Colors.grey[700]),
+                style: TextStyle(fontSize: 14, color: textSecondary, height: 1.4),
               ),
               const SizedBox(height: 12),
+              Divider(height: 1, color: isDark ? const Color(0xFF2A2A3A) : const Color(0xFFE5E7EB)),
+              const SizedBox(height: 8),
               // 操作栏
               Row(
                 children: [
@@ -210,17 +226,17 @@ class _AddressListScreenState extends State<AddressListScreen> {
                               : Icons.radio_button_unchecked,
                           size: 18,
                           color: address.isDefault
-                              ? const Color(0xFF2E8B57)
-                              : Colors.grey,
+                              ? JewelryColors.primaryGreen
+                              : textSecondary,
                         ),
                         const SizedBox(width: 4),
                         Text(
-                          '默认地址',
+                          '\u9ED8\u8BA4\u5730\u5740', // Default address
                           style: TextStyle(
                             fontSize: 13,
                             color: address.isDefault
-                                ? const Color(0xFF2E8B57)
-                                : Colors.grey,
+                                ? JewelryColors.primaryGreen
+                                : textSecondary,
                           ),
                         ),
                       ],
@@ -230,18 +246,16 @@ class _AddressListScreenState extends State<AddressListScreen> {
                   // 编辑按钮
                   TextButton.icon(
                     onPressed: () => _navigateToEdit(address),
-                    icon: const Icon(Icons.edit, size: 16),
-                    label: const Text('编辑'),
-                    style: TextButton.styleFrom(
-                      foregroundColor: Colors.grey[600],
-                    ),
+                    icon: const Icon(Icons.edit_outlined, size: 16),
+                    label: const Text('\u7F16\u8F91'), // Edit
+                    style: TextButton.styleFrom(foregroundColor: textSecondary),
                   ),
                   // 删除按钮
                   TextButton.icon(
                     onPressed: () => _deleteAddress(address.id),
-                    icon: const Icon(Icons.delete, size: 16),
-                    label: const Text('删除'),
-                    style: TextButton.styleFrom(foregroundColor: Colors.red),
+                    icon: const Icon(Icons.delete_outline, size: 16),
+                    label: const Text('\u5220\u9664'), // Delete
+                    style: TextButton.styleFrom(foregroundColor: JewelryColors.error),
                   ),
                 ],
               ),
@@ -376,12 +390,11 @@ class _AddressEditScreenState extends State<AddressEditScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
+      backgroundColor: isDark ? JewelryColors.darkBackground : const Color(0xFFF8F9FA),
       appBar: AppBar(
-        title: Text(_isEditing ? '编辑收货地址' : '新增收货地址'),
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
+        title: Text(_isEditing ? '\u7F16\u8F91\u6536\u8D27\u5730\u5740' : '\u65B0\u589E\u6536\u8D27\u5730\u5740'),
         elevation: 0,
       ),
       body: Form(
@@ -458,7 +471,7 @@ class _AddressEditScreenState extends State<AddressEditScreen> {
                 subtitle: const Text('下单时自动使用此地址'),
                 value: _isDefault,
                 onChanged: (v) => setState(() => _isDefault = v),
-                activeColor: const Color(0xFF2E8B57),
+                activeColor: JewelryColors.primaryGreen,
               ),
             ]),
             const SizedBox(height: 32),
@@ -469,7 +482,7 @@ class _AddressEditScreenState extends State<AddressEditScreen> {
               child: ElevatedButton(
                 onPressed: _isSaving ? null : _saveAddress,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF2E8B57),
+                  backgroundColor: JewelryColors.primaryGreen,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -493,10 +506,18 @@ class _AddressEditScreenState extends State<AddressEditScreen> {
   }
 
   Widget _buildCard(List<Widget> children) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDark ? const Color(0xFF1E1E2E) : Colors.white,
         borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(isDark ? 0.15 : 0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 1),
+          ),
+        ],
       ),
       child: Column(children: children),
     );
@@ -568,53 +589,20 @@ class _AddressEditScreenState extends State<AddressEditScreen> {
     );
   }
 
-  void _showRegionPicker() {
-    // 简化版地区选择（实际项目应使用完整的三级联动选择器）
-    showModalBottomSheet(
-      context: context,
-      builder: (context) => Container(
-        height: 300,
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              '选择地区',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 16),
-            Expanded(
-              child: ListView(
-                children: [
-                  _buildRegionItem('广东省', '广州市', '天河区'),
-                  _buildRegionItem('广东省', '深圳市', '南山区'),
-                  _buildRegionItem('广东省', '深圳市', '福田区'),
-                  _buildRegionItem('北京市', '北京市', '朝阳区'),
-                  _buildRegionItem('上海市', '上海市', '浦东新区'),
-                  _buildRegionItem('浙江省', '杭州市', '西湖区'),
-                  _buildRegionItem('江苏省', '南京市', '鼓楼区'),
-                  _buildRegionItem('四川省', '成都市', '武侯区'),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
+  void _showRegionPicker() async {
+    final result = await RegionPicker.show(
+      context,
+      province: _selectedProvince.isNotEmpty ? _selectedProvince : null,
+      city: _selectedCity.isNotEmpty ? _selectedCity : null,
+      district: _selectedDistrict.isNotEmpty ? _selectedDistrict : null,
     );
-  }
-
-  Widget _buildRegionItem(String province, String city, String district) {
-    return ListTile(
-      title: Text('$province $city $district'),
-      onTap: () {
-        setState(() {
-          _selectedProvince = province;
-          _selectedCity = city;
-          _selectedDistrict = district;
-        });
-        Navigator.pop(context);
-      },
-    );
+    if (result != null) {
+      setState(() {
+        _selectedProvince = result.province;
+        _selectedCity = result.city;
+        _selectedDistrict = result.district;
+      });
+    }
   }
 
   Widget _buildTagSelector() {
@@ -644,7 +632,7 @@ class _AddressEditScreenState extends State<AddressEditScreen> {
                     _selectedTag = selected ? tag.label : null;
                   });
                 },
-                selectedColor: const Color(0xFF2E8B57).withOpacity(0.2),
+                selectedColor: JewelryColors.primaryGreen.withAlpha(51),
               );
             }).toList(),
           ),
