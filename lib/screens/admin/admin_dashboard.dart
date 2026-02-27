@@ -235,6 +235,8 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard>
           const SizedBox(height: 20),
           _buildGlassStatsGrid(),
           const SizedBox(height: 24),
+          _buildRestockSuggestions(),
+          const SizedBox(height: 24),
           _buildActivitySection(),
           const SizedBox(height: 24),
           _buildQuickActionsSection(),
@@ -429,6 +431,222 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard>
               Text(subtitle,
                   style: TextStyle(
                       color: Colors.white.withOpacity(0.3), fontSize: 11)),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ─── 智能补货建议 ───
+  Widget _buildRestockSuggestions() {
+    // \u6839\u636E\u5E93\u5B58\u548C\u5B89\u5168\u9608\u503C\u751F\u6210\u5EFA\u8BAE (Generate from stock & safety threshold)
+    final suggestions = <Map<String, dynamic>>[];
+    for (final p in realProductData) {
+      final safetyThreshold = 5;
+      if (p.stock <= safetyThreshold) {
+        final urgency = p.stock == 0
+            ? 'critical'
+            : p.stock <= 2
+                ? 'high'
+                : 'medium';
+        final suggestedQty = (safetyThreshold * 3) - p.stock;
+        suggestions.add({
+          'name': p.name,
+          'stock': p.stock,
+          'suggestedQty': suggestedQty,
+          'urgency': urgency,
+          'price': p.price,
+          'category': p.category,
+        });
+      }
+    }
+
+    // \u6309\u7D27\u6025\u5EA6\u6392\u5E8F (Sort by urgency)
+    suggestions.sort((a, b) {
+      const order = {'critical': 0, 'high': 1, 'medium': 2};
+      return (order[a['urgency']] ?? 3).compareTo(order[b['urgency']] ?? 3);
+    });
+
+    if (suggestions.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const Icon(Icons.inventory_2_outlined, color: Color(0xFFF59E0B), size: 20),
+            const SizedBox(width: 8),
+            const Text(
+              '\u667A\u80FD\u8865\u8D27\u5EFA\u8BAE', // 智能补货建议
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const Spacer(),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF59E0B).withOpacity(0.15),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                '${suggestions.length}\u4EF6\u5F85\u8865', // X件待补
+                style: const TextStyle(
+                  color: Color(0xFFF59E0B),
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+
+        // \u8865\u8D27\u5361\u7247\u5217\u8868 (Restock cards)
+        ...suggestions.take(5).map((s) => _buildRestockCard(s)),
+
+        if (suggestions.length > 5) ...[
+          const SizedBox(height: 8),
+          Center(
+            child: TextButton(
+              onPressed: () {
+                // \u5BFC\u822A\u5230\u5E93\u5B58\u7BA1\u7406 (Navigate to inventory)
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const InventoryScreen()),
+                );
+              },
+              child: Text(
+                '\u67E5\u770B\u5168\u90E8 ${suggestions.length} \u4EF6 \u2192', // 查看全部 X 件
+                style: const TextStyle(color: Color(0xFFF59E0B), fontSize: 13),
+              ),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildRestockCard(Map<String, dynamic> suggestion) {
+    final urgency = suggestion['urgency'] as String;
+    final Color urgencyColor;
+    final String urgencyLabel;
+    final IconData urgencyIcon;
+
+    switch (urgency) {
+      case 'critical':
+        urgencyColor = const Color(0xFFEF4444);
+        urgencyLabel = '\u65AD\u8D27'; // 断货
+        urgencyIcon = Icons.error_outline;
+        break;
+      case 'high':
+        urgencyColor = const Color(0xFFF97316);
+        urgencyLabel = '\u7D27\u6025'; // 紧急
+        urgencyIcon = Icons.warning_amber_rounded;
+        break;
+      default:
+        urgencyColor = const Color(0xFFF59E0B);
+        urgencyLabel = '\u5EFA\u8BAE'; // 建议
+        urgencyIcon = Icons.info_outline;
+    }
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1E293B),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: urgencyColor.withOpacity(0.3),
+          width: 1,
+        ),
+      ),
+      child: Row(
+        children: [
+          // \u7D27\u6025\u5EA6\u6807\u5FD7 (Urgency badge)
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: urgencyColor.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(urgencyIcon, color: urgencyColor, size: 22),
+          ),
+          const SizedBox(width: 12),
+
+          // \u5546\u54C1\u4FE1\u606F (Product info)
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  suggestion['name'] as String,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                      decoration: BoxDecoration(
+                        color: urgencyColor.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        urgencyLabel,
+                        style: TextStyle(
+                          color: urgencyColor,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      '\u5E93\u5B58: ${suggestion['stock']}', // 库存: X
+                      style: TextStyle(
+                        color: Colors.grey[400],
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+
+          // \u5EFA\u8BAE\u8865\u8D27\u91CF (Suggested restock qty)
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                '\u5EFA\u8BAE\u8865 ${suggestion['suggestedQty']}', // 建议补 X
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                '\u2248 \u00A5${((suggestion['price'] as double) * (suggestion['suggestedQty'] as int)).toStringAsFixed(0)}', // ≈ ¥X
+                style: TextStyle(
+                  color: Colors.grey[500],
+                  fontSize: 11,
+                ),
+              ),
             ],
           ),
         ],

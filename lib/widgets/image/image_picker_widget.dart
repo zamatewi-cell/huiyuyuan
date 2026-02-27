@@ -11,6 +11,7 @@ library;
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../services/oss_service.dart';
 import '../../services/gemini_image_service.dart';
 import '../../themes/colors.dart';
@@ -218,84 +219,85 @@ class _ImagePickerWidgetState extends State<ImagePickerWidget> {
 
   /// 从相册选择
   Future<void> _pickFromGallery() async {
-    // TODO: 实际实现需要添加 image_picker 依赖
-    // 这里使用模拟实现
-    _showNotImplementedMessage('相册选择');
-
-    /*
     final picker = ImagePicker();
     final remaining = widget.maxCount - _images.length;
-    
+
     if (remaining <= 0) {
       _showMaxCountMessage();
       return;
     }
-    
-    final images = await picker.pickMultiImage(
-      maxWidth: 1920,
-      maxHeight: 1920,
-      imageQuality: 85,
-    );
-    
-    if (images.isNotEmpty) {
-      final toAdd = images.take(remaining).toList();
-      for (final image in toAdd) {
-        await _addImage(image.path);
+
+    try {
+      final images = await picker.pickMultiImage(
+        maxWidth: 1920,
+        maxHeight: 1920,
+        imageQuality: 85,
+      );
+
+      if (images.isNotEmpty) {
+        final toAdd = images.take(remaining).toList();
+        for (final image in toAdd) {
+          await _addImage(image.path);
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        _showError('\u76F8\u518C\u9009\u62E9\u5931\u8D25: $e'); // 相册选择失败
       }
     }
-    */
   }
 
   /// 拍摄照片
   Future<void> _pickFromCamera() async {
-    // TODO: 实际实现需要添加 image_picker 依赖
-    _showNotImplementedMessage('相机拍摄');
-
-    /*
     final picker = ImagePicker();
-    
+
     if (_images.length >= widget.maxCount) {
       _showMaxCountMessage();
       return;
     }
-    
-    final image = await picker.pickImage(
-      source: ImageSource.camera,
-      maxWidth: 1920,
-      maxHeight: 1920,
-      imageQuality: 85,
-    );
-    
-    if (image != null) {
-      await _addImage(image.path);
+
+    try {
+      final image = await picker.pickImage(
+        source: ImageSource.camera,
+        maxWidth: 1920,
+        maxHeight: 1920,
+        imageQuality: 85,
+      );
+
+      if (image != null) {
+        await _addImage(image.path);
+      }
+    } catch (e) {
+      if (mounted) {
+        _showError('\u62CD\u6444\u5931\u8D25: $e'); // 拍摄失败
+      }
     }
-    */
   }
 
   /// 选择并分析
   Future<void> _pickAndAnalyze() async {
-    // TODO: 实际实现
-    _showNotImplementedMessage('AI智能识别');
-
-    /*
     final picker = ImagePicker();
-    
-    final image = await picker.pickImage(
-      source: ImageSource.gallery,
-      maxWidth: 1920,
-      maxHeight: 1920,
-      imageQuality: 85,
-    );
-    
-    if (image != null) {
-      await _addImage(image.path);
-      await _analyzeImage(image.path);
+
+    try {
+      final image = await picker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 1920,
+        maxHeight: 1920,
+        imageQuality: 85,
+      );
+
+      if (image != null) {
+        await _addImage(image.path);
+        await _analyzeImage(image.path);
+      }
+    } catch (e) {
+      if (mounted) {
+        _showError('AI\u8BC6\u522B\u5931\u8D25: $e'); // AI识别失败
+      }
     }
-    */
   }
 
   /// 添加图片
-  // ignore: unused_element
   Future<void> _addImage(String localPath) async {
     final id = DateTime.now().millisecondsSinceEpoch.toString();
     final item = ImageItem(id: id, localPath: localPath, isUploading: true);
@@ -349,7 +351,6 @@ class _ImagePickerWidgetState extends State<ImagePickerWidget> {
   }
 
   /// 分析图片
-  // ignore: unused_element
   Future<void> _analyzeImage(String localPath) async {
     setState(() {
       _isAnalyzing = true;
@@ -448,28 +449,27 @@ class _ImagePickerWidgetState extends State<ImagePickerWidget> {
     _notifyChange();
   }
 
-  /// 预览图片
+  /// 预览图片 - 全屏可滑动画廊
   void _previewImage(int index) {
-    // TODO: 实现图片预览
-    showDialog(
-      context: context,
-      builder: (context) => Dialog(
-        backgroundColor: Colors.transparent,
-        child: Stack(
-          children: [
-            Center(
-              child: _buildImageWidget(_images[index], size: 300),
+    Navigator.of(context).push(
+      PageRouteBuilder(
+        opaque: false,
+        barrierColor: Colors.black87,
+        pageBuilder: (context, animation, secondaryAnimation) {
+          return FadeTransition(
+            opacity: animation,
+            child: _FullScreenGallery(
+              images: _images,
+              initialIndex: index,
+              onDelete: widget.readOnly
+                  ? null
+                  : (id) {
+                      _removeImage(id);
+                      if (_images.isEmpty) Navigator.pop(context);
+                    },
             ),
-            Positioned(
-              top: 0,
-              right: 0,
-              child: IconButton(
-                icon: const Icon(Icons.close, color: Colors.white),
-                onPressed: () => Navigator.pop(context),
-              ),
-            ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }
@@ -484,18 +484,6 @@ class _ImagePickerWidgetState extends State<ImagePickerWidget> {
   void _showError(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(message), backgroundColor: Colors.red),
-    );
-  }
-
-  void _showNotImplementedMessage(String feature) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('$feature功能需要添加 image_picker 依赖'),
-        action: SnackBarAction(
-          label: '了解',
-          onPressed: () {},
-        ),
-      ),
     );
   }
 
@@ -704,6 +692,163 @@ class _ImagePickerWidgetState extends State<ImagePickerWidget> {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// \u5168\u5C4F\u56FE\u7247\u753B\u5ECA (Full-screen image gallery)
+class _FullScreenGallery extends StatefulWidget {
+  final List<ImageItem> images;
+  final int initialIndex;
+  final void Function(String id)? onDelete;
+
+  const _FullScreenGallery({
+    required this.images,
+    required this.initialIndex,
+    this.onDelete,
+  });
+
+  @override
+  State<_FullScreenGallery> createState() => _FullScreenGalleryState();
+}
+
+class _FullScreenGalleryState extends State<_FullScreenGallery> {
+  late PageController _pageController;
+  late int _currentIndex;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentIndex = widget.initialIndex;
+    _pageController = PageController(initialPage: _currentIndex);
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  Widget _buildGalleryImage(ImageItem item) {
+    if (item.remoteUrl != null) {
+      return InteractiveViewer(
+        minScale: 0.5,
+        maxScale: 4.0,
+        child: Image.network(
+          item.remoteUrl!,
+          fit: BoxFit.contain,
+          errorBuilder: (_, __, ___) => const Icon(
+            Icons.broken_image,
+            color: Colors.white54,
+            size: 64,
+          ),
+        ),
+      );
+    } else if (item.localPath.isNotEmpty) {
+      return InteractiveViewer(
+        minScale: 0.5,
+        maxScale: 4.0,
+        child: kIsWeb
+            ? Image.network(
+                item.localPath,
+                fit: BoxFit.contain,
+                errorBuilder: (_, __, ___) => const Icon(
+                  Icons.broken_image,
+                  color: Colors.white54,
+                  size: 64,
+                ),
+              )
+            : Image.file(
+                File(item.localPath),
+                fit: BoxFit.contain,
+                errorBuilder: (_, __, ___) => const Icon(
+                  Icons.broken_image,
+                  color: Colors.white54,
+                  size: 64,
+                ),
+              ),
+      );
+    }
+    return const Icon(Icons.image, color: Colors.white54, size: 64);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: Stack(
+        children: [
+          // \u53EF\u6ED1\u52A8\u56FE\u7247 (Swipeable images)
+          PageView.builder(
+            controller: _pageController,
+            itemCount: widget.images.length,
+            onPageChanged: (i) => setState(() => _currentIndex = i),
+            itemBuilder: (context, index) {
+              return GestureDetector(
+                onTap: () => Navigator.pop(context),
+                child: Center(child: _buildGalleryImage(widget.images[index])),
+              );
+            },
+          ),
+
+          // \u5173\u95ED\u6309\u94AE (Close button)
+          Positioned(
+            top: MediaQuery.of(context).padding.top + 8,
+            right: 16,
+            child: IconButton(
+              icon: const Icon(Icons.close, color: Colors.white, size: 28),
+              onPressed: () => Navigator.pop(context),
+            ),
+          ),
+
+          // \u9875\u7801\u6307\u793A\u5668 (Page indicator)
+          if (widget.images.length > 1)
+            Positioned(
+              bottom: MediaQuery.of(context).padding.bottom + 24,
+              left: 0,
+              right: 0,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.black54,
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Text(
+                      '${_currentIndex + 1} / ${widget.images.length}',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+          // \u5220\u9664\u6309\u94AE (Delete button)
+          if (widget.onDelete != null)
+            Positioned(
+              top: MediaQuery.of(context).padding.top + 8,
+              left: 16,
+              child: IconButton(
+                icon: const Icon(Icons.delete_outline, color: Colors.red, size: 28),
+                onPressed: () {
+                  final id = widget.images[_currentIndex].id;
+                  widget.onDelete!(id);
+                  if (_currentIndex > 0) {
+                    setState(() => _currentIndex--);
+                  }
+                },
+              ),
+            ),
+        ],
       ),
     );
   }
