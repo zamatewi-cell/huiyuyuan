@@ -1,0 +1,120 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "🚀 全量部署 (分析+构建+上传)",
+			"type": "shell",
+			"command": "powershell",
+			"args": ["-ExecutionPolicy", "Bypass", "-File", "${workspaceFolder}/scripts/deploy.ps1", "-Target", "all"],
+			"group": { "kind": "build", "isDefault": true },
+			"problemMatcher": [],
+			"presentation": { "reveal": "always", "panel": "dedicated", "clear": true }
+		},
+		{
+			"label": "⚡ 快速部署 (跳过分析)",
+			"type": "shell",
+			"command": "powershell",
+			"args": ["-ExecutionPolicy", "Bypass", "-File", "${workspaceFolder}/scripts/deploy.ps1", "-Target", "all", "-SkipAnalyze"],
+			"problemMatcher": [],
+			"presentation": { "reveal": "always", "panel": "dedicated", "clear": true }
+		},
+		{
+			"label": "🌐 仅部署前端",
+			"type": "shell",
+			"command": "powershell",
+			"args": ["-ExecutionPolicy", "Bypass", "-File", "${workspaceFolder}/scripts/deploy.ps1", "-Target", "web"],
+			"problemMatcher": [],
+			"presentation": { "reveal": "always", "panel": "dedicated", "clear": true }
+		},
+		{
+			"label": "🔧 仅部署后端",
+			"type": "shell",
+			"command": "powershell",
+			"args": ["-ExecutionPolicy", "Bypass", "-File", "${workspaceFolder}/scripts/deploy.ps1", "-Target", "backend"],
+			"problemMatcher": [],
+			"presentation": { "reveal": "always", "panel": "dedicated", "clear": true }
+		},
+		{
+			"label": "� 更新 Nginx 配置",
+			"type": "shell",
+			"command": "powershell",
+			"args": ["-ExecutionPolicy", "Bypass", "-File", "${workspaceFolder}/scripts/deploy.ps1", "-Target", "nginx"],
+			"problemMatcher": [],
+			"presentation": { "reveal": "always", "panel": "dedicated", "clear": true }
+		},
+		{
+			"label": "🗄️ 初始化数据库表",
+			"type": "shell",
+			"command": "powershell",
+			"args": ["-ExecutionPolicy", "Bypass", "-File", "${workspaceFolder}/scripts/deploy.ps1", "-Target", "db-init"],
+			"problemMatcher": [],
+			"presentation": { "reveal": "always", "panel": "dedicated", "clear": true }
+		},
+		{
+			"label": "📦 仅构建 (不部署)",
+			"type": "shell",
+			"command": "flutter",
+			"args": ["build", "web", "--no-tree-shake-icons", "--release"],
+			"options": { "cwd": "${workspaceFolder}/huiyuanyuan_app" },
+			"group": "build",
+			"problemMatcher": [],
+			"presentation": { "reveal": "always", "panel": "shared" }
+		},
+		{
+			"label": "🔍 静态分析",
+			"type": "shell",
+			"command": "dart",
+			"args": ["analyze", "lib/"],
+			"options": { "cwd": "${workspaceFolder}/huiyuanyuan_app" },
+			"group": "test",
+			"problemMatcher": [],
+			"presentation": { "reveal": "always", "panel": "shared" }
+		},
+		{
+			"label": "🧪 运行测试",
+			"type": "shell",
+			"command": "flutter",
+			"args": ["test"],
+			"options": { "cwd": "${workspaceFolder}/huiyuanyuan_app" },
+			"group": "test",
+			"problemMatcher": [],
+			"presentation": { "reveal": "always", "panel": "shared" }
+		},
+		{
+			"label": "🏥 服务器健康检查",
+			"type": "shell",
+			"command": "ssh",
+			"args": [
+				"-o", "ConnectTimeout=5",
+				"root@47.98.188.141",
+				"echo '=== 服务状态 ==='; systemctl is-active huiyuanyuan; echo '=== API 健康 ==='; curl -s http://127.0.0.1:8000/api/health | python3 -m json.tool 2>/dev/null || echo 'N/A'; echo '=== Nginx ==='; nginx -t 2>&1; echo '=== 磁盘 ==='; df -h / | tail -1; echo '=== 内存 ==='; free -h | grep Mem"
+			],
+			"problemMatcher": [],
+			"presentation": { "reveal": "always", "panel": "shared" }
+		},
+		{
+			"label": "🔬 服务器完整诊断",
+			"type": "shell",
+			"command": "ssh",
+			"args": [
+				"-o", "ConnectTimeout=5",
+				"root@47.98.188.141",
+				"bash /srv/huiyuanyuan/scripts/server_diagnose.sh"
+			],
+			"problemMatcher": [],
+			"presentation": { "reveal": "always", "panel": "dedicated", "clear": true }
+		},
+		{
+			"label": "💾 手动触发数据库备份",
+			"type": "shell",
+			"command": "ssh",
+			"args": [
+				"-o", "ConnectTimeout=5",
+				"root@47.98.188.141",
+				"bash /opt/huiyuanyuan/backup.sh"
+			],
+			"problemMatcher": [],
+			"presentation": { "reveal": "always", "panel": "shared" }
+		}
+	]
+}

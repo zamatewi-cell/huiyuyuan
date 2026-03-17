@@ -1,0 +1,68 @@
+# ============================================================
+# 汇玉源项目 - 根目录 .gitignore
+# ============================================================
+
+# 临时文件/测试文件
+tmp_*.txt
+analyze*.txt
+tmp_*.py
+test_*.py
+
+# 操作系统文件
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE
+.idea/
+*.iml
+*.swp
+*.swo
+*~
+
+# 敏感配置（自动排除，不要提交）
+.env
+.env.*
+!.env.example
+
+# 敏感文件
+secrets.dart
+*.key
+*.pem
+*.p12
+*.pfx
+*.jks
+*.keystore
+
+# Python 缓存
+__pycache__/
+*.pyc
+*.pyo
+
+# 部署日志
+deploy_*.log
+
+# 构建产物（APK/AAB 等二进制文件）
+builds/*.apk
+builds/*.aab
+
+# Copilot Agent 自动创建目录
+.agent/
+
+# Python 虚拟环境
+.venv/
+venv/
+
+# Flutter 构建目录
+huiyuanyuan_app/build/
+huiyuanyuan_app/.dart_tool/
+huiyuanyuan_app/.flutter-plugins
+huiyuanyuan_app/.flutter-plugins-dependencies
+huiyuanyuan_app/.packages
+
+# 数据库备份
+*.sql.gz
+backups/
+
+# 上传文件
+uploads/

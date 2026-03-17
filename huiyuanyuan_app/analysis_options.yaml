@@ -1,0 +1,17 @@
+include: package:flutter_lints/flutter.yaml
+
+analyzer:
+  errors:
+    # 暂时忽略 deprecated 警告，因为 withOpacity 在当前版本仍然可用
+    deprecated_member_use: ignore
+    deprecated_member_use_from_same_package: ignore
+  language:
+    strict-casts: false
+    strict-raw-types: false
+
+linter:
+  rules:
+    - avoid_print
+    - prefer_const_constructors
+    - prefer_const_declarations
+    - prefer_final_fields

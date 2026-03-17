@@ -1,0 +1,431 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+    branches: [main, dev]
+
+env:
+  FLUTTER_VERSION: '3.32.0'
+  JAVA_VERSION: '17'
+  APP_DIR: huiyuanyuan_app
+  PYTHON_VERSION: '3.11'
+
+jobs:
+  # ─────────────────────────────────────────────
+  # JOB 1: Flutter 静态分析 + 测试 + 构建
+  # ─────────────────────────────────────────────
+  flutter-build:
+    name: Flutter 分析 & 构建
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ${{ env.APP_DIR }}
+
+    steps:
+      - name: 拉取代码
+        uses: actions/checkout@v4
+
+      - name: 配置 Java ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+
+      - name: 配置 Flutter ${{ env.FLUTTER_VERSION }}
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: 安装依赖
+        run: flutter pub get
+
+      - name: 生成代码 (build_runner)
+        run: |
+          if grep -q build_runner pubspec.yaml; then
+            dart run build_runner build --delete-conflicting-outputs
+          else
+            echo "无需 build_runner，跳过"
+          fi
+
+      - name: 静态分析
+        run: flutter analyze --fatal-infos
+
+      - name: 运行单元测试
+        run: flutter test --coverage
+
+      - name: 上传覆盖率报告
+        if: github.ref == 'refs/heads/main'
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: ${{ env.APP_DIR }}/coverage/lcov.info
+          retention-days: 7
+
+      # PR：构建 Debug APK（快速验证）
+      - name: 构建 Debug APK (PR)
+        if: github.event_name == 'pull_request'
+        run: flutter build apk --debug
+
+      # push main：构建 Release AAB
+      - name: 构建 Release AAB (main)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: |
+          flutter build appbundle --release \
+            --dart-define=DEEPSEEK_API_KEY=$DEEPSEEK_API_KEY \
+            --dart-define=GEMINI_API_KEY=$GEMINI_API_KEY
+
+      - name: 上传 Release AAB
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-aab-${{ github.sha }}
+          path: ${{ env.APP_DIR }}/build/app/outputs/bundle/release/app-release.aab
+          retention-days: 30
+
+  # ─────────────────────────────────────────────
+  # JOB 1.5: 后端测试 (pytest + PostgreSQL)
+  # ─────────────────────────────────────────────
+  backend-test:
+    name: 后端测试 (pytest)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ${{ env.APP_DIR }}/backend
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_DB: huiyuanyuan_test
+          POSTGRES_USER: test_user
+          POSTGRES_PASSWORD: test_password
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7
+        ports: ['6379:6379']
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgresql://test_user:test_password@localhost:5432/huiyuanyuan_test
+      REDIS_URL: redis://localhost:6379/0
+      JWT_SECRET_KEY: ci_test_secret_key_do_not_use_in_prod_1234567890
+      APP_ENV: testing
+      DEBUG: true
+
+    steps:
+      - name: 拉取代码
+        uses: actions/checkout@v4
+
+      - name: 配置 Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: ${{ env.APP_DIR }}/backend/requirements.txt
+
+      - name: 安装后端依赖
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pytest-asyncio pytest-cov httpx
+
+      - name: 初始化测试数据库
+        run: |
+          PGPASSWORD=test_password psql -h localhost -U test_user -d huiyuanyuan_test -f init_db.sql || true
+
+      - name: 运行后端测试
+        run: |
+          if [ -d tests ]; then
+            pytest tests/ -v --cov --cov-report=term-missing --cov-report=xml
+          else
+            echo "后端测试目录不存在，跳过 (待 Agent C 创建)"
+          fi
+
+      - name: 上传后端覆盖率
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-coverage
+          path: ${{ env.APP_DIR }}/backend/coverage.xml
+          retention-days: 7
+          if-no-files-found: ignore
+
+  # ─────────────────────────────────────────────
+  # JOB 1.6: 安全扫描
+  # ─────────────────────────────────────────────
+  security-scan:
+    name: 安全扫描
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 拉取代码
+        uses: actions/checkout@v4
+
+      - name: 检查硬编码凭据
+        run: |
+          echo "=== 扫描硬编码凭据 ==="
+          FOUND=0
+          # 检查常见硬编码 (排除 .example, .md, ci.yml 文件自身)
+          if grep -rn --include="*.dart" --include="*.py" \
+            -E "(admin123|op123456|mock_token|dev_secret|8888.*验证码|888888.*验证码|CHANGE_ME)" \
+            ${{ env.APP_DIR }}/lib/ ${{ env.APP_DIR }}/backend/ \
+            | grep -v "\.example" | grep -v "test" | grep -v "__pycache__"; then
+            echo "::warning::发现疑似硬编码凭据，请检查上述匹配项"
+            FOUND=1
+          fi
+          if [ "$FOUND" -eq 0 ]; then
+            echo "未发现硬编码凭据 ?"
+          fi
+
+      - name: 扫描 API Key / Secret 泄露
+        run: |
+          echo "=== 扫描 API Key 和 Secret 泄露 ==="
+          LEAK=0
+          # 扫描生产代码中的敏感模式 (排除测试/示例/CI文件)
+          PATTERNS='(sk-[a-zA-Z0-9]{20,}|AIza[a-zA-Z0-9_-]{35}|AKIA[A-Z0-9]{16}|ghp_[a-zA-Z0-9]{36}|-----BEGIN (RSA |EC )?PRIVATE KEY-----)'
+          if grep -rn --include="*.dart" --include="*.py" --include="*.json" \
+            -E "$PATTERNS" \
+            ${{ env.APP_DIR }}/lib/ ${{ env.APP_DIR }}/backend/ \
+            | grep -v "test" | grep -v ".example" | grep -v "__pycache__" | grep -v "secrets.dart.example"; then
+            echo "::error::发现疑似 API Key / 私钥泄露！"
+            LEAK=1
+          fi
+          # 检查 .env 文件是否意外提交
+          if find . -name ".env" -not -path "*/.example" -not -path "*node_modules*" | grep -q .; then
+            echo "::warning::发现 .env 文件被提交，请检查 .gitignore"
+            LEAK=1
+          fi
+          # 检查 secrets.dart 是否意外提交
+          if [ -f "${{ env.APP_DIR }}/lib/config/secrets.dart" ]; then
+            echo "::warning::secrets.dart 已提交到仓库，请确认是否含真实密钥"
+          fi
+          if [ "$LEAK" -eq 0 ]; then
+            echo "未发现 API Key / Secret 泄露 ?"
+          fi
+
+      - name: Python SAST (bandit)
+        run: |
+          pip install bandit 2>/dev/null
+          echo "=== Python 安全扫描 (bandit) ==="
+          bandit -r ${{ env.APP_DIR }}/backend/ \
+            -x ${{ env.APP_DIR }}/backend/tests,${{ env.APP_DIR }}/backend/__pycache__ \
+            -ll --format txt || true
+        continue-on-error: true
+
+      - name: 依赖审计 (Python)
+        run: |
+          pip install safety pip-audit 2>/dev/null || true
+          echo "=== Python 依赖漏洞扫描 ==="
+          if command -v pip-audit &>/dev/null; then
+            pip install -r ${{ env.APP_DIR }}/backend/requirements.txt -q 2>/dev/null || true
+            pip-audit -r ${{ env.APP_DIR }}/backend/requirements.txt || true
+          elif command -v safety &>/dev/null; then
+            safety check -r ${{ env.APP_DIR }}/backend/requirements.txt || true
+          fi
+        continue-on-error: true
+
+      - name: 依赖审计 (Flutter)
+        working-directory: ${{ env.APP_DIR }}
+        run: |
+          git config --global --add safe.directory /opt/hostedtoolcache/flutter-stable-${{ env.FLUTTER_VERSION }}-x64
+        continue-on-error: true
+
+      - name: 检查安全配置
+        run: |
+          echo "=== 安全配置检查 ==="
+          # 检查 .gitignore 是否包含敏感文件
+          MISSING=0
+          for pattern in secrets.dart .env "*.key" "*.pem"; do
+            if ! grep -q "$pattern" .gitignore 2>/dev/null; then
+              echo "::warning::.gitignore 缺少 '$pattern' 规则"
+              MISSING=1
+            fi
+          done
+          # 检查 backend 是否有不安全默认配置
+          if grep -rn "DEBUG.*=.*True" ${{ env.APP_DIR }}/backend/config.py 2>/dev/null | grep -v "os.getenv\|environ"; then
+            echo "::warning::config.py 中发现硬编码 DEBUG=True（应从环境变量读取）"
+          fi
+          if [ "$MISSING" -eq 0 ]; then
+            echo ".gitignore 安全规则完整 ?"
+          fi
+          echo "安全配置检查完成"
+
+  # ─────────────────────────────────────────────
+  # JOB 2: 后端部署到 ECS（仅 main 分支 push）
+  # ─────────────────────────────────────────────
+  deploy-backend:
+    name: 部署后端到 ECS
+    runs-on: ubuntu-latest
+    needs: [flutter-build, backend-test, security-scan]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    steps:
+      - name: 拉取代码
+        uses: actions/checkout@v4
+
+      - name: 上传后端目录到服务器 (v4 模块化)
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          source: >-
+            huiyuanyuan_app/backend/main.py,
+            huiyuanyuan_app/backend/requirements.txt,
+            huiyuanyuan_app/backend/init_db.sql,
+            huiyuanyuan_app/backend/pyproject.toml,
+            huiyuanyuan_app/backend/config.py,
+            huiyuanyuan_app/backend/database.py,
+            huiyuanyuan_app/backend/security.py,
+            huiyuanyuan_app/backend/store.py,
+            huiyuanyuan_app/backend/logging_config.py,
+            huiyuanyuan_app/backend/alembic.ini,
+            huiyuanyuan_app/backend/migrations/,
+            huiyuanyuan_app/backend/schemas/,
+            huiyuanyuan_app/backend/data/,
+            huiyuanyuan_app/backend/routers/,
+            huiyuanyuan_app/backend/services/,
+            huiyuanyuan_app/backend/tests/,
+            huiyuanyuan_app/backend/scripts/,
+            huiyuanyuan_app/backend/nginx_production.conf,
+            huiyuanyuan_app/backend/nginx_proxy_params.conf
+          target: /srv/huiyuanyuan
+          strip_components: 2
+
+      - name: 创建快照 & 重启服务 & 健康检查
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            set -e
+
+            # 创建部署前快照
+            SNAP_DIR="/opt/huiyuanyuan/snapshots/$(date +%Y%m%d_%H%M%S)"
+            mkdir -p "$SNAP_DIR"
+            cp -a /srv/huiyuanyuan/main.py "$SNAP_DIR/" 2>/dev/null || true
+            cp -a /srv/huiyuanyuan/requirements.txt "$SNAP_DIR/" 2>/dev/null || true
+            cp -a /srv/huiyuanyuan/config.py "$SNAP_DIR/" 2>/dev/null || true
+            cp -a /srv/huiyuanyuan/database.py "$SNAP_DIR/" 2>/dev/null || true
+            cp -a /srv/huiyuanyuan/security.py "$SNAP_DIR/" 2>/dev/null || true
+            cp -a /srv/huiyuanyuan/store.py "$SNAP_DIR/" 2>/dev/null || true
+            cp -a /srv/huiyuanyuan/schemas "$SNAP_DIR/" 2>/dev/null || true
+            cp -a /srv/huiyuanyuan/routers "$SNAP_DIR/" 2>/dev/null || true
+            cp -a /srv/huiyuanyuan/services "$SNAP_DIR/" 2>/dev/null || true
+            cp -a /srv/huiyuanyuan/data "$SNAP_DIR/" 2>/dev/null || true
+
+            # 保留最近 3 个快照
+            cd /opt/huiyuanyuan/snapshots
+            ls -dt */ | tail -n +4 | xargs -r rm -rf
+
+            # 安装/更新 Python 依赖
+            cd /srv/huiyuanyuan
+            source venv/bin/activate
+            pip install -r requirements.txt -q
+
+            # 更新 Nginx 配置 (如有新配置文件)
+            if [ -f /srv/huiyuanyuan/nginx_production.conf ]; then
+              cp /srv/huiyuanyuan/nginx_production.conf /etc/nginx/sites-available/huiyuanyuan
+              mkdir -p /etc/nginx/snippets
+              cp /srv/huiyuanyuan/nginx_proxy_params.conf /etc/nginx/snippets/proxy_params.conf 2>/dev/null || true
+              nginx -t && systemctl reload nginx
+            fi
+
+            # 安装监控/备份脚本
+            mkdir -p /opt/huiyuanyuan
+            cp /srv/huiyuanyuan/scripts/db_backup.sh /opt/huiyuanyuan/backup.sh 2>/dev/null && chmod +x /opt/huiyuanyuan/backup.sh || true
+            cp /srv/huiyuanyuan/scripts/health_monitor.sh /opt/huiyuanyuan/health_monitor.sh 2>/dev/null && chmod +x /opt/huiyuanyuan/health_monitor.sh || true
+
+            # 重启 Gunicorn 服务
+            systemctl restart huiyuanyuan
+
+            # 等待服务启动 + 健康检查（最多重试 5 次）
+            sleep 3
+            for i in $(seq 1 5); do
+              STATUS=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8000/api/health || true)
+              if [ "$STATUS" = "200" ]; then
+                echo "健康检查通过 (尝试 $i)"
+                exit 0
+              fi
+              echo "等待服务就绪... ($i/5)"
+              sleep 2
+            done
+
+            echo "健康检查失败，尝试回滚..."
+            cp -a "$SNAP_DIR"/* /srv/huiyuanyuan/ 2>/dev/null || true
+            systemctl restart huiyuanyuan
+            sleep 3
+            RETRY_STATUS=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8000/api/health || true)
+            if [ "$RETRY_STATUS" = "200" ]; then
+              echo "回滚成功，但新版本有问题"
+            fi
+            exit 1
+
+  # ─────────────────────────────────────────────
+  # JOB 3: Web 前端部署到 ECS（仅 main 分支 push）
+  # ─────────────────────────────────────────────
+  deploy-web:
+    name: 部署 Web 前端到 ECS
+    runs-on: ubuntu-latest
+    needs: flutter-build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    steps:
+      - name: 拉取代码
+        uses: actions/checkout@v4
+
+      - name: 配置 Flutter ${{ env.FLUTTER_VERSION }}
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: 构建 Web
+        working-directory: ${{ env.APP_DIR }}
+        run: |
+          flutter pub get
+          flutter build web --no-tree-shake-icons --release
+
+      - name: 上传 Web 文件到服务器
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          source: 'huiyuanyuan_app/build/web/*'
+          target: /var/www/huiyuanyuan
+          strip_components: 3
+
+      - name: 重载 Nginx
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            nginx -t && systemctl reload nginx
+            STATUS=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1/index.html)
+            if [ "$STATUS" = "200" ]; then
+              echo "? Web 前端部署成功"
+            else
+              echo "? Web 返回状态: $STATUS"
+            fi

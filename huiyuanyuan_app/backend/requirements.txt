@@ -1,0 +1,26 @@
+fastapi>=0.100.0
+uvicorn>=0.22.0
+python-multipart>=0.0.6
+pydantic>=2.0.0
+
+# production
+gunicorn>=21.2.0
+
+# database
+sqlalchemy>=2.0.0
+psycopg2-binary>=2.9.9
+alembic>=1.13.0
+
+# cache / rate-limit
+redis>=5.0.1
+
+# jwt auth
+python-jose[cryptography]>=3.3.0
+passlib[bcrypt]>=1.7.4
+
+# env
+python-dotenv>=1.0.0
+
+# aliyun sms
+aliyun-python-sdk-core>=2.15.1
+aliyun-python-sdk-dysmsapi>=2.1.0
