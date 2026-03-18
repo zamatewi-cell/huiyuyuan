@@ -10,7 +10,7 @@ from datetime import datetime, timedelta
 from fastapi import APIRouter, HTTPException, UploadFile, File, Form
 
 from schemas.common import OssStsResponse
-from security import require_user
+from security import AuthorizationDep, require_user
 from config import UPLOAD_DIR, OSS_AVAILABLE
 
 router = APIRouter(tags=["上传"])
@@ -47,7 +47,7 @@ async def upload_image(
 
 
 @router.get("/api/oss/sts-token", response_model=OssStsResponse)
-async def get_oss_sts_token(authorization: str = None):
+async def get_oss_sts_token(authorization: AuthorizationDep = None):
     """获取OSS STS临时凭证
     安全修复: 未配置时返回 501 (Not Implemented)，不再返回假凭据
     """

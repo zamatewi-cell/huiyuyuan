@@ -21,8 +21,9 @@ except ImportError:
 logger = logging.getLogger(__name__)
 
 # ============ 应用 ============
-APP_ENV = os.getenv("APP_ENV", "development")
+APP_ENV = os.getenv("APP_ENV", "development").strip().lower()
 DEBUG = os.getenv("DEBUG", "true").lower() in ("true", "1", "yes")
+IS_PRODUCTION = APP_ENV == "production"
 
 # ============ 数据库 ============
 DATABASE_URL = os.getenv("DATABASE_URL", "")
@@ -31,34 +32,55 @@ DATABASE_URL = os.getenv("DATABASE_URL", "")
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
 
 # ============ JWT ============
-_jwt_secret = os.getenv("JWT_SECRET_KEY", "")
-if not _jwt_secret:
-    if APP_ENV == "production":
-        raise RuntimeError(
-            "? JWT_SECRET_KEY 未设置！生产环境必须配置。\n"
-            "   生成方式: python -c \"import secrets; print(secrets.token_hex(32))\""
-        )
-    _jwt_secret = "dev_only_" + secrets.token_hex(16)
-    logger.warning("??  JWT_SECRET_KEY 未配置，使用随机开发密钥（重启失效）")
+def _load_jwt_secret() -> str:
+    secret = os.getenv("JWT_SECRET_KEY", "").strip()
+    if secret:
+        return secret
 
-JWT_SECRET_KEY = _jwt_secret
+    if IS_PRODUCTION:
+        raise RuntimeError(
+            "JWT_SECRET_KEY 未设置。生产环境必须显式配置。\n"
+            "生成方式: python -c \"import secrets; print(secrets.token_hex(32))\""
+        )
+
+    fallback = "dev_only_" + secrets.token_hex(16)
+    logger.warning("JWT_SECRET_KEY 未配置，使用临时开发密钥；服务重启后会失效。")
+    return fallback
+
+
+JWT_SECRET_KEY = _load_jwt_secret()
 JWT_ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
 JWT_ACCESS_EXPIRE_SECONDS = int(os.getenv("JWT_ACCESS_EXPIRE_MINUTES", "120")) * 60
 JWT_REFRESH_EXPIRE_DAYS = int(os.getenv("JWT_REFRESH_EXPIRE_DAYS", "7"))
 
 # ============ CORS ============
-_origins_raw = os.getenv("ALLOWED_ORIGINS", "")
-if _origins_raw and _origins_raw != "*":
-    ALLOWED_ORIGINS: list[str] = [o.strip() for o in _origins_raw.split(",") if o.strip()]
-else:
-    if APP_ENV == "production":
-        ALLOWED_ORIGINS = [
-            "http://47.112.98.191",
-            "https://47.112.98.191",
-        ]
-        logger.warning("??  ALLOWED_ORIGINS 未配置，默认仅允许服务器 IP")
-    else:
-        ALLOWED_ORIGINS = ["*"]
+def _load_allowed_origins() -> list[str]:
+    raw_value = os.getenv("ALLOWED_ORIGINS", "").strip()
+    if not raw_value:
+        if IS_PRODUCTION:
+            raise RuntimeError("ALLOWED_ORIGINS 未设置。生产环境必须显式配置白名单。")
+        logger.warning("ALLOWED_ORIGINS 未配置，开发环境放宽为 *。")
+        return ["*"]
+
+    origins = [origin.strip() for origin in raw_value.split(",") if origin.strip()]
+    if not origins:
+        if IS_PRODUCTION:
+            raise RuntimeError("ALLOWED_ORIGINS 未设置有效来源。")
+        return ["*"]
+
+    if "*" in origins:
+        if IS_PRODUCTION:
+            raise RuntimeError("ALLOWED_ORIGINS 不能在生产环境使用通配符 *。")
+        return ["*"]
+
+    normalized: list[str] = []
+    for origin in origins:
+        if origin not in normalized:
+            normalized.append(origin)
+    return normalized
+
+
+ALLOWED_ORIGINS = _load_allowed_origins()
 
 # ============ 阿里云短信 ============
 ALIYUN_AK_ID = os.getenv("ALIYUN_ACCESS_KEY_ID", "")

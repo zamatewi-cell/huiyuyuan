@@ -1,117 +1,186 @@
 """
-User router - profile + address management
-DB-first with in-memory fallback
+User router: profile, address management, and payment accounts.
+DB-first with development-only in-memory fallback.
 """
 
-import uuid
 import logging
-from typing import Optional, List
+import uuid
+from datetime import datetime, timezone
+from typing import List, Optional
 
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-from schemas.user import UserResponse, Address, AddressCreate
-from security import require_user
-from database import get_db
-from store import USERS_DB, ADDRESSES_DB
+from database import get_db, handle_database_error, require_database
+from schemas.user import (
+    Address,
+    AddressCreate,
+    PaymentAccountCreate,
+    PaymentAccountResponse,
+    PaymentAccountUpdate,
+    UserResponse,
+)
+from security import AuthorizationDep, get_user_record, require_user
+from store import ADDRESSES_DB, PAYMENT_ACCOUNTS_DB, USERS_DB
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/users", tags=["Users"])
 
 
-# ============ Profile ============
+def _row_to_address(mapping) -> Address:
+    return Address(
+        id=mapping["id"],
+        user_id=mapping["user_id"],
+        recipient_name=mapping["recipient_name"],
+        phone_number=mapping["phone_number"],
+        province=mapping["province"],
+        city=mapping["city"],
+        district=mapping["district"],
+        detail_address=mapping["detail_address"],
+        is_default=mapping["is_default"],
+        postal_code=mapping.get("postal_code"),
+        tag=mapping.get("tag"),
+    )
 
-@router.get("/profile")
-async def get_profile(authorization: str = None, db: Optional[Session] = Depends(get_db)):
-    user_id = require_user(authorization)
 
+def _row_to_payment_account(mapping) -> PaymentAccountResponse:
+    return PaymentAccountResponse(
+        id=mapping["id"],
+        user_id=mapping["user_id"],
+        name=mapping["account_name"],
+        type=mapping["account_type"],
+        account_number=mapping.get("account_number"),
+        bank_name=mapping.get("bank_name"),
+        qr_code_url=mapping.get("qr_code_url"),
+        is_active=mapping["is_active"],
+        is_default=mapping["is_default"],
+        created_at=mapping["created_at"],
+        updated_at=mapping["updated_at"],
+    )
+
+
+def _get_default_payment_account_id(user_id: str, db: Optional[Session]) -> Optional[str]:
     if db is not None:
         try:
             row = db.execute(
                 text(
-                    "SELECT id, username, phone, user_type, balance, points, "
-                    "avatar_url, operator_num "
-                    "FROM users WHERE id = :id"
+                    "SELECT id FROM payment_accounts "
+                    "WHERE user_id = :uid AND is_default = true "
+                    "ORDER BY updated_at DESC LIMIT 1"
                 ),
-                {"id": user_id},
+                {"uid": user_id},
             ).fetchone()
             if row:
-                m = row._mapping
-                return UserResponse(
-                    id=m["id"], username=m["username"], phone=m["phone"],
-                    user_type=m["user_type"],
-                    is_admin=(m["user_type"] == "admin"),
-                    balance=float(m["balance"]),
-                    points=m["points"],
-                    avatar=m["avatar_url"],
-                    operator_number=m["operator_num"],
-                ).model_dump()
-        except Exception as e:
-            logger.error(f"DB get_profile: {e}")
+                return row._mapping["id"]
+        except Exception:
+            logger.debug("payment_accounts table not available yet for user %s", user_id)
 
-    if user_id not in USERS_DB:
-        raise HTTPException(status_code=404, detail="用户不存在")
-    return UserResponse(**USERS_DB[user_id]).model_dump()
+    for account in PAYMENT_ACCOUNTS_DB.values():
+        if account.user_id == user_id and account.is_default:
+            return account.id
+    return None
+
+
+@router.get("/profile")
+async def get_profile(
+    authorization: AuthorizationDep = None,
+    db: Optional[Session] = Depends(get_db),
+):
+    user_id = require_user(authorization)
+
+    if db is not None:
+        try:
+            user = get_user_record(user_id, db)
+            if not user:
+                raise HTTPException(status_code=404, detail="User not found")
+            return UserResponse(
+                **user,
+                payment_account_id=_get_default_payment_account_id(user_id, db),
+            ).model_dump()
+        except HTTPException:
+            raise
+        except Exception as exc:
+            handle_database_error(db, "read user profile", exc)
+
+    require_database(db, "read user profile")
+
+    user = USERS_DB.get(user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    return UserResponse(
+        **user,
+        payment_account_id=_get_default_payment_account_id(user_id, None),
+    ).model_dump()
 
 
 @router.put("/profile")
 async def update_profile(
-    data: dict, authorization: str = None, db: Optional[Session] = Depends(get_db),
+    data: dict,
+    authorization: AuthorizationDep = None,
+    db: Optional[Session] = Depends(get_db),
 ):
     user_id = require_user(authorization)
-
     allowed = {"username", "avatar"}
-    updates = {k: v for k, v in data.items() if k in allowed}
+    updates = {key: value for key, value in data.items() if key in allowed}
 
-    if db is not None and updates:
+    if db is not None:
         try:
-            set_parts = []
-            params: dict = {"id": user_id}
-            if "username" in updates:
-                set_parts.append("username = :username")
-                params["username"] = updates["username"]
-            if "avatar" in updates:
-                set_parts.append("avatar_url = :avatar")
-                params["avatar"] = updates["avatar"]
-            if set_parts:
-                db.execute(
+            if updates:
+                set_parts = []
+                params: dict[str, object] = {"id": user_id}
+                if "username" in updates:
+                    set_parts.append("username = :username")
+                    params["username"] = updates["username"]
+                if "avatar" in updates:
+                    set_parts.append("avatar_url = :avatar")
+                    params["avatar"] = updates["avatar"]
+
+                result = db.execute(
                     text(f"UPDATE users SET {', '.join(set_parts)} WHERE id = :id"),
                     params,
                 )
+                if result.rowcount == 0:
+                    raise HTTPException(status_code=404, detail="User not found")
                 db.commit()
-        except Exception as e:
-            db.rollback()
-            logger.error(f"DB update_profile: {e}")
 
-    # Also update memory
-    if user_id in USERS_DB:
-        for key, value in updates.items():
-            USERS_DB[user_id][key] = value
-        return {"success": True, "user": UserResponse(**USERS_DB[user_id]).model_dump()}
+            user = get_user_record(user_id, db)
+            if not user:
+                raise HTTPException(status_code=404, detail="User not found")
+            return {
+                "success": True,
+                "user": UserResponse(
+                    **user,
+                    payment_account_id=_get_default_payment_account_id(user_id, db),
+                ).model_dump(),
+            }
+        except HTTPException:
+            raise
+        except Exception as exc:
+            handle_database_error(db, "update user profile", exc)
 
-    raise HTTPException(status_code=404, detail="用户不存在")
+    require_database(db, "update user profile")
 
-
-# ============ Addresses ============
-
-def _row_to_address(m) -> Address:
-    return Address(
-        id=m["id"], user_id=m["user_id"],
-        recipient_name=m["recipient_name"],
-        phone_number=m["phone_number"],
-        province=m["province"], city=m["city"],
-        district=m["district"],
-        detail_address=m["detail_address"],
-        is_default=m["is_default"],
-        postal_code=m.get("postal_code"),
-        tag=m.get("tag"),
-    )
+    user = USERS_DB.get(user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    for key, value in updates.items():
+        user[key] = value
+    return {
+        "success": True,
+        "user": UserResponse(
+            **user,
+            payment_account_id=_get_default_payment_account_id(user_id, None),
+        ).model_dump(),
+    }
 
 
 @router.get("/addresses", response_model=List[Address])
-async def get_addresses(authorization: str = None, db: Optional[Session] = Depends(get_db)):
+async def get_addresses(
+    authorization: AuthorizationDep = None,
+    db: Optional[Session] = Depends(get_db),
+):
     user_id = require_user(authorization)
 
     if db is not None:
@@ -123,18 +192,21 @@ async def get_addresses(authorization: str = None, db: Optional[Session] = Depen
                 ),
                 {"uid": user_id},
             ).fetchall()
-            return [_row_to_address(r._mapping) for r in rows]
-        except Exception as e:
-            logger.error(f"DB get_addresses: {e}")
+            return [_row_to_address(row._mapping) for row in rows]
+        except Exception as exc:
+            handle_database_error(db, "read addresses", exc)
 
-    addresses = [a for a in ADDRESSES_DB.values() if a.user_id == user_id]
-    addresses.sort(key=lambda x: x.is_default, reverse=True)
+    require_database(db, "read addresses")
+
+    addresses = [address for address in ADDRESSES_DB.values() if address.user_id == user_id]
+    addresses.sort(key=lambda item: item.is_default, reverse=True)
     return addresses
 
 
 @router.post("/addresses", response_model=Address)
 async def create_address(
-    address: AddressCreate, authorization: str = None,
+    address: AddressCreate,
+    authorization: AuthorizationDep = None,
     db: Optional[Session] = Depends(get_db),
 ):
     user_id = require_user(authorization)
@@ -151,29 +223,36 @@ async def create_address(
                 text(
                     "INSERT INTO addresses "
                     "(id, user_id, recipient_name, phone_number, province, city, "
-                    " district, detail_address, postal_code, tag, is_default) "
-                    "VALUES (:id,:uid,:name,:phone,:prov,:city,:dist,:detail,:zip,:tag,:def)"
+                    "district, detail_address, postal_code, tag, is_default) "
+                    "VALUES (:id, :uid, :name, :phone, :prov, :city, :dist, :detail, :zip, :tag, :default)"
                 ),
                 {
-                    "id": address_id, "uid": user_id,
+                    "id": address_id,
+                    "uid": user_id,
                     "name": address.recipient_name,
                     "phone": address.phone_number,
-                    "prov": address.province, "city": address.city,
-                    "dist": address.district, "detail": address.detail_address,
-                    "zip": address.postal_code, "tag": address.tag,
-                    "def": address.is_default,
+                    "prov": address.province,
+                    "city": address.city,
+                    "dist": address.district,
+                    "detail": address.detail_address,
+                    "zip": address.postal_code,
+                    "tag": address.tag,
+                    "default": address.is_default,
                 },
             )
             db.commit()
-        except Exception as e:
-            db.rollback()
-            logger.error(f"DB create_address: {e}")
+            return Address(id=address_id, user_id=user_id, **address.model_dump())
+        except Exception as exc:
+            handle_database_error(db, "create address", exc)
 
-    # Memory write-through
+    require_database(db, "create address")
+
     if address.is_default:
-        for addr in ADDRESSES_DB.values():
-            if addr.user_id == user_id:
-                ADDRESSES_DB[addr.id] = Address(**{**addr.model_dump(), "is_default": False})
+        for stored in list(ADDRESSES_DB.values()):
+            if stored.user_id == user_id:
+                ADDRESSES_DB[stored.id] = Address(
+                    **{**stored.model_dump(), "is_default": False}
+                )
 
     new_address = Address(id=address_id, user_id=user_id, **address.model_dump())
     ADDRESSES_DB[address_id] = new_address
@@ -182,60 +261,79 @@ async def create_address(
 
 @router.put("/addresses/{address_id}", response_model=Address)
 async def update_address(
-    address_id: str, address: AddressCreate,
-    authorization: str = None, db: Optional[Session] = Depends(get_db),
+    address_id: str,
+    address: AddressCreate,
+    authorization: AuthorizationDep = None,
+    db: Optional[Session] = Depends(get_db),
 ):
     user_id = require_user(authorization)
 
-    # Permission check (memory or DB)
-    if address_id in ADDRESSES_DB:
-        if ADDRESSES_DB[address_id].user_id != user_id:
-            raise HTTPException(status_code=403, detail="没有权限")
-    elif db is not None:
-        row = db.execute(
-            text("SELECT user_id FROM addresses WHERE id = :id"), {"id": address_id}
-        ).fetchone()
-        if not row:
-            raise HTTPException(status_code=404, detail="地址不存在")
-        if row._mapping["user_id"] != user_id:
-            raise HTTPException(status_code=403, detail="没有权限")
-    else:
-        raise HTTPException(status_code=404, detail="地址不存在")
-
     if db is not None:
         try:
+            row = db.execute(
+                text("SELECT user_id FROM addresses WHERE id = :id"),
+                {"id": address_id},
+            ).fetchone()
+            if not row:
+                raise HTTPException(status_code=404, detail="Address not found")
+            if row._mapping["user_id"] != user_id:
+                raise HTTPException(status_code=403, detail="Forbidden")
+
             if address.is_default:
                 db.execute(
-                    text("UPDATE addresses SET is_default = false WHERE user_id = :uid AND id != :id"),
+                    text(
+                        "UPDATE addresses SET is_default = false "
+                        "WHERE user_id = :uid AND id != :id"
+                    ),
                     {"uid": user_id, "id": address_id},
                 )
-            db.execute(
+
+            result = db.execute(
                 text(
                     "UPDATE addresses SET "
-                    "recipient_name=:name, phone_number=:phone, province=:prov, "
-                    "city=:city, district=:dist, detail_address=:detail, "
-                    "postal_code=:zip, tag=:tag, is_default=:def "
+                    "recipient_name = :name, phone_number = :phone, province = :prov, "
+                    "city = :city, district = :dist, detail_address = :detail, "
+                    "postal_code = :zip, tag = :tag, is_default = :default "
                     "WHERE id = :id AND user_id = :uid"
                 ),
                 {
-                    "id": address_id, "uid": user_id,
-                    "name": address.recipient_name, "phone": address.phone_number,
-                    "prov": address.province, "city": address.city,
-                    "dist": address.district, "detail": address.detail_address,
-                    "zip": address.postal_code, "tag": address.tag,
-                    "def": address.is_default,
+                    "id": address_id,
+                    "uid": user_id,
+                    "name": address.recipient_name,
+                    "phone": address.phone_number,
+                    "prov": address.province,
+                    "city": address.city,
+                    "dist": address.district,
+                    "detail": address.detail_address,
+                    "zip": address.postal_code,
+                    "tag": address.tag,
+                    "default": address.is_default,
                 },
             )
-            db.commit()
-        except Exception as e:
-            db.rollback()
-            logger.error(f"DB update_address: {e}")
+            if result.rowcount == 0:
+                raise HTTPException(status_code=404, detail="Address not found")
 
-    # Memory write-through
+            db.commit()
+            return Address(id=address_id, user_id=user_id, **address.model_dump())
+        except HTTPException:
+            raise
+        except Exception as exc:
+            handle_database_error(db, "update address", exc)
+
+    require_database(db, "update address")
+
+    stored = ADDRESSES_DB.get(address_id)
+    if not stored:
+        raise HTTPException(status_code=404, detail="Address not found")
+    if stored.user_id != user_id:
+        raise HTTPException(status_code=403, detail="Forbidden")
+
     if address.is_default:
-        for addr in ADDRESSES_DB.values():
-            if addr.user_id == user_id and addr.id != address_id:
-                ADDRESSES_DB[addr.id] = Address(**{**addr.model_dump(), "is_default": False})
+        for other in list(ADDRESSES_DB.values()):
+            if other.user_id == user_id and other.id != address_id:
+                ADDRESSES_DB[other.id] = Address(
+                    **{**other.model_dump(), "is_default": False}
+                )
 
     updated = Address(id=address_id, user_id=user_id, **address.model_dump())
     ADDRESSES_DB[address_id] = updated
@@ -244,34 +342,276 @@ async def update_address(
 
 @router.delete("/addresses/{address_id}")
 async def delete_address(
-    address_id: str, authorization: str = None, db: Optional[Session] = Depends(get_db),
+    address_id: str,
+    authorization: AuthorizationDep = None,
+    db: Optional[Session] = Depends(get_db),
 ):
     user_id = require_user(authorization)
 
-    if address_id in ADDRESSES_DB:
-        if ADDRESSES_DB[address_id].user_id != user_id:
-            raise HTTPException(status_code=403, detail="没有权限")
-    elif db is not None:
-        row = db.execute(
-            text("SELECT user_id FROM addresses WHERE id = :id"), {"id": address_id}
-        ).fetchone()
-        if not row:
-            raise HTTPException(status_code=404, detail="地址不存在")
-        if row._mapping["user_id"] != user_id:
-            raise HTTPException(status_code=403, detail="没有权限")
-    else:
-        raise HTTPException(status_code=404, detail="地址不存在")
-
     if db is not None:
         try:
-            db.execute(
+            row = db.execute(
+                text("SELECT user_id FROM addresses WHERE id = :id"),
+                {"id": address_id},
+            ).fetchone()
+            if not row:
+                raise HTTPException(status_code=404, detail="Address not found")
+            if row._mapping["user_id"] != user_id:
+                raise HTTPException(status_code=403, detail="Forbidden")
+
+            result = db.execute(
                 text("DELETE FROM addresses WHERE id = :id AND user_id = :uid"),
                 {"id": address_id, "uid": user_id},
             )
+            if result.rowcount == 0:
+                raise HTTPException(status_code=404, detail="Address not found")
             db.commit()
-        except Exception as e:
-            db.rollback()
-            logger.error(f"DB delete_address: {e}")
+            return {"success": True, "message": "Address deleted"}
+        except HTTPException:
+            raise
+        except Exception as exc:
+            handle_database_error(db, "delete address", exc)
+
+    require_database(db, "delete address")
+
+    stored = ADDRESSES_DB.get(address_id)
+    if not stored:
+        raise HTTPException(status_code=404, detail="Address not found")
+    if stored.user_id != user_id:
+        raise HTTPException(status_code=403, detail="Forbidden")
 
     ADDRESSES_DB.pop(address_id, None)
-    return {"success": True, "message": "地址已删除"}
+    return {"success": True, "message": "Address deleted"}
+
+
+@router.get("/payment-accounts", response_model=List[PaymentAccountResponse])
+async def list_payment_accounts(
+    authorization: AuthorizationDep = None,
+    db: Optional[Session] = Depends(get_db),
+):
+    user_id = require_user(authorization)
+
+    if db is not None:
+        try:
+            rows = db.execute(
+                text(
+                    "SELECT * FROM payment_accounts WHERE user_id = :uid "
+                    "ORDER BY is_default DESC, updated_at DESC, created_at DESC"
+                ),
+                {"uid": user_id},
+            ).fetchall()
+            return [_row_to_payment_account(row._mapping) for row in rows]
+        except Exception as exc:
+            handle_database_error(db, "read payment accounts", exc)
+
+    require_database(db, "read payment accounts")
+
+    accounts = [
+        account
+        for account in PAYMENT_ACCOUNTS_DB.values()
+        if account.user_id == user_id
+    ]
+    accounts.sort(key=lambda item: (not item.is_default, -item.updated_at.timestamp()))
+    return accounts
+
+
+@router.post("/payment-accounts", response_model=PaymentAccountResponse)
+async def create_payment_account(
+    account: PaymentAccountCreate,
+    authorization: AuthorizationDep = None,
+    db: Optional[Session] = Depends(get_db),
+):
+    user_id = require_user(authorization)
+    account_id = f"payacc_{uuid.uuid4().hex[:8]}"
+
+    if db is not None:
+        try:
+            if account.is_default:
+                db.execute(
+                    text("UPDATE payment_accounts SET is_default = false WHERE user_id = :uid"),
+                    {"uid": user_id},
+                )
+
+            db.execute(
+                text(
+                    "INSERT INTO payment_accounts ("
+                    "id, user_id, account_type, account_name, account_number, "
+                    "bank_name, qr_code_url, is_active, is_default"
+                    ") VALUES ("
+                    ":id, :uid, :type, :name, :number, :bank_name, :qr_code_url, "
+                    ":is_active, :is_default"
+                    ")"
+                ),
+                {
+                    "id": account_id,
+                    "uid": user_id,
+                    "type": account.type,
+                    "name": account.name,
+                    "number": account.account_number,
+                    "bank_name": account.bank_name,
+                    "qr_code_url": account.qr_code_url,
+                    "is_active": account.is_active,
+                    "is_default": account.is_default,
+                },
+            )
+            db.commit()
+            row = db.execute(
+                text("SELECT * FROM payment_accounts WHERE id = :id"),
+                {"id": account_id},
+            ).fetchone()
+            return _row_to_payment_account(row._mapping)
+        except Exception as exc:
+            handle_database_error(db, "create payment account", exc)
+
+    require_database(db, "create payment account")
+
+    if account.is_default:
+        for existing in list(PAYMENT_ACCOUNTS_DB.values()):
+            if existing.user_id == user_id and existing.is_default:
+                PAYMENT_ACCOUNTS_DB[existing.id] = existing.model_copy(
+                    update={"is_default": False, "updated_at": datetime.now(timezone.utc)}
+                )
+
+    now = datetime.now(timezone.utc)
+    created = PaymentAccountResponse(
+        id=account_id,
+        user_id=user_id,
+        created_at=now,
+        updated_at=now,
+        **account.model_dump(),
+    )
+    PAYMENT_ACCOUNTS_DB[account_id] = created
+    return created
+
+
+@router.put("/payment-accounts/{account_id}", response_model=PaymentAccountResponse)
+async def update_payment_account(
+    account_id: str,
+    account: PaymentAccountUpdate,
+    authorization: AuthorizationDep = None,
+    db: Optional[Session] = Depends(get_db),
+):
+    user_id = require_user(authorization)
+
+    if db is not None:
+        try:
+            row = db.execute(
+                text("SELECT user_id FROM payment_accounts WHERE id = :id"),
+                {"id": account_id},
+            ).fetchone()
+            if not row:
+                raise HTTPException(status_code=404, detail="Payment account not found")
+            if row._mapping["user_id"] != user_id:
+                raise HTTPException(status_code=403, detail="Forbidden")
+
+            if account.is_default:
+                db.execute(
+                    text(
+                        "UPDATE payment_accounts SET is_default = false "
+                        "WHERE user_id = :uid AND id != :id"
+                    ),
+                    {"uid": user_id, "id": account_id},
+                )
+
+            result = db.execute(
+                text(
+                    "UPDATE payment_accounts SET "
+                    "account_type = :type, account_name = :name, account_number = :number, "
+                    "bank_name = :bank_name, qr_code_url = :qr_code_url, "
+                    "is_active = :is_active, is_default = :is_default, updated_at = NOW() "
+                    "WHERE id = :id AND user_id = :uid"
+                ),
+                {
+                    "id": account_id,
+                    "uid": user_id,
+                    "type": account.type,
+                    "name": account.name,
+                    "number": account.account_number,
+                    "bank_name": account.bank_name,
+                    "qr_code_url": account.qr_code_url,
+                    "is_active": account.is_active,
+                    "is_default": account.is_default,
+                },
+            )
+            if result.rowcount == 0:
+                raise HTTPException(status_code=404, detail="Payment account not found")
+
+            db.commit()
+            updated_row = db.execute(
+                text("SELECT * FROM payment_accounts WHERE id = :id"),
+                {"id": account_id},
+            ).fetchone()
+            return _row_to_payment_account(updated_row._mapping)
+        except HTTPException:
+            raise
+        except Exception as exc:
+            handle_database_error(db, "update payment account", exc)
+
+    require_database(db, "update payment account")
+
+    stored = PAYMENT_ACCOUNTS_DB.get(account_id)
+    if not stored:
+        raise HTTPException(status_code=404, detail="Payment account not found")
+    if stored.user_id != user_id:
+        raise HTTPException(status_code=403, detail="Forbidden")
+
+    if account.is_default:
+        for existing in list(PAYMENT_ACCOUNTS_DB.values()):
+            if existing.user_id == user_id and existing.id != account_id and existing.is_default:
+                PAYMENT_ACCOUNTS_DB[existing.id] = existing.model_copy(
+                    update={"is_default": False, "updated_at": datetime.now(timezone.utc)}
+                )
+
+    updated = PaymentAccountResponse(
+        id=account_id,
+        user_id=user_id,
+        created_at=stored.created_at,
+        updated_at=datetime.now(timezone.utc),
+        **account.model_dump(),
+    )
+    PAYMENT_ACCOUNTS_DB[account_id] = updated
+    return updated
+
+
+@router.delete("/payment-accounts/{account_id}")
+async def delete_payment_account(
+    account_id: str,
+    authorization: AuthorizationDep = None,
+    db: Optional[Session] = Depends(get_db),
+):
+    user_id = require_user(authorization)
+
+    if db is not None:
+        try:
+            row = db.execute(
+                text("SELECT user_id FROM payment_accounts WHERE id = :id"),
+                {"id": account_id},
+            ).fetchone()
+            if not row:
+                raise HTTPException(status_code=404, detail="Payment account not found")
+            if row._mapping["user_id"] != user_id:
+                raise HTTPException(status_code=403, detail="Forbidden")
+
+            result = db.execute(
+                text("DELETE FROM payment_accounts WHERE id = :id AND user_id = :uid"),
+                {"id": account_id, "uid": user_id},
+            )
+            if result.rowcount == 0:
+                raise HTTPException(status_code=404, detail="Payment account not found")
+            db.commit()
+            return {"success": True}
+        except HTTPException:
+            raise
+        except Exception as exc:
+            handle_database_error(db, "delete payment account", exc)
+
+    require_database(db, "delete payment account")
+
+    stored = PAYMENT_ACCOUNTS_DB.get(account_id)
+    if not stored:
+        raise HTTPException(status_code=404, detail="Payment account not found")
+    if stored.user_id != user_id:
+        raise HTTPException(status_code=403, detail="Forbidden")
+
+    PAYMENT_ACCOUNTS_DB.pop(account_id, None)
+    return {"success": True}

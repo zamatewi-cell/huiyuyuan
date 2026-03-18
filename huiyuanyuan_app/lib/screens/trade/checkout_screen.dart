@@ -10,6 +10,7 @@ import '../../providers/cart_provider.dart';
 import '../../themes/colors.dart';
 import '../../themes/jewelry_theme.dart';
 import '../../widgets/common/glassmorphic_card.dart';
+import '../../widgets/common/error_handler.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../profile/address_list_screen.dart';
 import '../payment/payment_screen.dart';
@@ -70,7 +71,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   void _processPayment() async {
     if (_selectedAddress == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('\u8BF7\u5148\u9009\u62E9\u6536\u8D27\u5730\u5740')),
+        const SnackBar(content: Text('请先选择收货地址')),
       );
       return;
     }
@@ -78,7 +79,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
     setState(() => _isProcessingPayment = true);
 
     try {
-      // \u901A\u8FC7 OrderNotifier \u521B\u5EFA\u8BA2\u5355
+      // 通过 OrderNotifier 创建订单
       final orderNotifier = ref.read(orderProvider.notifier);
       final paymentMethod = _paymentMethod == 'wechat'
           ? PaymentMethod.wechat
@@ -87,7 +88,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       final order = await orderNotifier.createOrder(
         productName: widget.items.length == 1
             ? widget.items.first.product.name
-            : '${widget.items.first.product.name} \u7B49${widget.items.length}\u4EF6\u5546\u54C1',
+            : '${widget.items.first.product.name} 等${widget.items.length}件商品',
         amount: _totalAmount,
         quantity: widget.items.fold(0, (sum, item) => sum + item.quantity),
         productImage: widget.items.first.product.images.isNotEmpty
@@ -103,30 +104,26 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       setState(() => _isProcessingPayment = false);
 
       if (order != null) {
-        // \u4ECE\u8D2D\u7269\u8F66\u79FB\u9664\u5DF2\u7ED3\u7B97\u7684\u5546\u54C1
+        // 从购物车移除已结算的商品
         final cartNotifier = ref.read(cartProvider.notifier);
         for (final item in widget.items) {
           cartNotifier.removeItem(item.product.id);
         }
 
-        // \u8DF3\u8F6C\u5230\u72EC\u7ACB\u652F\u4ED8\u9875\u9762
+        // 跳转到独立支付页面
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
             builder: (_) => PaymentScreen(order: order),
           ),
         );
+      } else {
+        context.showError('创建订单失败，请稍后重试');
       }
     } catch (e) {
       if (mounted) {
         setState(() => _isProcessingPayment = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('\u521B\u5EFA\u8BA2\u5355\u5931\u8D25: $e'),
-            backgroundColor: Colors.red,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
+        context.showError(e);
       }
     }
   }
@@ -455,7 +452,8 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                   children: [
                     Text('合计',
                         style: TextStyle(
-                            fontSize: 12, color: context.adaptiveTextSecondary)),
+                            fontSize: 12,
+                            color: context.adaptiveTextSecondary)),
                     Text(
                       '¥${_totalAmount.toStringAsFixed(2)}',
                       style: const TextStyle(

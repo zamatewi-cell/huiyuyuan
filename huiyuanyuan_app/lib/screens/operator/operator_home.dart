@@ -207,8 +207,8 @@ class _OperatorHomeState extends ConsumerState<OperatorHome> {
     final stats = ref.watch(orderStatsProvider);
     final totalAmount = stats['totalAmount'] as double? ?? 0.0;
     final amountStr = totalAmount >= 10000
-        ? '\u00A5${(totalAmount / 10000).toStringAsFixed(1)}\u4E07'
-        : '\u00A5${totalAmount.toStringAsFixed(0)}';
+        ? '¥${(totalAmount / 10000).toStringAsFixed(1)}万'
+        : '¥${totalAmount.toStringAsFixed(0)}';
     final pending = stats['pending'] as int? ?? 0;
     final paid = stats['paid'] as int? ?? 0;
     final shipped = stats['shipped'] as int? ?? 0;
@@ -345,19 +345,19 @@ class _OperatorHomeState extends ConsumerState<OperatorHome> {
     for (final order in orders) {
       if (order.status == OrderStatus.pending) {
         todos.add({
-          'title': '\u50AC\u4ED8: \u8BA2\u5355 #${order.id.substring(0, 8)}',
+          'title': '催付: 订单 #${order.id.substring(0, 8)}',
           'time': '${DateTime.now().hour}:00',
           'priority': 'high',
         });
       } else if (order.status == OrderStatus.paid) {
         todos.add({
-          'title': '\u5F85\u53D1\u8D27: \u8BA2\u5355 #${order.id.substring(0, 8)}',
+          'title': '待发货: 订单 #${order.id.substring(0, 8)}',
           'time': '${DateTime.now().hour}:30',
           'priority': 'high',
         });
       } else if (order.status == OrderStatus.shipped) {
         todos.add({
-          'title': '\u8DDF\u8E2A\u7269\u6D41: \u8BA2\u5355 #${order.id.substring(0, 8)}',
+          'title': '跟踪物流: 订单 #${order.id.substring(0, 8)}',
           'time': '${DateTime.now().hour + 1}:00',
           'priority': 'medium',
         });
@@ -367,7 +367,7 @@ class _OperatorHomeState extends ConsumerState<OperatorHome> {
     // Add a default daily todo if no order todos
     if (todos.isEmpty) {
       todos.add({
-        'title': '\u6574\u7406\u4ECA\u65E5\u5DE5\u4F5C\u7B80\u62A5',
+        'title': '整理今日工作简报',
         'time': '18:00',
         'priority': 'normal',
       });

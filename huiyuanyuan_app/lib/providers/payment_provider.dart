@@ -1,81 +1,133 @@
-import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:uuid/uuid.dart';
+import '../config/api_config.dart';
 import '../models/payment_account.dart';
+import '../services/api_service.dart';
 
-const String kPaymentAccountsKey = 'payment_accounts_v1';
+enum PaymentLoadingState { initial, loading, loaded, error }
 
-class PaymentAccountNotifier extends StateNotifier<List<PaymentAccount>> {
-  PaymentAccountNotifier() : super([]) {
-    _loadAccounts();
-  }
+class PaymentAccountsState {
+  final List<PaymentAccount> accounts;
+  final PaymentLoadingState state;
+  final String? errorMessage;
 
-  Future<void> _loadAccounts() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final String? accountsJson = prefs.getString(kPaymentAccountsKey);
-      if (accountsJson != null) {
-        final List<dynamic> decoded = json.decode(accountsJson);
-        state = decoded.map((e) => PaymentAccount.fromMap(e)).toList();
-      } else {
-        // Init with some default mockup data if empty
-        state = [
-          PaymentAccount(
-            id: const Uuid().v4(),
-            name: '公司主账户',
-            type: PaymentType.bank,
-            bankName: '招商银行',
-            accountNumber: '6225 **** **** 8888',
-          ),
-          PaymentAccount(
-            id: const Uuid().v4(),
-            name: '门店收款码',
-            type: PaymentType.wechat,
-          ),
-        ];
-        _saveAccounts();
-      }
-    } catch (e) {
-      // Handle error quietly or log
-      // print('Error loading payment accounts: $e');
-    }
-  }
+  PaymentAccountsState({
+    this.accounts = const [],
+    this.state = PaymentLoadingState.initial,
+    this.errorMessage,
+  });
 
-  Future<void> _saveAccounts() async {
-    final prefs = await SharedPreferences.getInstance();
-    final String encoded = json.encode(state.map((e) => e.toMap()).toList());
-    await prefs.setString(kPaymentAccountsKey, encoded);
-  }
-
-  Future<void> addAccount(PaymentAccount account) async {
-    state = [...state, account];
-    await _saveAccounts();
-  }
-
-  Future<void> updateAccount(PaymentAccount account) async {
-    state = [
-      for (final acc in state)
-        if (acc.id == account.id) account else acc
-    ];
-    await _saveAccounts();
-  }
-
-  Future<void> deleteAccount(String id) async {
-    state = state.where((acc) => acc.id != id).toList();
-    await _saveAccounts();
-  }
-
-  Future<void> toggleActive(String id) async {
-    state = [
-      for (final acc in state)
-        if (acc.id == id) acc.copyWith(isActive: !acc.isActive) else acc
-    ];
-    await _saveAccounts();
+  PaymentAccountsState copyWith({
+    List<PaymentAccount>? accounts,
+    PaymentLoadingState? state,
+    String? errorMessage,
+  }) {
+    return PaymentAccountsState(
+      accounts: accounts ?? this.accounts,
+      state: state ?? this.state,
+      errorMessage: errorMessage ?? this.errorMessage,
+    );
   }
 }
 
-final paymentAccountsProvider =
-    StateNotifierProvider<PaymentAccountNotifier, List<PaymentAccount>>((ref) {
-  return PaymentAccountNotifier();
+class PaymentAccountNotifier extends StateNotifier<PaymentAccountsState> {
+  final ApiService _apiService;
+
+  PaymentAccountNotifier(this._apiService)
+      : super(PaymentAccountsState()) {
+    loadAccounts();
+  }
+
+  Future<void> loadAccounts() async {
+    state = state.copyWith(state: PaymentLoadingState.loading);
+
+    final result = await _apiService.get<List<dynamic>>(
+      ApiConfig.paymentAccounts,
+    );
+
+    if (result.success && result.data != null) {
+      final accounts = result.data!
+          .map((json) => PaymentAccount.fromMap(json as Map<String, dynamic>))
+          .toList();
+      state = state.copyWith(
+        accounts: accounts,
+        state: PaymentLoadingState.loaded,
+      );
+    } else {
+      state = state.copyWith(
+        state: PaymentLoadingState.error,
+        errorMessage: result.message ?? '加载失败',
+      );
+    }
+  }
+
+  Future<bool> addAccount(PaymentAccount account) async {
+    final result = await _apiService.post<Map<String, dynamic>>(
+      ApiConfig.paymentAccounts,
+      data: account.toCreateMap(),
+    );
+
+    if (result.success && result.data != null) {
+      final newAccount = PaymentAccount.fromMap(result.data!);
+      state = state.copyWith(
+        accounts: [...state.accounts, newAccount],
+      );
+      return true;
+    }
+    return false;
+  }
+
+  Future<bool> updateAccount(PaymentAccount account) async {
+    final result = await _apiService.put<Map<String, dynamic>>(
+      ApiConfig.paymentAccountDetail(account.id),
+      data: account.toCreateMap(),
+    );
+
+    if (result.success && result.data != null) {
+      final updatedAccount = PaymentAccount.fromMap(result.data!);
+      state = state.copyWith(
+        accounts: [
+          for (final existing in state.accounts)
+            if (existing.id == account.id) updatedAccount else existing,
+        ],
+      );
+      return true;
+    }
+    return false;
+  }
+
+  Future<bool> deleteAccount(String id) async {
+    final result = await _apiService.delete<Map<String, dynamic>>(
+      ApiConfig.paymentAccountDetail(id),
+    );
+
+    if (result.success) {
+      state = state.copyWith(
+        accounts: state.accounts.where((a) => a.id != id).toList(),
+      );
+      return true;
+    }
+    return false;
+  }
+
+  Future<bool> toggleActive(String id) async {
+    final account = state.accounts.firstWhere(
+      (a) => a.id == id,
+      orElse: () => throw Exception('Account not found'),
+    );
+
+    final updated = account.copyWith(isActive: !account.isActive);
+    return updateAccount(updated);
+  }
+}
+
+final apiServiceProvider = Provider<ApiService>((ref) {
+  return ApiService();
 });
+
+final paymentAccountsProvider =
+    StateNotifierProvider<PaymentAccountNotifier, PaymentAccountsState>(
+  (ref) {
+    final apiService = ref.watch(apiServiceProvider);
+    return PaymentAccountNotifier(apiService);
+  },
+);

@@ -3,6 +3,7 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'colors.dart';
 
 /// 汇玉源主题配置
@@ -182,6 +183,63 @@ class JewelryTheme {
           behavior: SnackBarBehavior.floating,
         ),
 
+        // 字体主题 - 使用 Google Fonts
+        textTheme: GoogleFonts.notoSansScTextTheme(
+          const TextTheme(
+            displayLarge: TextStyle(
+              fontSize: 32,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 1.0,
+            ),
+            displayMedium: TextStyle(
+              fontSize: 28,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 0.8,
+            ),
+            displaySmall: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 0.6,
+            ),
+            headlineLarge: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.w600,
+            ),
+            headlineMedium: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.w600,
+            ),
+            headlineSmall: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+            ),
+            titleLarge: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+            ),
+            titleMedium: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+            ),
+            titleSmall: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+            ),
+            bodyLarge: TextStyle(
+              fontSize: 16,
+              height: 1.6,
+            ),
+            bodyMedium: TextStyle(
+              fontSize: 14,
+              height: 1.5,
+            ),
+            bodySmall: TextStyle(
+              fontSize: 12,
+              height: 1.4,
+            ),
+          ),
+        ),
+
         // 页面过渡动画
         pageTransitionsTheme: const PageTransitionsTheme(
           builders: {
@@ -359,6 +417,11 @@ class JewelryTheme {
             borderRadius: JewelryRadius.mdAll,
           ),
           behavior: SnackBarBehavior.floating,
+        ),
+
+        // 字体主题 - 使用 Google Fonts
+        textTheme: GoogleFonts.notoSansScTextTheme(
+          ThemeData.dark().textTheme,
         ),
 
         // 页面过渡动画

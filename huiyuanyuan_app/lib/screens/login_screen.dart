@@ -24,9 +24,7 @@ class LoginScreen extends ConsumerStatefulWidget {
 class _LoginScreenState extends ConsumerState<LoginScreen>
     with TickerProviderStateMixin {
   // 控制器
-  final _phoneController = TextEditingController(
-    text: kDebugMode ? '18937766669' : '',
-  );
+  final _phoneController = TextEditingController();
   final _passwordController = TextEditingController();
   final _authCodeController = TextEditingController();
   final _usernameController = TextEditingController();
@@ -655,9 +653,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                       ),
                     )
                   : Text(
-                      _countdown > 0
-                          ? '重新发送 ($_countdown秒)'
-                          : '获取验证码',
+                      _countdown > 0 ? '重新发送 ($_countdown秒)' : '获取验证码',
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
@@ -682,8 +678,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     }
 
     setState(() => _isSendingCode = true);
-    final result =
-        await ref.read(authProvider.notifier).sendSmsCode(phone);
+    final result = await ref.read(authProvider.notifier).sendSmsCode(phone);
     setState(() => _isSendingCode = false);
 
     if (!mounted) return;
@@ -748,7 +743,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
         ),
         const SizedBox(height: 16),
         Text(
-          '固定管理员账号: 18937766669',
+          '管理员账号请联系系统管理员获取',
           style: TextStyle(
             fontSize: 12,
             color: Colors.white.withOpacity(0.5),
@@ -946,9 +941,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
 
     final notifier = ref.read(authProvider.notifier);
     final success = await notifier.loginCustomer(
-          phone,
-          authCode,
-        );
+      phone,
+      authCode,
+    );
 
     setState(() => _isLoading = false);
 
@@ -964,12 +959,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     final phone = _phoneController.text.trim();
     final password = _passwordController.text;
     final authCode = _authCodeController.text.trim();
-
-    // 验证固定管理员账号
-    if (phone != '18937766669') {
-      _showError('管理员账号错误');
-      return;
-    }
 
     setState(() => _isLoading = true);
 
@@ -1037,11 +1026,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                   style: TextStyle(color: Colors.grey)),
               const SizedBox(height: 12),
               Container(
-                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 24),
+                padding:
+                    const EdgeInsets.symmetric(vertical: 12, horizontal: 24),
                 decoration: BoxDecoration(
                   color: const Color(0xFF4CAF50).withOpacity(0.1),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFF4CAF50), width: 1.5),
+                  border:
+                      Border.all(color: const Color(0xFF4CAF50), width: 1.5),
                 ),
                 child: Text(
                   code,
@@ -1063,7 +1054,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('好的，已记住', style: TextStyle(color: Color(0xFF4CAF50))),
+            child: const Text('好的，已记住',
+                style: TextStyle(color: Color(0xFF4CAF50))),
           ),
         ],
       ),

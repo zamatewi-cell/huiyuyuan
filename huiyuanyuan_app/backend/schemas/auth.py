@@ -1,7 +1,9 @@
 """认证相关 Pydantic 模型"""
 
 from pydantic import BaseModel
-from typing import Optional
+from typing import Literal, Optional
+
+SmsAction = Literal["login", "register", "reset"]
 
 
 class LoginRequest(BaseModel):
@@ -22,10 +24,10 @@ class TokenResponse(BaseModel):
 
 class SmsCodeRequest(BaseModel):
     phone: str
-    action: str = "login"  # login / register
+    action: SmsAction = "login"
 
 
 class SmsVerifyRequest(BaseModel):
     phone: str
     code: str
-    action: str = "login"
+    action: SmsAction = "login"

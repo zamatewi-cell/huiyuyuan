@@ -1,6 +1,6 @@
 """
-通知路由 — 设备注册 + 通知列表 + 标记已读
-DB-first with in-memory fallback
+Notification router - device registration and notification state
+DB-first with development-only in-memory fallback
 """
 
 import json
@@ -8,24 +8,26 @@ import logging
 from datetime import datetime, timedelta
 from typing import Optional
 
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
+from database import get_db, handle_database_error, require_database
 from schemas.common import NotificationRegister
-from security import require_user
-from database import get_db
+from security import AuthorizationDep, require_user
 from store import DEVICES_DB
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api/notifications", tags=["通知"])
+router = APIRouter(prefix="/api/notifications", tags=["Notifications"])
 
 
 @router.post("/register")
-async def register_device(data: NotificationRegister, authorization: str = None,
-                          db: Optional[Session] = Depends(get_db)):
-    """注册设备Token"""
+async def register_device(
+    data: NotificationRegister,
+    authorization: AuthorizationDep = None,
+    db: Optional[Session] = Depends(get_db),
+):
     user_id = require_user(authorization)
 
     if db is not None:
@@ -39,24 +41,25 @@ async def register_device(data: NotificationRegister, authorization: str = None,
                     "is_active = true, updated_at = NOW()"
                 ),
                 {
-                    "uid": user_id, "token": data.device_token,
+                    "uid": user_id,
+                    "token": data.device_token,
                     "platform": data.platform,
                     "settings": json.dumps(data.settings or {}),
                 },
             )
             db.commit()
-        except Exception as e:
-            db.rollback()
-            logger.error(f"DB register_device: {e}")
+            return {"success": True, "message": "设备已注册"}
+        except Exception as exc:
+            handle_database_error(db, "注册设备", exc)
 
-    # memory write-through
+    require_database(db, "注册设备")
+
     DEVICES_DB[data.device_token] = {
         "user_id": user_id,
         "platform": data.platform,
         "settings": data.settings or {},
         "registered_at": datetime.now().isoformat(),
     }
-
     return {"success": True, "message": "设备已注册"}
 
 
@@ -64,10 +67,9 @@ async def register_device(data: NotificationRegister, authorization: str = None,
 async def get_notifications(
     page: int = 1,
     page_size: int = 20,
-    authorization: str = None,
+    authorization: AuthorizationDep = None,
     db: Optional[Session] = Depends(get_db),
 ):
-    """获取通知列表"""
     user_id = require_user(authorization)
 
     if db is not None:
@@ -83,36 +85,48 @@ async def get_notifications(
             ).fetchall()
 
             items = []
-            for r in rows:
-                m = r._mapping
-                items.append({
-                    "id": m["id"],
-                    "title": m["title"],
-                    "body": m["body"],
-                    "type": m["type"],
-                    "ref_id": m.get("ref_id"),
-                    "is_read": m["is_read"],
-                    "created_at": m["created_at"].isoformat() if hasattr(m["created_at"], "isoformat") else str(m["created_at"]),
-                })
+            for row in rows:
+                mapping = row._mapping
+                items.append(
+                    {
+                        "id": mapping["id"],
+                        "title": mapping["title"],
+                        "body": mapping["body"],
+                        "type": mapping["type"],
+                        "ref_id": mapping.get("ref_id"),
+                        "is_read": mapping["is_read"],
+                        "created_at": (
+                            mapping["created_at"].isoformat()
+                            if hasattr(mapping["created_at"], "isoformat")
+                            else str(mapping["created_at"])
+                        ),
+                    }
+                )
 
             count_row = db.execute(
-                text("SELECT count(*) as total, "
-                     "count(*) FILTER (WHERE is_read = false) as unread "
-                     "FROM notifications WHERE user_id = :uid"),
+                text(
+                    "SELECT count(*) AS total, "
+                    "count(*) FILTER (WHERE is_read = false) AS unread "
+                    "FROM notifications WHERE user_id = :uid"
+                ),
                 {"uid": user_id},
             ).fetchone()
-            cm = count_row._mapping
+            counts = count_row._mapping if count_row else {"total": 0, "unread": 0}
+            return {
+                "items": items,
+                "total": counts["total"],
+                "unread": counts["unread"],
+            }
+        except Exception as exc:
+            handle_database_error(db, "读取通知列表", exc)
 
-            return {"items": items, "total": cm["total"], "unread": cm["unread"]}
-        except Exception as e:
-            logger.error(f"DB get_notifications: {e}")
+    require_database(db, "读取通知列表")
 
-    # memory fallback — return demo notifications
     notifications = [
         {
             "id": "n001",
             "title": "订单发货通知",
-            "body": "您的订单已发货，请注意查收",
+            "body": "您的订单已发货，请注意查收。",
             "type": "logistics",
             "created_at": datetime.now().isoformat(),
             "is_read": False,
@@ -120,7 +134,7 @@ async def get_notifications(
         {
             "id": "n002",
             "title": "新品上架",
-            "body": "和田玉新品已上架，快来看看吧",
+            "body": "和田玉新品已上架，欢迎查看。",
             "type": "promotion",
             "created_at": (datetime.now() - timedelta(hours=2)).isoformat(),
             "is_read": True,
@@ -130,46 +144,55 @@ async def get_notifications(
 
 
 @router.post("/{notification_id}/read")
-async def mark_notification_read(notification_id: str, authorization: str = None,
-                                 db: Optional[Session] = Depends(get_db)):
-    """标记通知为已读"""
+async def mark_notification_read(
+    notification_id: str,
+    authorization: AuthorizationDep = None,
+    db: Optional[Session] = Depends(get_db),
+):
     user_id = require_user(authorization)
 
     if db is not None:
         try:
             result = db.execute(
-                text("UPDATE notifications SET is_read = true "
-                     "WHERE id = :nid AND user_id = :uid"),
+                text(
+                    "UPDATE notifications SET is_read = true "
+                    "WHERE id = :nid AND user_id = :uid"
+                ),
                 {"nid": notification_id, "uid": user_id},
             )
-            db.commit()
             if result.rowcount == 0:
                 raise HTTPException(status_code=404, detail="通知不存在")
+            db.commit()
             return {"success": True, "message": "已标记为已读"}
         except HTTPException:
             raise
-        except Exception as e:
-            db.rollback()
-            logger.error(f"DB mark_notification_read: {e}")
+        except Exception as exc:
+            handle_database_error(db, "标记通知已读", exc)
 
+    require_database(db, "标记通知已读")
     return {"success": True, "message": "已标记为已读"}
 
 
 @router.post("/read-all")
-async def mark_all_read(authorization: str = None, db: Optional[Session] = Depends(get_db)):
-    """标记所有通知为已读"""
+async def mark_all_read(
+    authorization: AuthorizationDep = None,
+    db: Optional[Session] = Depends(get_db),
+):
     user_id = require_user(authorization)
 
     if db is not None:
         try:
             db.execute(
-                text("UPDATE notifications SET is_read = true "
-                     "WHERE user_id = :uid AND is_read = false"),
+                text(
+                    "UPDATE notifications SET is_read = true "
+                    "WHERE user_id = :uid AND is_read = false"
+                ),
                 {"uid": user_id},
             )
             db.commit()
-        except Exception as e:
-            db.rollback()
-            logger.error(f"DB mark_all_read: {e}")
+            return {"success": True, "message": "全部已读"}
+        except Exception as exc:
+            handle_database_error(db, "全部通知标记已读", exc)
 
+    require_database(db, "全部通知标记已读")
     return {"success": True, "message": "全部已读"}

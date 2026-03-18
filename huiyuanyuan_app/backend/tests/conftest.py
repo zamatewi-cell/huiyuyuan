@@ -16,7 +16,7 @@ from main import app
 from store import (
     PRODUCTS_DB, ORDERS_DB, CARTS_DB, USERS_DB,
     TOKENS_DB, ADDRESSES_DB, FAVORITES_DB, REVIEWS_DB,
-    PAYMENTS_DB, DEVICES_DB,
+    PAYMENTS_DB, PAYMENT_ACCOUNTS_DB, DEVICES_DB,
     init_store,
 )
 
@@ -31,6 +31,7 @@ def _reset_dbs():
     REVIEWS_DB.clear()
     TOKENS_DB.clear()
     PAYMENTS_DB.clear()
+    PAYMENT_ACCOUNTS_DB.clear()
     DEVICES_DB.clear()
     USERS_DB.clear()
     # Re-initialize users + products from seed data

@@ -69,7 +69,7 @@ class BackendService {
       }
       return [];
     } catch (e) {
-      // 返回空列表，让调用方使用本地数据
+      // Keep the service API-only. Callers decide how to handle empty results.
       return [];
     }
   }

@@ -8,7 +8,6 @@ library;
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../config/api_config.dart';
 import 'api_service.dart';
 
 /// 联系记录模型
@@ -75,8 +74,8 @@ class ContactService {
 
   /// 获取某店铺的联系记录
   Future<List<ContactRecord>> getShopContacts(String shopId) async {
-    // 尝试 API（Mock 模式下跳过）
-    if (!ApiConfig.useMockApi) try {
+    // 尝试 API
+    try {
       final result = await _api.get<dynamic>('/api/shops/$shopId/contacts');
       if (result.success && result.data != null) {
         final data = result.data;
@@ -97,8 +96,8 @@ class ContactService {
 
   /// 获取最近联系记录（操作员工作台用）
   Future<List<ContactRecord>> getRecentContacts({int limit = 5}) async {
-    // 尝试 API（Mock 模式下跳过）
-    if (!ApiConfig.useMockApi) try {
+    // 尝试 API
+    try {
       final result = await _api.get<dynamic>(
         '/api/contacts/recent',
         params: {'limit': limit},

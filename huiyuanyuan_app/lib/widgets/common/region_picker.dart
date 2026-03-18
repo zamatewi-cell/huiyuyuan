@@ -189,7 +189,7 @@ class _RegionPickerState extends State<RegionPicker>
             child: Row(
               children: [
                 Text(
-                  '\u9009\u62E9\u5730\u533A', // Select Region
+                  '选择地区', // Select Region
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w600,
@@ -215,7 +215,7 @@ class _RegionPickerState extends State<RegionPicker>
               children: [
                 _buildTabItem(
                   0,
-                  _selectedProvince ?? '\u8BF7\u9009\u62E9', // Please select
+                  _selectedProvince ?? '请选择', // Please select
                   _selectedProvince != null,
                   textColor,
                   hintColor,
@@ -223,7 +223,7 @@ class _RegionPickerState extends State<RegionPicker>
                 if (_selectedProvince != null)
                   _buildTabItem(
                     1,
-                    _selectedCity ?? '\u8BF7\u9009\u62E9',
+                    _selectedCity ?? '请选择',
                     _selectedCity != null,
                     textColor,
                     hintColor,
@@ -231,7 +231,7 @@ class _RegionPickerState extends State<RegionPicker>
                 if (_selectedCity != null && _districts.isNotEmpty)
                   _buildTabItem(
                     2,
-                    _selectedDistrict ?? '\u8BF7\u9009\u62E9',
+                    _selectedDistrict ?? '请选择',
                     _selectedDistrict != null,
                     textColor,
                     hintColor,
@@ -344,7 +344,7 @@ class _RegionPickerState extends State<RegionPicker>
     if (items.isEmpty) {
       return Center(
         child: Text(
-          '\u8BF7\u5148\u9009\u62E9\u4E0A\u7EA7\u5730\u533A', // Please select parent
+          '请先选择上级地区', // Please select parent
           style: TextStyle(color: hintColor, fontSize: 14),
         ),
       );

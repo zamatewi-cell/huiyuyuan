@@ -21,8 +21,10 @@ class AppConfig {
   static const int primaryColorValue = 0xFF2E8B57; // 海绿色
   static const int accentColorValue = 0xFFFFD700; // 金色
 
-  // 管理员配置
-  static const String adminPhone = '18937766669';
+  // 管理员配置 - 从环境变量读取，不再硬编码
+  static String get adminPhone =>
+      const String.fromEnvironment('ADMIN_PHONE',
+          defaultValue: kDebugMode ? '18937766669' : '');
 
   // 凭据仅在 Debug 模式下可用；Release 构建通过 --dart-define 注入或后端验证
   static String get adminPassword =>

@@ -14,10 +14,10 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../themes/colors.dart';
 import '../../l10n/l10n_provider.dart';
-import '../../data/product_data.dart';
 import '../../models/user_model.dart';
 import '../../providers/auth_provider.dart';
-import '../../services/order_service.dart';
+import '../../services/admin_service.dart';
+import '../../widgets/common/error_handler.dart';
 import 'inventory_screen.dart';
 
 /// 管理员仪表盘
@@ -33,10 +33,56 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard>
   int _selectedOperator = 0;
   late TabController _tabController;
 
+  final AdminService _adminService = AdminService();
+
+  bool _isLoading = false;
+  DashboardStats? _stats;
+  List<RestockSuggestion> _restockSuggestions = [];
+  List<ActivityItem> _activities = [];
+  List<ProductModel> _products = [];
+  String _activityFilter = '全部';
+
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 4, vsync: this);
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    setState(() => _isLoading = true);
+
+    try {
+      await _adminService.initialize();
+      final futures = await Future.wait([
+        _adminService.getDashboardStats(),
+        _adminService.getRestockSuggestions(),
+        _adminService.getRecentActivities(),
+        _adminService.getProducts(),
+      ]);
+
+      if (mounted) {
+        setState(() {
+          _stats = futures[0] as DashboardStats?;
+          _restockSuggestions = futures[1] as List<RestockSuggestion>;
+          _activities = futures[2] as List<ActivityItem>;
+          _products = futures[3] as List<ProductModel>;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        context.showError(e);
+      }
+    }
+  }
+
+  Future<void> _refreshActivities() async {
+    final activities = await _adminService.getRecentActivities(filter: _activityFilter);
+    if (mounted) {
+      setState(() => _activities = activities);
+    }
   }
 
   @override
@@ -143,19 +189,19 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard>
 
   Widget _buildHeader() {
     final hour = DateTime.now().hour;
-    String greeting = '\u65E9\u4E0A\u597D';
+    String greeting = '早上好';
     if (hour >= 12 && hour < 18) {
-      greeting = '\u4E0B\u5348\u597D';
+      greeting = '下午好';
     } else if (hour >= 18) {
-      greeting = '\u665A\u4E0A\u597D';
+      greeting = '晚上好';
     }
 
     final user = ref.watch(authProvider).valueOrNull;
-    final displayName = user?.username ?? '\u7BA1\u7406\u5458';
+    final displayName = user?.username ?? '管理员';
     final displayPhone = user?.phone ?? '';
     final roleLabel = user?.isSuperAdmin == true
-        ? '\u8D85\u7EA7\u7BA1\u7406\u5458'
-        : '\u7BA1\u7406\u5458';
+        ? '超级管理员'
+        : '管理员';
 
     return Row(
       children: [
@@ -187,7 +233,7 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard>
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                '$greeting\uFF0C$roleLabel',
+                '$greeting，$roleLabel',
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 18,
@@ -284,7 +330,7 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard>
                         fontWeight: FontWeight.w600)),
                 const SizedBox(height: 3),
                 Text(
-                  '商品 ${realProductData.length} 件 · 运营正常',
+                  '商品 ${_stats?.totalProducts ?? _products.length} 件 · 运营正常',
                   style: TextStyle(
                       color: Colors.white.withOpacity(0.4), fontSize: 12),
                 ),
@@ -317,13 +363,13 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard>
     );
   }
 
-  // ─── 2x2 \u73BB\u7483\u6001\u7EDF\u8BA1\u5361\u7247 ───
+  // ─── 2x2 玻璃态统计卡片 ───
   Widget _buildGlassStatsGrid() {
-    final orderStats = ref.watch(orderStatsProvider);
-    final totalOrders = orderStats['total'] as int? ?? 0;
-    final totalAmount = orderStats['totalAmount'] as double? ?? 0.0;
-    final pendingCount = orderStats['pending'] as int? ?? 0;
-    final shippedCount = orderStats['shipped'] as int? ?? 0;
+    final totalOrders = _stats?.totalOrders ?? 0;
+    final totalAmount = _stats?.totalAmount ?? 0.0;
+    final pendingCount = _stats?.pendingOrders ?? 0;
+    final shippedCount = _stats?.shippedOrders ?? 0;
+    final totalProducts = _stats?.totalProducts ?? _products.length;
 
     String formatAmount(double amount) {
       if (amount >= 10000) {
@@ -341,31 +387,31 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard>
       childAspectRatio: 1.5,
       children: [
         _buildGlassStatCard(
-          title: '\u8BA2\u5355\u603B\u989D',
+          title: '订单总额',
           value: formatAmount(totalAmount),
-          prefix: '\u00a5',
-          subtitle: '\u5171 $totalOrders \u5355',
+          prefix: '¥',
+          subtitle: '共 $totalOrders 单',
           icon: Icons.trending_up_rounded,
           accentColor: const Color(0xFF06B6D4),
         ),
         _buildGlassStatCard(
-          title: '\u5546\u54C1\u603B\u6570',
-          value: '${realProductData.length}',
-          subtitle: '\u5168\u90E8\u4E0A\u67B6\u4E2D',
+          title: '商品总数',
+          value: '$totalProducts',
+          subtitle: '全部上架中',
           icon: Icons.diamond_rounded,
           accentColor: const Color(0xFF10B981),
         ),
         _buildGlassStatCard(
-          title: '\u5F85\u53D1\u8D27',
+          title: '待发货',
           value: '$pendingCount',
-          subtitle: '\u5DF2\u53D1\u8D27 $shippedCount \u5355',
+          subtitle: '已发货 $shippedCount 单',
           icon: Icons.local_shipping_rounded,
           accentColor: const Color(0xFFF59E0B),
         ),
         _buildGlassStatCard(
-          title: '\u5546\u54C1\u79CD\u7C7B',
-          value: '${realProductData.length}',
-          subtitle: '\u73E0\u5B9D\u9996\u9970',
+          title: '商品种类',
+          value: '$totalProducts',
+          subtitle: '珠宝首饰',
           icon: Icons.auto_awesome_rounded,
           accentColor: const Color(0xFF8B5CF6),
         ),
@@ -444,35 +490,7 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard>
 
   // ─── 智能补货建议 ───
   Widget _buildRestockSuggestions() {
-    // \u6839\u636E\u5E93\u5B58\u548C\u5B89\u5168\u9608\u503C\u751F\u6210\u5EFA\u8BAE (Generate from stock & safety threshold)
-    final suggestions = <Map<String, dynamic>>[];
-    for (final p in realProductData) {
-      final safetyThreshold = 5;
-      if (p.stock <= safetyThreshold) {
-        final urgency = p.stock == 0
-            ? 'critical'
-            : p.stock <= 2
-                ? 'high'
-                : 'medium';
-        final suggestedQty = (safetyThreshold * 3) - p.stock;
-        suggestions.add({
-          'name': p.name,
-          'stock': p.stock,
-          'suggestedQty': suggestedQty,
-          'urgency': urgency,
-          'price': p.price,
-          'category': p.category,
-        });
-      }
-    }
-
-    // \u6309\u7D27\u6025\u5EA6\u6392\u5E8F (Sort by urgency)
-    suggestions.sort((a, b) {
-      const order = {'critical': 0, 'high': 1, 'medium': 2};
-      return (order[a['urgency']] ?? 3).compareTo(order[b['urgency']] ?? 3);
-    });
-
-    if (suggestions.isEmpty) {
+    if (_restockSuggestions.isEmpty) {
       return const SizedBox.shrink();
     }
 
@@ -485,7 +503,7 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard>
                 color: Color(0xFFF59E0B), size: 20),
             const SizedBox(width: 8),
             const Text(
-              '\u667A\u80FD\u8865\u8D27\u5EFA\u8BAE', // 智能补货建议
+              '智能补货建议',
               style: TextStyle(
                 color: Colors.white,
                 fontSize: 16,
@@ -500,7 +518,7 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard>
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Text(
-                '${suggestions.length}\u4EF6\u5F85\u8865', // X件待补
+                '${_restockSuggestions.length}件待补',
                 style: const TextStyle(
                   color: Color(0xFFF59E0B),
                   fontSize: 12,
@@ -512,23 +530,22 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard>
         ),
         const SizedBox(height: 12),
 
-        // \u8865\u8D27\u5361\u7247\u5217\u8868 (Restock cards)
-        ...suggestions.take(5).map((s) => _buildRestockCard(s)),
+        // 补货卡片列表
+        ..._restockSuggestions.take(5).map((s) => _buildRestockCardFromApi(s)),
 
-        if (suggestions.length > 5) ...[
+        if (_restockSuggestions.length > 5) ...[
           const SizedBox(height: 8),
           Center(
             child: TextButton(
               onPressed: () {
-                // \u5BFC\u822A\u5230\u5E93\u5B58\u7BA1\u7406 (Navigate to inventory)
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (_) => const InventoryScreen()),
                 );
               },
               child: Text(
-                '\u67E5\u770B\u5168\u90E8 ${suggestions.length} \u4EF6 \u2192', // 查看全部 X 件
-                style: const TextStyle(color: Color(0xFFF59E0B), fontSize: 13),
+                '查看全部 ${_restockSuggestions.length} 件 →',
+                style: TextStyle(color: Color(0xFFF59E0B), fontSize: 13),
               ),
             ),
           ),
@@ -537,8 +554,8 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard>
     );
   }
 
-  Widget _buildRestockCard(Map<String, dynamic> suggestion) {
-    final urgency = suggestion['urgency'] as String;
+  Widget _buildRestockCardFromApi(RestockSuggestion suggestion) {
+    final urgency = suggestion.urgency;
     final Color urgencyColor;
     final String urgencyLabel;
     final IconData urgencyIcon;
@@ -546,17 +563,17 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard>
     switch (urgency) {
       case 'critical':
         urgencyColor = const Color(0xFFEF4444);
-        urgencyLabel = '\u65AD\u8D27'; // 断货
+        urgencyLabel = '断货';
         urgencyIcon = Icons.error_outline;
         break;
       case 'high':
         urgencyColor = const Color(0xFFF97316);
-        urgencyLabel = '\u7D27\u6025'; // 紧急
+        urgencyLabel = '紧急';
         urgencyIcon = Icons.warning_amber_rounded;
         break;
       default:
         urgencyColor = const Color(0xFFF59E0B);
-        urgencyLabel = '\u5EFA\u8BAE'; // 建议
+        urgencyLabel = '建议';
         urgencyIcon = Icons.info_outline;
     }
 
@@ -573,7 +590,6 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard>
       ),
       child: Row(
         children: [
-          // \u7D27\u6025\u5EA6\u6807\u5FD7 (Urgency badge)
           Container(
             width: 40,
             height: 40,
@@ -584,14 +600,12 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard>
             child: Icon(urgencyIcon, color: urgencyColor, size: 22),
           ),
           const SizedBox(width: 12),
-
-          // \u5546\u54C1\u4FE1\u606F (Product info)
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  suggestion['name'] as String,
+                  suggestion.productName,
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 14,
@@ -621,7 +635,7 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard>
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      '\u5E93\u5B58: ${suggestion['stock']}', // 库存: X
+                      '库存: ${suggestion.currentStock}',
                       style: TextStyle(
                         color: Colors.grey[400],
                         fontSize: 12,
@@ -632,13 +646,11 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard>
               ],
             ),
           ),
-
-          // \u5EFA\u8BAE\u8865\u8D27\u91CF (Suggested restock qty)
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
-                '\u5EFA\u8BAE\u8865 ${suggestion['suggestedQty']}', // 建议补 X
+                '建议补 ${suggestion.suggestedQuantity}',
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 13,
@@ -647,7 +659,7 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard>
               ),
               const SizedBox(height: 4),
               Text(
-                '\u2248 \u00A5${((suggestion['price'] as double) * (suggestion['suggestedQty'] as int)).toStringAsFixed(0)}', // ≈ ¥X
+                '≈ ¥${(suggestion.price * suggestion.suggestedQuantity).toStringAsFixed(0)}',
                 style: TextStyle(
                   color: Colors.grey[500],
                   fontSize: 11,
@@ -661,18 +673,14 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard>
   }
 
   // ─── 实时动态（新闻流） ───
-  String _activityFilter = '全部';
-
   Widget _buildActivitySection() {
-    final activities = _buildActivityData();
     final filtered = _activityFilter == '全部'
-        ? activities
-        : activities.where((a) => a['tag'] == _activityFilter).toList();
+        ? _activities
+        : _activities.where((a) => a.tag == _activityFilter).toList();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Section header
         Row(
           children: [
             const Icon(Icons.bolt_rounded, color: Color(0xFFFBBF24), size: 20),
@@ -696,7 +704,6 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard>
           ],
         ),
         const SizedBox(height: 14),
-        // Filter chips
         SizedBox(
           height: 32,
           child: ListView(
@@ -706,7 +713,10 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard>
               return Padding(
                 padding: const EdgeInsets.only(right: 8),
                 child: GestureDetector(
-                  onTap: () => setState(() => _activityFilter = tag),
+                  onTap: () {
+                    setState(() => _activityFilter = tag);
+                    _refreshActivities();
+                  },
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 200),
                     padding:
@@ -740,127 +750,48 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard>
           ),
         ),
         const SizedBox(height: 14),
-        // Activity items
         ...filtered
             .take(5)
-            .map((a) => _buildActivityItem(
-                  tag: a['tag'] as String,
-                  title: a['title'] as String,
-                  subtitle: a['subtitle'] as String,
-                  time: a['time'] as String,
-                  color: a['color'] as Color,
-                  icon: a['icon'] as IconData,
-                ))
+            .map((a) => _buildActivityItemFromApi(a))
             .toList(),
       ],
     );
   }
 
-  List<Map<String, dynamic>> _buildActivityData() {
-    final orders = ref.read(orderProvider);
-    final activities = <Map<String, dynamic>>[];
-
-    // \u4ECE\u8BA2\u5355\u751F\u6210\u771F\u5B9E\u6D3B\u52A8
-    for (final order in orders.take(10)) {
-      final itemName = order.productName;
-      final timeAgo = _formatTimeAgo(order.createdAt);
-
-      switch (order.status) {
-        case OrderStatus.pending:
-          activities.add({
-            'tag': '\u8BA2\u5355',
-            'title': '\u65B0\u8BA2\u5355: $itemName',
-            'subtitle':
-                '\u00A5${order.amount.toStringAsFixed(0)} \u00B7 \u5F85\u4ED8\u6B3E',
-            'time': timeAgo,
-            'color': const Color(0xFF10B981),
-            'icon': Icons.shopping_bag_rounded,
-          });
-          break;
-        case OrderStatus.paid:
-          activities.add({
-            'tag': '\u8BA2\u5355',
-            'title': '\u5DF2\u4ED8\u6B3E: $itemName',
-            'subtitle':
-                '\u00A5${order.amount.toStringAsFixed(0)} \u00B7 \u5F85\u53D1\u8D27',
-            'time': timeAgo,
-            'color': const Color(0xFF3B82F6),
-            'icon': Icons.payment_rounded,
-          });
-          break;
-        case OrderStatus.shipped:
-          activities.add({
-            'tag': '\u8BA2\u5355',
-            'title': '\u5DF2\u53D1\u8D27: $itemName',
-            'subtitle':
-                '\u8FD0\u8F93\u4E2D \u00B7 ${order.trackingNumber ?? ''}',
-            'time': timeAgo,
-            'color': const Color(0xFF10B981),
-            'icon': Icons.local_shipping_rounded,
-          });
-          break;
-        case OrderStatus.completed:
-        case OrderStatus.delivered:
-          activities.add({
-            'tag': '\u8BA2\u5355',
-            'title': '\u5DF2\u5B8C\u6210: $itemName',
-            'subtitle':
-                '\u00A5${order.amount.toStringAsFixed(0)} \u00B7 \u4EA4\u6613\u5B8C\u6210',
-            'time': timeAgo,
-            'color': const Color(0xFF06B6D4),
-            'icon': Icons.check_circle_rounded,
-          });
-          break;
-        default:
-          break;
-      }
+  Widget _buildActivityItemFromApi(ActivityItem activity) {
+    Color color;
+    try {
+      color = Color(
+        int.parse(activity.color.replaceFirst('#', '0xFF')),
+      );
+    } catch (_) {
+      color = const Color(0xFF06B6D4);
     }
 
-    // \u5E93\u5B58\u9884\u8B66
-    for (final product in realProductData) {
-      if (product.stock <= 5) {
-        activities.add({
-          'tag': '\u5E93\u5B58',
-          'title': '\u5E93\u5B58\u9884\u8B66: ${product.name}',
-          'subtitle':
-              '\u5F53\u524D\u5E93\u5B58 ${product.stock} \u4EF6 \u00B7 \u4F4E\u4E8E\u5B89\u5168\u7EBF 5 \u4EF6',
-          'time': '\u5B9E\u65F6',
-          'color': const Color(0xFFF59E0B),
-          'icon': Icons.warning_amber_rounded,
-        });
-      }
+    IconData icon;
+    switch (activity.icon) {
+      case 'shopping_bag':
+        icon = Icons.shopping_bag_rounded;
+        break;
+      case 'payment':
+        icon = Icons.payment_rounded;
+        break;
+      case 'local_shipping':
+        icon = Icons.local_shipping_rounded;
+        break;
+      case 'check_circle':
+        icon = Icons.check_circle_rounded;
+        break;
+      case 'warning':
+        icon = Icons.warning_amber_rounded;
+        break;
+      case 'monitor_heart':
+        icon = Icons.monitor_heart_rounded;
+        break;
+      default:
+        icon = Icons.info_outline;
     }
 
-    // \u7CFB\u7EDF\u72B6\u6001
-    activities.add({
-      'tag': '\u7CFB\u7EDF',
-      'title': '\u7CFB\u7EDF\u8FD0\u884C\u6B63\u5E38',
-      'subtitle': 'API\u670D\u52A1\u5065\u5EB7 \u00B7 \u53EF\u7528\u7387 99.9%',
-      'time': '\u5B9E\u65F6',
-      'color': const Color(0xFF06B6D4),
-      'icon': Icons.monitor_heart_rounded,
-    });
-
-    // \u6309\u65F6\u95F4\u6392\u5E8F\uFF0C\u6700\u65B0\u7684\u5148\u663E\u793A
-    return activities;
-  }
-
-  String _formatTimeAgo(DateTime dateTime) {
-    final diff = DateTime.now().difference(dateTime);
-    if (diff.inMinutes < 1) return '\u521A\u521A';
-    if (diff.inMinutes < 60) return '${diff.inMinutes}\u5206\u949F\u524D';
-    if (diff.inHours < 24) return '${diff.inHours}\u5C0F\u65F6\u524D';
-    return '${diff.inDays}\u5929\u524D';
-  }
-
-  Widget _buildActivityItem({
-    required String tag,
-    required String title,
-    required String subtitle,
-    required String time,
-    required Color color,
-    required IconData icon,
-  }) {
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(14),
@@ -872,7 +803,6 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard>
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Icon badge
           Container(
             width: 38,
             height: 38,
@@ -883,7 +813,6 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard>
             child: Icon(icon, color: color, size: 18),
           ),
           const SizedBox(width: 12),
-          // Content
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -897,27 +826,27 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard>
                         color: color.withOpacity(0.12),
                         borderRadius: BorderRadius.circular(4),
                       ),
-                      child: Text(tag,
+                      child: Text(activity.tag,
                           style: TextStyle(
                               color: color,
                               fontSize: 9,
                               fontWeight: FontWeight.w600)),
                     ),
                     const Spacer(),
-                    Text(time,
+                    Text(activity.time,
                         style: TextStyle(
                             color: Colors.white.withOpacity(0.25),
                             fontSize: 10)),
                   ],
                 ),
                 const SizedBox(height: 6),
-                Text(title,
+                Text(activity.title,
                     style: const TextStyle(
                         color: Colors.white,
                         fontSize: 13,
                         fontWeight: FontWeight.w500)),
                 const SizedBox(height: 3),
-                Text(subtitle,
+                Text(activity.subtitle,
                     style: TextStyle(
                         color: Colors.white.withOpacity(0.4), fontSize: 11)),
               ],
@@ -1170,7 +1099,6 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard>
       children: [
         Column(
           children: [
-            // 操作栏
             Padding(
               padding: const EdgeInsets.all(16),
               child: Row(
@@ -1186,7 +1114,7 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard>
                         style:
                             const TextStyle(color: Colors.white, fontSize: 14),
                         decoration: InputDecoration(
-                          hintText: ref.tr('admin_products'), // 简单复用商品管理
+                          hintText: '搜索商品',
                           hintStyle: TextStyle(
                               color: Colors.white.withOpacity(0.4),
                               fontSize: 14),
@@ -1231,19 +1159,18 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard>
                 ],
               ),
             ),
-            // 商品数量信息
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Row(
                 children: [
                   Text(
-                    '共 ${realProductData.length} 件商品',
+                    '共 ${_products.length} 件商品',
                     style: TextStyle(
                         color: Colors.white.withOpacity(0.5), fontSize: 13),
                   ),
                   const Spacer(),
                   Text(
-                    '热门: ${getHotProducts().length}  福利: ${getWelfareProducts().length}  新品: ${getNewProducts().length}',
+                    '热门: ${_products.where((p) => p.isHot).length}  新品: ${_products.where((p) => p.isNew).length}',
                     style: TextStyle(
                         color: Colors.white.withOpacity(0.4), fontSize: 11),
                   ),
@@ -1251,16 +1178,19 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard>
               ),
             ),
             const SizedBox(height: 8),
-            // 商品列表
             Expanded(
-              child: ListView.builder(
-                padding: const EdgeInsets.symmetric(horizontal: 16)
-                    .copyWith(bottom: 80),
-                itemCount: realProductData.length,
-                itemBuilder: (context, index) {
-                  return _buildProductItem(realProductData[index]);
-                },
-              ),
+              child: _isLoading
+                  ? const Center(
+                      child: CircularProgressIndicator(color: JewelryColors.primary),
+                    )
+                  : ListView.builder(
+                      padding: const EdgeInsets.symmetric(horizontal: 16)
+                          .copyWith(bottom: 80),
+                      itemCount: _products.length,
+                      itemBuilder: (context, index) {
+                        return _buildProductItem(_products[index]);
+                      },
+                    ),
             ),
           ],
         ),
@@ -1971,7 +1901,7 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard>
                       Expanded(
                         flex: 2,
                         child: GestureDetector(
-                          onTap: () {
+                          onTap: () async {
                             if (nameController.text.trim().isEmpty ||
                                 priceController.text.trim().isEmpty) {
                               ScaffoldMessenger.of(parentContext).showSnackBar(
@@ -1982,43 +1912,43 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard>
                               return;
                             }
 
-                            // 图片URL：用户填写的 或 自动生成的
                             final imgUrl = imageUrlController.text
                                     .trim()
                                     .isNotEmpty
                                 ? imageUrlController.text.trim()
-                                : getDefaultImageForMaterial(selectedMaterial);
+                                : 'https://picsum.photos/400/400';
 
-                            final newProduct = ProductModel(
-                              id: 'HYY-NEW${DateTime.now().millisecondsSinceEpoch}',
-                              name: nameController.text.trim(),
-                              description: descController.text.trim().isEmpty
+                            final productData = {
+                              'name': nameController.text.trim(),
+                              'description': descController.text.trim().isEmpty
                                   ? '优质$selectedMaterial$selectedCategory，品质保证。'
                                   : descController.text.trim(),
-                              price: double.tryParse(priceController.text) ?? 0,
-                              originalPrice:
-                                  double.tryParse(originalPriceController.text),
-                              category: selectedCategory,
-                              material: selectedMaterial,
-                              images: [imgUrl],
-                              stock: int.tryParse(stockController.text) ?? 100,
-                              isNew: true,
-                              certificate: 'NGTC-${DateTime.now().year}-NEW',
-                              blockchainHash:
-                                  '0x${DateTime.now().millisecondsSinceEpoch.toRadixString(16)}',
-                            );
+                              'price': double.tryParse(priceController.text) ?? 0,
+                              'original_price': double.tryParse(originalPriceController.text),
+                              'category': selectedCategory,
+                              'material': selectedMaterial,
+                              'images': [imgUrl],
+                              'stock': int.tryParse(stockController.text) ?? 100,
+                              'is_new': true,
+                              'certificate': 'NGTC-${DateTime.now().year}-NEW',
+                            };
 
-                            addProduct(newProduct);
                             Navigator.pop(sheetContext);
-                            setState(() {});
 
-                            ScaffoldMessenger.of(parentContext).showSnackBar(
-                              SnackBar(
-                                content:
-                                    Text('✅ 商品 "${newProduct.name}" 已成功添加'),
-                                backgroundColor: JewelryColors.success,
-                              ),
-                            );
+                            final createdProduct = await _adminService.createProduct(productData);
+                            if (createdProduct != null && mounted) {
+                              setState(() {
+                                _products.insert(0, createdProduct);
+                              });
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('✅ 商品 "${createdProduct.name}" 已成功添加'),
+                                  backgroundColor: JewelryColors.success,
+                                ),
+                              );
+                            } else if (mounted) {
+                              context.showError('添加商品失败，请重试');
+                            }
                           },
                           child: Container(
                             height: 48,
@@ -2107,7 +2037,6 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard>
     final descController = TextEditingController(text: product.description);
     String selectedCategory = product.category;
     String selectedMaterial = product.material;
-    final parentContext = context;
 
     showModalBottomSheet(
       context: context,
@@ -2289,44 +2218,36 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard>
                       Expanded(
                         flex: 2,
                         child: GestureDetector(
-                          onTap: () {
-                            // 找到商品在列表中的索引，用新对象替换
-                            final idx = realProductData
-                                .indexWhere((p) => p.id == product.id);
-                            if (idx >= 0) {
-                              realProductData[idx] = ProductModel(
-                                id: product.id,
-                                name: nameController.text.trim(),
-                                description: descController.text.trim(),
-                                price: double.tryParse(priceController.text) ??
-                                    product.price,
-                                originalPrice: double.tryParse(
-                                    originalPriceController.text),
-                                category: selectedCategory,
-                                material: selectedMaterial,
-                                images: product.images,
-                                stock: int.tryParse(stockController.text) ??
-                                    product.stock,
-                                rating: product.rating,
-                                salesCount: product.salesCount,
-                                isHot: product.isHot,
-                                isNew: product.isNew,
-                                origin: product.origin,
-                                certificate: product.certificate,
-                                blockchainHash: product.blockchainHash,
-                                isWelfare: product.isWelfare,
-                                materialVerify: product.materialVerify,
-                              );
-                            }
+                          onTap: () async {
+                            final productData = {
+                              'name': nameController.text.trim(),
+                              'description': descController.text.trim(),
+                              'price': double.tryParse(priceController.text) ?? product.price,
+                              'original_price': double.tryParse(originalPriceController.text),
+                              'category': selectedCategory,
+                              'material': selectedMaterial,
+                              'stock': int.tryParse(stockController.text) ?? product.stock,
+                            };
+
                             Navigator.pop(sheetContext);
-                            setState(() {});
-                            ScaffoldMessenger.of(parentContext).showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                    '✅ 商品 "${nameController.text.trim()}" 已更新'),
-                                backgroundColor: JewelryColors.success,
-                              ),
-                            );
+
+                            final updatedProduct = await _adminService.updateProduct(product.id, productData);
+                            if (updatedProduct != null && mounted) {
+                              final idx = _products.indexWhere((p) => p.id == product.id);
+                              if (idx >= 0) {
+                                setState(() {
+                                  _products[idx] = updatedProduct;
+                                });
+                              }
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('✅ 商品 "${updatedProduct.name}" 已更新'),
+                                  backgroundColor: JewelryColors.success,
+                                ),
+                              );
+                            } else if (mounted) {
+                              context.showError('更新商品失败，请重试');
+                            }
                           },
                           child: Container(
                             height: 48,
@@ -2356,7 +2277,7 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard>
   void _showDeleteConfirm(ProductModel product) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         backgroundColor: const Color(0xFF1E1E2E),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Text('确认删除', style: TextStyle(color: Colors.white)),
@@ -2366,21 +2287,27 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard>
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogContext),
             child: Text('取消',
                 style: TextStyle(color: Colors.white.withOpacity(0.5))),
           ),
           ElevatedButton(
-            onPressed: () {
-              removeProduct(product.id);
-              Navigator.pop(context);
-              setState(() {});
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('商品 "${product.name}" 已删除'),
-                  backgroundColor: JewelryColors.error,
-                ),
-              );
+            onPressed: () async {
+              Navigator.pop(dialogContext);
+              final success = await _adminService.deleteProduct(product.id);
+              if (success && mounted) {
+                setState(() {
+                  _products.removeWhere((p) => p.id == product.id);
+                });
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('商品 "${product.name}" 已删除'),
+                    backgroundColor: JewelryColors.error,
+                  ),
+                );
+              } else if (mounted) {
+                context.showError('删除商品失败，请重试');
+              }
             },
             style:
                 ElevatedButton.styleFrom(backgroundColor: JewelryColors.error),

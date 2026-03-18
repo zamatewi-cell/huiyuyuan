@@ -532,7 +532,7 @@ class OrderDetailScreen extends ConsumerWidget {
                         );
                     if (context.mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('\u53D1\u8D27\u6210\u529F\uFF01')),
+                        const SnackBar(content: Text('发货成功！')),
                       );
                       Navigator.pop(context);
                     }
@@ -547,7 +547,7 @@ class OrderDetailScreen extends ConsumerWidget {
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(20)),
                 ),
-                child: const Text('\u53BB\u53D1\u8D27',
+                child: const Text('去发货',
                     style:
                         TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
               ),
@@ -572,7 +572,7 @@ class OrderDetailScreen extends ConsumerWidget {
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(20)),
               ),
-              child: const Text('\u67E5\u770B\u7269\u6D41',
+              child: const Text('查看物流',
                   style: TextStyle(fontWeight: FontWeight.w600)),
             ),
           ),
@@ -590,17 +590,17 @@ class OrderDetailScreen extends ConsumerWidget {
                   showDialog(
                     context: context,
                     builder: (ctx) => AlertDialog(
-                      title: const Text('\u786E\u8BA4\u6536\u8D27'),
-                      content: const Text('\u8BF7\u786E\u8BA4\u5DF2\u6536\u5230\u5546\u54C1'),
+                      title: const Text('确认收货'),
+                      content: const Text('请确认已收到商品'),
                       actions: [
-                        TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('\u53D6\u6D88')),
+                        TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('取消')),
                         TextButton(
                           onPressed: () {
                             ref.read(orderProvider.notifier).confirmReceipt(order.id);
                             Navigator.pop(ctx);
                             Navigator.pop(context);
                           },
-                          child: const Text('\u786E\u8BA4'),
+                          child: const Text('确认'),
                         ),
                       ],
                     ),
@@ -615,7 +615,7 @@ class OrderDetailScreen extends ConsumerWidget {
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(20)),
                 ),
-                child: const Text('\u786E\u8BA4\u6536\u8D27',
+                child: const Text('确认收货',
                     style:
                         TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
               ),
@@ -631,24 +631,24 @@ class OrderDetailScreen extends ConsumerWidget {
                 showDialog(
                   context: context,
                   builder: (ctx) => AlertDialog(
-                    title: const Text('\u7533\u8BF7\u9000\u8D27'),
+                    title: const Text('申请退货'),
                     content: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Text('\u8BF7\u586B\u5199\u9000\u8D27\u539F\u56E0\uFF1A'),
+                        const Text('请填写退货原因：'),
                         const SizedBox(height: 12),
                         TextField(
                           controller: controller,
                           maxLines: 3,
                           decoration: const InputDecoration(
-                            hintText: '\u8BF7\u8F93\u5165\u9000\u8D27\u539F\u56E0...',
+                            hintText: '请输入退货原因...',
                             border: OutlineInputBorder(),
                           ),
                         ),
                       ],
                     ),
                     actions: [
-                      TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('\u53D6\u6D88')),
+                      TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('取消')),
                       TextButton(
                         onPressed: () {
                           ref.read(orderProvider.notifier).requestReturn(
@@ -660,7 +660,7 @@ class OrderDetailScreen extends ConsumerWidget {
                           Navigator.pop(ctx);
                           Navigator.pop(context);
                         },
-                        child: const Text('\u63D0\u4EA4'),
+                        child: const Text('提交'),
                       ),
                     ],
                   ),

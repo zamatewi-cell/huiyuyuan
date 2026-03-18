@@ -1,11 +1,11 @@
-/// \u6C47\u7389\u6E90 - \u652F\u4ED8\u9875\u9762
+/// 汇玉源 - 支付页面
 ///
-/// \u529F\u80FD:
-/// - \u8BA2\u5355\u4FE1\u606F\u5361\u7247
-/// - \u652F\u4ED8\u65B9\u5F0F\u9009\u62E9(\u5FAE\u4FE1/\u652F\u4ED8\u5B9D/\u4F59\u989D)
-/// - 15\u5206\u949F\u5012\u8BA1\u65F6
-/// - \u8F6E\u8BE2\u652F\u4ED8\u72B6\u6001
-/// - \u652F\u4ED8\u6210\u529F\u52A8\u753B
+/// 功能:
+/// - 订单信息卡片
+/// - 支付方式选择(微信/支付宝/余额)
+/// - 15分钟倒计时
+/// - 轮询支付状态
+/// - 支付成功动画
 library;
 
 import 'dart:async';
@@ -18,9 +18,10 @@ import '../../services/order_service.dart';
 import '../../services/payment_service.dart';
 import '../../services/api_service.dart';
 import '../../config/api_config.dart';
+import '../../widgets/common/error_handler.dart';
 import '../order/order_list_screen.dart';
 
-/// \u652F\u4ED8\u9875\u9762
+/// 支付页面
 class PaymentScreen extends ConsumerStatefulWidget {
   final OrderModel order;
   const PaymentScreen({super.key, required this.order});
@@ -31,15 +32,15 @@ class PaymentScreen extends ConsumerStatefulWidget {
 
 class _PaymentScreenState extends ConsumerState<PaymentScreen>
     with TickerProviderStateMixin {
-  // \u652F\u4ED8\u65B9\u5F0F
+  // 支付方式
   String _selectedMethod = 'wechat';
-  // \u72B6\u6001: idle / processing / success / failed
+  // 状态: idle / processing / success / failed
   String _payState = 'idle';
-  // \u5012\u8BA1\u65F6 (15\u5206\u949F = 900\u79D2)
+  // 倒计时 (15分钟 = 900秒)
   int _remainingSeconds = 900;
   Timer? _countdownTimer;
   Timer? _pollTimer;
-  // \u52A8\u753B
+  // 动画
   late AnimationController _successController;
   late Animation<double> _successScale;
   // PaymentService
@@ -90,7 +91,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
     setState(() => _payState = 'processing');
 
     try {
-      // 1. ͨ�� PaymentService ����֧����
+      // 1. 通过 PaymentService 创建支付订单
       final payMethod = _selectedMethod == 'wechat'
           ? PaymentMethod.wechat
           : _selectedMethod == 'alipay'
@@ -103,7 +104,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
         method: payMethod,
       );
 
-      // 2. ͨ�� ApiService ���ú�� /pay �˵㣨ͳһ��Ȩ������ʹ�� mock_token��
+      // 2. 通过 ApiService 调用后端 /pay 端点（统一授权，可使用 mock_token）
       final api = ApiService();
       try {
         await api.post<dynamic>(
@@ -111,22 +112,22 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
           data: {'method': _selectedMethod},
         );
       } catch (_) {
-        // ��˲�����ʱ������ѯ
+        // 忽略此步，继续轮询
       }
 
-      // 3. ��ѯ֧��״̬��ÿ��һ�Σ����30�� = 30�룬��ʱ����ʾ�û���
+      // 3. 轮询支付状态（每秒一次，最多30秒 = 30次，超时提示用户）
       int pollCount = 0;
       _pollTimer = Timer.periodic(const Duration(seconds: 1), (timer) async {
         pollCount++;
         if (pollCount > 30 || !mounted) {
           timer.cancel();
           if (_payState == 'processing' && mounted) {
-            // ��ʱ����ʾ�û����֧��״̬�������Զ� mock �ɹ�
+            // 超时，提示用户检查支付状态，稍后自动 mock 成功
             setState(() => _payState = 'failed');
             if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
-                  content: Text('֧����ʱ������֧���Ƿ�ɹ����Ժ�����'),
+                  content: Text('支付超时，请检查支付是否成功，稍后重试'),
                   duration: Duration(seconds: 4),
                 ),
               );
@@ -135,7 +136,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
           return;
         }
 
-        // ��ѯ���֧��״̬
+        // 查询后端支付状态
         try {
           final result = await api.get<dynamic>(
             '${ApiConfig.orderDetail(widget.order.id)}/pay-status',
@@ -149,12 +150,13 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
             }
           }
         } catch (_) {
-          // ������ѯ
+          // 继续轮询
         }
       });
     } catch (e) {
       if (mounted) {
         setState(() => _payState = 'failed');
+        context.showError(e);
       }
     }
   }
@@ -162,8 +164,8 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
   void _onPaymentSuccess() {
     if (!mounted || _payState == 'success') return;
 
-    // ���ڿ���ģʽ��ʹ�ñ���ģ����¶���״̬
-    // ��������Ӧ�ɺ�� webhook ����
+    // 在调试模式下使用本地模拟更新订单状态
+    // 生产环境应由后端 webhook 触发
     if (kDebugMode) {
       ref.read(orderProvider.notifier).simulatePayment(
         widget.order.id,
@@ -174,7 +176,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
     _countdownTimer?.cancel();
     _successController.forward();
 
-    // 2\u79D2\u540E\u8DF3\u8F6C
+    // 2秒后跳转
     Future.delayed(const Duration(seconds: 2), () {
       if (mounted) {
         Navigator.pushAndRemoveUntil(
@@ -196,7 +198,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
     return Scaffold(
       backgroundColor: bg,
       appBar: AppBar(
-        title: const Text('\u786E\u8BA4\u652F\u4ED8'),
+        title: const Text('确认支付'),
         backgroundColor: Colors.transparent,
         elevation: 0,
       ),
@@ -213,7 +215,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
       padding: const EdgeInsets.all(16),
       child: Column(
         children: [
-          // \u91D1\u989D\u5361\u7247
+          // 金额卡片
           Container(
             width: double.infinity,
             padding: const EdgeInsets.symmetric(vertical: 32),
@@ -235,12 +237,12 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
             child: Column(
               children: [
                 const Text(
-                  '\u652F\u4ED8\u91D1\u989D',
+                  '支付金额',
                   style: TextStyle(color: Colors.white70, fontSize: 14),
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  '\u00A5 ${widget.order.amount.toStringAsFixed(2)}',
+                  '¥ ${widget.order.amount.toStringAsFixed(2)}',
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 36,
@@ -256,7 +258,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
-                    '\u5269\u4F59\u652F\u4ED8\u65F6\u95F4 $_formattedCountdown',
+                    '剩余支付时间 $_formattedCountdown',
                     style: TextStyle(
                       color: _remainingSeconds < 60 ? Colors.redAccent : Colors.white,
                       fontSize: 13,
@@ -270,7 +272,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
 
           const SizedBox(height: 20),
 
-          // \u8BA2\u5355\u4FE1\u606F
+          // 订单信息
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(16),
@@ -288,21 +290,21 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('\u8BA2\u5355\u4FE1\u606F',
+                Text('订单信息',
                     style: TextStyle(color: textPri, fontSize: 15, fontWeight: FontWeight.w600)),
                 const SizedBox(height: 12),
-                _buildInfoRow('\u8BA2\u5355\u53F7', widget.order.id, textSec),
-                _buildInfoRow('\u5546\u54C1', widget.order.productName, textSec),
-                _buildInfoRow('\u6570\u91CF', '${widget.order.quantity} \u4EF6', textSec),
+                _buildInfoRow('订单号', widget.order.id, textSec),
+                _buildInfoRow('商品', widget.order.productName, textSec),
+                _buildInfoRow('数量', '${widget.order.quantity} 件', textSec),
                 if (widget.order.shippingAddress != null && widget.order.shippingAddress!.isNotEmpty)
-                  _buildInfoRow('\u6536\u8D27\u5730\u5740', widget.order.shippingAddress!, textSec),
+                  _buildInfoRow('收货地址', widget.order.shippingAddress!, textSec),
               ],
             ),
           ),
 
           const SizedBox(height: 20),
 
-          // \u652F\u4ED8\u65B9\u5F0F
+          // 支付方式
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(16),
@@ -320,12 +322,12 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('\u652F\u4ED8\u65B9\u5F0F',
+                Text('支付方式',
                     style: TextStyle(color: textPri, fontSize: 15, fontWeight: FontWeight.w600)),
                 const SizedBox(height: 12),
                 _buildPaymentOption(
                   'wechat',
-                  '\u5FAE\u4FE1\u652F\u4ED8',
+                  '微信支付',
                   Icons.chat_bubble_rounded,
                   const Color(0xFF07C160),
                   textPri,
@@ -333,7 +335,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
                 const SizedBox(height: 10),
                 _buildPaymentOption(
                   'alipay',
-                  '\u652F\u4ED8\u5B9D',
+                  '支付宝',
                   Icons.account_balance_wallet_rounded,
                   const Color(0xFF1677FF),
                   textPri,
@@ -341,7 +343,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
                 const SizedBox(height: 10),
                 _buildPaymentOption(
                   'balance',
-                  '\u4F59\u989D\u652F\u4ED8',
+                  '余额支付',
                   Icons.savings_rounded,
                   JewelryColors.gold,
                   textPri,
@@ -352,7 +354,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
 
           const SizedBox(height: 32),
 
-          // \u786E\u8BA4\u652F\u4ED8\u6309\u94AE
+          // 确认支付按钮
           SizedBox(
             width: double.infinity,
             height: 52,
@@ -379,11 +381,11 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
                           ),
                         ),
                         SizedBox(width: 12),
-                        Text('\u652F\u4ED8\u4E2D...', style: TextStyle(fontSize: 16)),
+                        Text('支付中...', style: TextStyle(fontSize: 16)),
                       ],
                     )
                   : const Text(
-                      '\u786E\u8BA4\u652F\u4ED8',
+                      '确认支付',
                       style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                     ),
             ),
@@ -409,7 +411,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
                     borderRadius: BorderRadius.circular(14),
                   ),
                 ),
-                child: const Text('\u91CD\u65B0\u652F\u4ED8'),
+                child: const Text('重新支付'),
               ),
             ),
           ],
@@ -517,12 +519,12 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
             ),
             const SizedBox(height: 24),
             const Text(
-              '\u652F\u4ED8\u6210\u529F',
+              '支付成功',
               style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
             Text(
-              '\u00A5 ${widget.order.amount.toStringAsFixed(2)}',
+              '¥ ${widget.order.amount.toStringAsFixed(2)}',
               style: TextStyle(
                 fontSize: 18,
                 color: Colors.grey[600],
@@ -530,7 +532,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
             ),
             const SizedBox(height: 8),
             Text(
-              '\u6B63\u5728\u8DF3\u8F6C\u8BA2\u5355\u9875...',
+              '正在跳转订单页...',
               style: TextStyle(fontSize: 14, color: Colors.grey[400]),
             ),
           ],

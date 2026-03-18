@@ -90,7 +90,8 @@ class ApiService {
     return InterceptorsWrapper(
       onRequest: (options, handler) {
         // 添加认证头
-        if (_token != null) {
+        if (_token != null &&
+            !options.headers.containsKey(ApiHeaders.authorization)) {
           options.headers[ApiHeaders.authorization] = 'Bearer $_token';
         }
 
@@ -105,7 +106,8 @@ class ApiService {
       },
       onError: (error, handler) async {
         // 处理401错误（Token过期）—— 限制重试次数防止无限循环
-        if (error.response?.statusCode == 401 && _refreshRetryCount < _maxRefreshRetries) {
+        if (error.response?.statusCode == 401 &&
+            _refreshRetryCount < _maxRefreshRetries) {
           _refreshRetryCount++;
           final refreshed = await _refreshToken();
           if (refreshed) {
@@ -154,16 +156,30 @@ class ApiService {
   /// 刷新Token
   Future<bool> _refreshToken() async {
     try {
+      final refreshToken = await _storage.getRefreshToken();
+      if (refreshToken == null || refreshToken.isEmpty) {
+        return false;
+      }
+
       final response = await _dio.post(
         ApiConfig.authRefresh,
         options: Options(
-          headers: {ApiHeaders.authorization: 'Bearer $_token'},
+          headers: {ApiHeaders.authorization: 'Bearer $refreshToken'},
         ),
       );
 
-      if (response.statusCode == 200 && response.data['token'] != null) {
-        _token = response.data['token'];
+      final rawData = response.data;
+      final data = rawData is Map<String, dynamic>
+          ? rawData
+          : (rawData is Map ? Map<String, dynamic>.from(rawData) : null);
+      if (response.statusCode == 200 && data != null && data['token'] != null) {
+        _token = data['token'].toString();
         await _saveToken(_token!);
+
+        final newRefreshToken = (data['refresh_token'] ?? '').toString();
+        if (newRefreshToken.isNotEmpty) {
+          await _storage.saveRefreshToken(newRefreshToken);
+        }
         return true;
       }
     } catch (_) {
@@ -194,6 +210,7 @@ class ApiService {
 
   /// 保存Token到本地
   Future<void> _saveToken(String token) async {
+    await _storage.saveToken(token);
     final user = await _storage.getUser() ?? {};
     user['token'] = token;
     await _storage.saveUser(user);

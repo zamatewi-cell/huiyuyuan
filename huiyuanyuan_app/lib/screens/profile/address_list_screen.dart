@@ -5,6 +5,7 @@ import '../../models/address_model.dart';
 import '../../services/address_service.dart';
 import '../../themes/colors.dart';
 import '../../widgets/common/region_picker.dart';
+import '../../widgets/common/error_handler.dart';
 
 /// 收货地址列表页面
 class AddressListScreen extends StatefulWidget {
@@ -171,7 +172,7 @@ class _AddressListScreenState extends State<AddressListScreen> {
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: const Text(
-                        '\u9ED8\u8BA4', // Default
+                        '默认', // Default
                         style: TextStyle(fontSize: 10, color: Colors.white, fontWeight: FontWeight.w500),
                       ),
                     ),
@@ -231,7 +232,7 @@ class _AddressListScreenState extends State<AddressListScreen> {
                         ),
                         const SizedBox(width: 4),
                         Text(
-                          '\u9ED8\u8BA4\u5730\u5740', // Default address
+                          '默认地址', // Default address
                           style: TextStyle(
                             fontSize: 13,
                             color: address.isDefault
@@ -247,14 +248,14 @@ class _AddressListScreenState extends State<AddressListScreen> {
                   TextButton.icon(
                     onPressed: () => _navigateToEdit(address),
                     icon: const Icon(Icons.edit_outlined, size: 16),
-                    label: const Text('\u7F16\u8F91'), // Edit
+                    label: const Text('编辑'), // Edit
                     style: TextButton.styleFrom(foregroundColor: textSecondary),
                   ),
                   // 删除按钮
                   TextButton.icon(
                     onPressed: () => _deleteAddress(address.id),
                     icon: const Icon(Icons.delete_outline, size: 16),
-                    label: const Text('\u5220\u9664'), // Delete
+                    label: const Text('删除'), // Delete
                     style: TextButton.styleFrom(foregroundColor: JewelryColors.error),
                   ),
                 ],
@@ -377,9 +378,7 @@ class _AddressEditScreenState extends State<AddressEditScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('保存失败: $e')),
-        );
+        context.showError(e);
       }
     } finally {
       if (mounted) {
@@ -394,7 +393,7 @@ class _AddressEditScreenState extends State<AddressEditScreen> {
     return Scaffold(
       backgroundColor: isDark ? JewelryColors.darkBackground : const Color(0xFFF8F9FA),
       appBar: AppBar(
-        title: Text(_isEditing ? '\u7F16\u8F91\u6536\u8D27\u5730\u5740' : '\u65B0\u589E\u6536\u8D27\u5730\u5740'),
+        title: Text(_isEditing ? '编辑收货地址' : '新增收货地址'),
         elevation: 0,
       ),
       body: Form(

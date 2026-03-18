@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../models/user_model.dart';
-import '../../services/backend_service.dart';
-import '../../data/product_data.dart';
+import '../../services/product_service.dart';
 import 'product_detail_screen.dart';
 import '../../widgets/product_skeleton.dart';
 import '../../widgets/promotional_banner.dart';
@@ -19,49 +18,83 @@ import '../notification/notification_screen.dart';
 
 /// 产品列表 Provider
 final productListProvider =
-    StateNotifierProvider<ProductNotifier, List<ProductModel>>((ref) {
+    StateNotifierProvider<ProductNotifier, ProductListState>((ref) {
   return ProductNotifier();
 });
 
-class ProductNotifier extends StateNotifier<List<ProductModel>> {
-  final _backend = BackendService();
+class ProductListState {
+  final List<ProductModel> products;
+  final bool isLoading;
+  final String? errorMessage;
 
-  ProductNotifier() : super([]) {
-    _backend.initialize(); // 初始化后端服务
+  const ProductListState({
+    this.products = const [],
+    this.isLoading = false,
+    this.errorMessage,
+  });
+
+  ProductListState copyWith({
+    List<ProductModel>? products,
+    bool? isLoading,
+    String? errorMessage,
+    bool clearError = false,
+  }) {
+    return ProductListState(
+      products: products ?? this.products,
+      isLoading: isLoading ?? this.isLoading,
+      errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
+    );
+  }
+}
+
+class ProductNotifier extends StateNotifier<ProductListState> {
+  final _products = ProductService();
+  String _currentCategory = '鍏ㄩ儴';
+
+  ProductNotifier() : super(const ProductListState(isLoading: true)) {
     _loadProducts();
   }
 
-  Future<void> _loadProducts({String category = '全部'}) async {
-    // 优先尝试从后端获取（后端已按分类过滤）
-    final products = await _backend.getProducts(category: category);
-    if (products.isNotEmpty) {
-      state = products;
-    } else {
-      // 如果后端没数据或连接失败，加载本地兜底数据
-      _loadFallbackData();
-      // 仅对本地兜底数据做分类过滤
-      if (category != '全部' && state.isNotEmpty) {
-        state = state.where((p) => p.category == category).toList();
-      }
+  Future<void> _loadProducts({
+    String category = '全部',
+    bool forceRefresh = false,
+  }) async {
+    _currentCategory = category;
+    state = state.copyWith(isLoading: true, clearError: true);
+
+    try {
+      final products = await _products.getProducts(
+        category: category,
+        forceRefresh: forceRefresh,
+      );
+      state = ProductListState(products: products, isLoading: false);
+    } catch (_) {
+      state = const ProductListState(
+        products: [],
+        isLoading: false,
+        errorMessage: '商品加载失败，请稍后重试',
+      );
     }
   }
 
-  void _loadFallbackData() {
-    // 使用真实商品数据
-    state = realProductData;
-  }
-
-  void filterByCategory(String? category) {
-    _loadProducts(category: category ?? '全部');
+  Future<void> filterByCategory(String? category) {
+    return _loadProducts(category: category ?? '全部');
   }
 
   void sortByPrice(bool ascending) {
-    state = [...state]..sort((a, b) =>
+    final products = [...state.products]..sort((a, b) =>
         ascending ? a.price.compareTo(b.price) : b.price.compareTo(a.price));
+    state = state.copyWith(products: products);
   }
 
   void sortBySales() {
-    state = [...state]..sort((a, b) => b.salesCount.compareTo(a.salesCount));
+    final products = [...state.products]
+      ..sort((a, b) => b.salesCount.compareTo(a.salesCount));
+    state = state.copyWith(products: products);
+  }
+
+  Future<void> refresh() {
+    return _loadProducts(category: _currentCategory, forceRefresh: true);
   }
 }
 
@@ -91,8 +124,9 @@ class _ProductListScreenState extends ConsumerState<ProductListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final products = ref.watch(productListProvider);
-    final isLoading = products.isEmpty;
+    final productState = ref.watch(productListProvider);
+    final products = productState.products;
+    final isLoading = productState.isLoading;
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
@@ -126,8 +160,7 @@ class _ProductListScreenState extends ConsumerState<ProductListScreen> {
               IconButton(
                   onPressed: () => Navigator.push(
                         context,
-                        MaterialPageRoute(
-                            builder: (_) => const SearchScreen()),
+                        MaterialPageRoute(builder: (_) => const SearchScreen()),
                       ),
                   icon: Icon(Icons.search, color: context.adaptiveTextPrimary)),
               IconButton(
@@ -225,29 +258,64 @@ class _ProductListScreenState extends ConsumerState<ProductListScreen> {
                       childCount: 6,
                     ),
                   )
-                : SliverGrid(
-                    gridDelegate:
-                        const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      childAspectRatio: 0.70,
-                      crossAxisSpacing: 12,
-                      mainAxisSpacing: 12,
-                    ),
-                    delegate: SliverChildBuilderDelegate(
-                      (context, index) => FadeSlideTransition(
-                        key: ValueKey(products[index].id),
-                        delay: Duration(
-                            milliseconds:
-                                (index < 6 ? index * 50 : 0)), // 仅首屏错峰
-                        child: _buildProductCard(products[index], isDark),
+                : products.isEmpty
+                    ? SliverToBoxAdapter(
+                        child: _buildEmptyState(
+                          message: productState.errorMessage ?? '暂无商品数据',
+                        ),
+                      )
+                    : SliverGrid(
+                        gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          childAspectRatio: 0.70,
+                          crossAxisSpacing: 12,
+                          mainAxisSpacing: 12,
+                        ),
+                        delegate: SliverChildBuilderDelegate(
+                          (context, index) => FadeSlideTransition(
+                            key: ValueKey(products[index].id),
+                            delay: Duration(
+                                milliseconds:
+                                    (index < 6 ? index * 50 : 0)), // 仅首屏错峰
+                            child: _buildProductCard(products[index], isDark),
+                          ),
+                          childCount: products.length,
+                        ),
                       ),
-                      childCount: products.length,
-                    ),
-                  ),
           ),
 
           // 底部留白，防止被 TabBar 遮挡
           const SliverToBoxAdapter(child: SizedBox(height: 80)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyState({required String message}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 48),
+      child: Column(
+        children: [
+          Icon(
+            Icons.inventory_2_outlined,
+            size: 64,
+            color: Colors.grey[400],
+          ),
+          const SizedBox(height: 16),
+          Text(
+            message,
+            style: TextStyle(
+              fontSize: 15,
+              color: context.adaptiveTextSecondary,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 16),
+          OutlinedButton(
+            onPressed: () => ref.read(productListProvider.notifier).refresh(),
+            child: const Text('重试'),
+          ),
         ],
       ),
     );

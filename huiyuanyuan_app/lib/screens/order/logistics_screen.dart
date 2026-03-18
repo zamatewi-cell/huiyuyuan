@@ -4,7 +4,7 @@ import '../../themes/colors.dart';
 import '../../services/api_service.dart';
 import '../../config/api_config.dart';
 
-/// Logistics tracking timeline screen
+/// 物流追踪时间线页面
 class LogisticsScreen extends StatefulWidget {
   final OrderModel order;
 
@@ -23,7 +23,7 @@ class _LogisticsScreenState extends State<LogisticsScreen> {
     _fetchLogisticsFromApi();
   }
 
-  /// ���ԴӺ�� API ��ȡ��ʵ������Ϣ
+  /// 尝试从后端 API 获取真实物流信息
   Future<void> _fetchLogisticsFromApi() async {
     try {
       final api = ApiService();
@@ -53,7 +53,7 @@ class _LogisticsScreenState extends State<LogisticsScreen> {
         }
       }
     } catch (_) {
-      // API ������ʱ��Ĭ������ʹ�ö��������״̬����
+      // API 失败时，默认回退使用订单状态时间线
     }
   }
 
@@ -70,7 +70,7 @@ class _LogisticsScreenState extends State<LogisticsScreen> {
     return Scaffold(
       backgroundColor: bgColor,
       appBar: AppBar(
-        title: const Text('\u7269\u6D41\u8DDF\u8E2A'), // Logistics Tracking
+        title: const Text('物流追踪'),
         elevation: 0,
       ),
       body: ListView(
@@ -103,7 +103,7 @@ class _LogisticsScreenState extends State<LogisticsScreen> {
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        widget.order.logisticsCompany ?? '\u5FEB\u9012\u516C\u53F8', // Carrier
+                        widget.order.logisticsCompany ?? '快递公司',
                         style: TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w600,
@@ -133,7 +133,7 @@ class _LogisticsScreenState extends State<LogisticsScreen> {
                   Row(
                     children: [
                       Text(
-                        '\u5355\u53F7: ${widget.order.trackingNumber}', // Tracking #
+                        '单号: ${widget.order.trackingNumber}',
                         style: TextStyle(fontSize: 13, color: textSecondary),
                       ),
                       const SizedBox(width: 8),
@@ -141,7 +141,7 @@ class _LogisticsScreenState extends State<LogisticsScreen> {
                         onTap: () {
                           // Copy tracking number
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('\u5DF2\u590D\u5236\u5FEB\u9012\u5355\u53F7')), // Copied
+                            const SnackBar(content: Text('已复制快递单号')),
                           );
                         },
                         child: Icon(Icons.copy, size: 14, color: JewelryColors.primaryGreen),
@@ -207,7 +207,7 @@ class _LogisticsScreenState extends State<LogisticsScreen> {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        '\u00D7${widget.order.quantity}',
+                        '×${widget.order.quantity}',
                         style: TextStyle(fontSize: 12, color: textSecondary),
                       ),
                     ],
@@ -241,7 +241,7 @@ class _LogisticsScreenState extends State<LogisticsScreen> {
                           Icon(Icons.hourglass_empty, size: 40, color: textSecondary.withAlpha(100)),
                           const SizedBox(height: 8),
                           Text(
-                            '\u6682\u65E0\u7269\u6D41\u4FE1\u606F', // No data
+                            '暂无物流信息',
                             style: TextStyle(color: textSecondary, fontSize: 14),
                           ),
                         ],
@@ -270,11 +270,11 @@ class _LogisticsScreenState extends State<LogisticsScreen> {
     );
   }
 
-  /// Build timeline entries �� prefer API data, fallback to order status events
+  /// Build timeline entries - prefer API data, fallback to order status events
   List<LogisticsEntry> _buildEntries() {
     final entries = <LogisticsEntry>[];
 
-    // ����ʹ�� API ���ص���ʵ��������
+    // 优先使用 API 返回的真实物流数据
     if (_apiEntries != null && _apiEntries!.isNotEmpty) {
       entries.addAll(_apiEntries!);
     }
@@ -288,33 +288,33 @@ class _LogisticsScreenState extends State<LogisticsScreen> {
     if (_apiEntries == null || _apiEntries!.isEmpty) {
       if (widget.order.completedAt != null) {
         entries.add(LogisticsEntry(
-          description: '\u8BA2\u5355\u5DF2\u5B8C\u6210\uFF0C\u611F\u8C22\u60A8\u7684\u8D2D\u4E70',
+          description: '订单已完成，感谢您的购买',
           time: widget.order.completedAt!,
         ));
       }
       if (widget.order.deliveredAt != null) {
         entries.add(LogisticsEntry(
-          description: '\u5DF2\u7B7E\u6536\uFF0C\u7B7E\u6536\u4EBA: ${widget.order.recipientName ?? "\u672C\u4EBA"}',
+          description: '已签收，签收人: ${widget.order.recipientName ?? "本人"}',
           time: widget.order.deliveredAt!,
           location: widget.order.shippingAddress,
         ));
       }
       if (widget.order.shippedAt != null) {
         entries.add(LogisticsEntry(
-          description: '\u5546\u5BB6\u5DF2\u53D1\u8D27\uFF0C${widget.order.logisticsCompany ?? "\u5FEB\u9012"}\u8FD0\u9001\u4E2D',
+          description: '商家已发货，${widget.order.logisticsCompany ?? "快递"}运送中',
           time: widget.order.shippedAt!,
         ));
       }
       if (widget.order.paidAt != null) {
         entries.add(LogisticsEntry(
-          description: '\u8BA2\u5355\u5DF2\u652F\u4ED8\uFF0C\u7B49\u5F85\u5546\u5BB6\u53D1\u8D27',
+          description: '订单已支付，等待商家发货',
           time: widget.order.paidAt!,
         ));
       }
     }
 
     entries.add(LogisticsEntry(
-      description: '\u8BA2\u5355\u5DF2\u521B\u5EFA',
+      description: '订单已创建',
       time: widget.order.createdAt,
     ));
 

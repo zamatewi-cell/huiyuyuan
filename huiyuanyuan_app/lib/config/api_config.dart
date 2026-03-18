@@ -102,6 +102,10 @@ class ApiConfig {
   static const String userAddresses = '/api/users/addresses';
   static String userAddressDetail(String id) => '/api/users/addresses/$id';
 
+  /// 支付账户相关
+  static const String paymentAccounts = '/api/users/payment-accounts';
+  static String paymentAccountDetail(String id) => '/api/users/payment-accounts/$id';
+
   /// 评价相关
   static const String reviews = '/api/reviews';
   static String productReviews(String productId) =>
@@ -132,6 +136,16 @@ class ApiConfig {
 
   /// 健康检查
   static const String health = '/api/health';
+
+  /// 管理员相关
+  static const String adminDashboard = '/api/admin/dashboard';
+  static const String adminStats = '/api/admin/dashboard/stats';
+  static const String adminRestockSuggestions = '/api/admin/dashboard/restock-suggestions';
+  static const String adminActivities = '/api/admin/dashboard/activities';
+  static const String adminOperators = '/api/admin/operators';
+  static String adminOperatorReport(int operatorId) => '/api/admin/operators/$operatorId/report';
+  static const String adminOperatorReports = '/api/admin/operators/reports';
+  static const String adminSystemStatus = '/api/admin/system/status';
 }
 
 /// 请求头配置

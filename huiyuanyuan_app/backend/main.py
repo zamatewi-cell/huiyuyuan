@@ -11,7 +11,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from config import ALLOWED_ORIGINS, UPLOAD_DIR, APP_ENV
+from config import ALLOWED_ORIGINS, UPLOAD_DIR, APP_ENV, IS_PRODUCTION
 from database import DB_AVAILABLE, REDIS_AVAILABLE
 from store import init_store
 from logging_config import setup_logging, RequestLoggingMiddleware
@@ -98,7 +98,8 @@ async def health_check():
 
 
 # ============ Startup ============
-init_store()
+if not IS_PRODUCTION:
+    init_store()
 logger.info(
     f"HuiYuYuan API v4.0 started | env={APP_ENV} | db={DB_AVAILABLE} | redis={REDIS_AVAILABLE}"
 )

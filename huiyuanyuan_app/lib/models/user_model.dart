@@ -12,11 +12,12 @@ export 'chat_message_model.dart';
 export 'business_models.dart';
 
 import 'dart:typed_data'; // ignore: unused_import
+import '../config/app_config.dart';
 
 // ============ 用户模型 ============
 
 enum UserType {
-  /// 超级管理员 - 固定账号18937766669
+  /// 超级管理员
   admin,
 
   /// 操作员 - 10个独立账户
@@ -63,7 +64,7 @@ class UserModel {
   bool get isCustomer => userType == UserType.customer;
 
   /// 是否为固定管理员账号
-  bool get isSuperAdmin => phone == '18937766669' && userType == UserType.admin;
+  bool get isSuperAdmin => phone == AppConfig.adminPhone && userType == UserType.admin;
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
     return UserModel(

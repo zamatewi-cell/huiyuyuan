@@ -24,7 +24,8 @@ class ProductDetailScreen extends ConsumerStatefulWidget {
       _ProductDetailScreenState();
 }
 
-class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
+class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
+    with TickerProviderStateMixin {
   final _storage = StorageService();
   final _aiService = AIService();
   final _pageController = PageController();
@@ -34,10 +35,44 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
   int _currentImagePage = 0;
   int _quantity = 1;
 
+  // 动画控制器
+  late AnimationController _fadeController;
+  late AnimationController _slideController;
+  late Animation<double> _fadeAnimation;
+  late Animation<Offset> _slideAnimation;
+
   @override
   void initState() {
     super.initState();
     _checkFavorite();
+
+    // 初始化动画
+    _fadeController = AnimationController(
+      duration: const Duration(milliseconds: 800),
+      vsync: this,
+    );
+    _slideController = AnimationController(
+      duration: const Duration(milliseconds: 600),
+      vsync: this,
+    );
+
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _fadeController, curve: Curves.easeOut),
+    );
+    _slideAnimation = Tween<Offset>(
+      begin: const Offset(0, 0.1),
+      end: Offset.zero,
+    ).animate(
+      CurvedAnimation(parent: _slideController, curve: Curves.easeOutCubic),
+    );
+
+    // 启动动画
+    Future.delayed(const Duration(milliseconds: 200), () {
+      if (mounted) {
+        _fadeController.forward();
+        _slideController.forward();
+      }
+    });
   }
 
   Future<void> _checkFavorite() async {
@@ -48,6 +83,8 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
   @override
   void dispose() {
     _pageController.dispose();
+    _fadeController.dispose();
+    _slideController.dispose();
     super.dispose();
   }
 
@@ -158,13 +195,17 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
           ),
 
           SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // 价格和标签
-                  PremiumCard(
+            child: FadeTransition(
+              opacity: _fadeAnimation,
+              child: SlideTransition(
+                position: _slideAnimation,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // 价格和标签
+                      PremiumCard(
                     padding: const EdgeInsets.all(20),
                     margin: const EdgeInsets.only(bottom: 12),
                     borderRadius: 24,
@@ -416,6 +457,8 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                 ],
               ),
             ),
+          ),
+          ),
           ),
         ],
       ),

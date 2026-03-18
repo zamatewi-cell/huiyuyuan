@@ -60,9 +60,8 @@ class CartNotifier extends StateNotifier<List<CartItemModel>> {
 
   /// 同步到服务端（非阻塞）
   Future<void> _syncToServer() async {
-    if (ApiConfig.useMockApi) return;
     try {
-      // 后端API同步（未来扩展）
+      // 后端API同步
       await _api.post(
         ApiConfig.cart,
         data: {

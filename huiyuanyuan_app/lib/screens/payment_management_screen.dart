@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:uuid/uuid.dart';
 import '../models/payment_account.dart';
 import '../providers/payment_provider.dart';
 import '../widgets/common/glassmorphic_card.dart';
@@ -10,7 +9,9 @@ class PaymentManagementScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final accounts = ref.watch(paymentAccountsProvider);
+    final paymentState = ref.watch(paymentAccountsProvider);
+    final accounts = paymentState.accounts;
+    final isLoading = paymentState.state == PaymentLoadingState.loading;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
@@ -31,6 +32,23 @@ class PaymentManagementScreen extends ConsumerWidget {
             ),
           ),
         ),
+        actions: [
+          if (isLoading)
+            const Padding(
+              padding: EdgeInsets.all(16),
+              child: SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+            ),
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: () {
+              ref.read(paymentAccountsProvider.notifier).loadAccounts();
+            },
+          ),
+        ],
       ),
       body: Container(
         decoration: isDark
@@ -45,17 +63,7 @@ class PaymentManagementScreen extends ConsumerWidget {
                   ],
                 ),
               ),
-        child: ListView.builder(
-          padding: const EdgeInsets.fromLTRB(16, 100, 16, 80),
-          itemCount: accounts.length,
-          itemBuilder: (context, index) {
-            final account = accounts[index];
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 16),
-              child: _PaymentAccountCard(account: account),
-            );
-          },
-        ),
+        child: _buildContent(context, ref, accounts, paymentState),
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _showEditDialog(context, ref, null),
@@ -65,11 +73,140 @@ class PaymentManagementScreen extends ConsumerWidget {
     );
   }
 
+  Widget _buildContent(
+    BuildContext context,
+    WidgetRef ref,
+    List<PaymentAccount> accounts,
+    PaymentAccountsState state,
+  ) {
+    if (state.state == PaymentLoadingState.error) {
+      return _buildErrorState(context, ref, state.errorMessage ?? '加载失败');
+    }
+
+    if (accounts.isEmpty) {
+      return _buildEmptyState(context, ref);
+    }
+
+    return ListView.builder(
+      padding: const EdgeInsets.fromLTRB(16, 100, 16, 80),
+      itemCount: accounts.length,
+      itemBuilder: (context, index) {
+        final account = accounts[index];
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 16),
+          child: _PaymentAccountCard(account: account),
+        );
+      },
+    );
+  }
+
   void _showEditDialog(
       BuildContext context, WidgetRef ref, PaymentAccount? account) {
     showDialog(
       context: context,
       builder: (context) => _PaymentAccountDialog(account: account),
+    );
+  }
+
+  Widget _buildEmptyState(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(24, 120, 24, 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 88,
+              height: 88,
+              decoration: BoxDecoration(
+                color: theme.colorScheme.primary.withOpacity(0.08),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.account_balance_wallet_outlined,
+                size: 40,
+                color: theme.colorScheme.primary,
+              ),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              'No payment accounts yet',
+              style: theme.textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Add a real bank, Alipay, or WeChat account before collecting payments.',
+              textAlign: TextAlign.center,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.textTheme.bodyMedium?.color?.withOpacity(0.7),
+                height: 1.5,
+              ),
+            ),
+            const SizedBox(height: 20),
+            FilledButton.icon(
+              onPressed: () => _showEditDialog(context, ref, null),
+              icon: const Icon(Icons.add),
+              label: const Text('Add account'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildErrorState(BuildContext context, WidgetRef ref, String message) {
+    final theme = Theme.of(context);
+
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(24, 120, 24, 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 88,
+              height: 88,
+              decoration: BoxDecoration(
+                color: theme.colorScheme.error.withOpacity(0.08),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.error_outline,
+                size: 40,
+                color: theme.colorScheme.error,
+              ),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              '加载失败',
+              style: theme.textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.textTheme.bodyMedium?.color?.withOpacity(0.7),
+                height: 1.5,
+              ),
+            ),
+            const SizedBox(height: 20),
+            FilledButton.icon(
+              onPressed: () {
+                ref.read(paymentAccountsProvider.notifier).loadAccounts();
+              },
+              icon: const Icon(Icons.refresh),
+              label: const Text('重试'),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -339,27 +476,40 @@ class _PaymentAccountDialogState extends ConsumerState<_PaymentAccountDialog> {
     );
   }
 
-  void _save() {
+  void _save() async {
     if (_formKey.currentState!.validate()) {
-      final account = PaymentAccount(
-        id: widget.account?.id ?? const Uuid().v4(),
-        name: _nameController.text,
-        type: _selectedType,
-        accountNumber: _accountNumberController.text.isNotEmpty
-            ? _accountNumberController.text
-            : null,
-        bankName: _bankNameController.text.isNotEmpty
-            ? _bankNameController.text
-            : null,
-        isActive: widget.account?.isActive ?? true,
-      );
+      final notifier = ref.read(paymentAccountsProvider.notifier);
+      bool success;
 
       if (widget.account == null) {
-        ref.read(paymentAccountsProvider.notifier).addAccount(account);
+        final account = PaymentAccount.create(
+          name: _nameController.text,
+          type: _selectedType,
+          accountNumber: _accountNumberController.text.isNotEmpty
+              ? _accountNumberController.text
+              : null,
+          bankName: _bankNameController.text.isNotEmpty
+              ? _bankNameController.text
+              : null,
+        );
+        success = await notifier.addAccount(account);
       } else {
-        ref.read(paymentAccountsProvider.notifier).updateAccount(account);
+        final account = widget.account!.copyWith(
+          name: _nameController.text,
+          type: _selectedType,
+          accountNumber: _accountNumberController.text.isNotEmpty
+              ? _accountNumberController.text
+              : null,
+          bankName: _bankNameController.text.isNotEmpty
+              ? _bankNameController.text
+              : null,
+        );
+        success = await notifier.updateAccount(account);
       }
-      Navigator.pop(context);
+
+      if (success && mounted) {
+        Navigator.pop(context);
+      }
     }
   }
 

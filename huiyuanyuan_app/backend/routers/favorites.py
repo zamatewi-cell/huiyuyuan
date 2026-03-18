@@ -1,19 +1,18 @@
 """
 Favorites router - add / remove / list
-DB-first with in-memory fallback
-Uses 'favorites' table (user_id, product_id) with PK constraint
+DB-first with development-only in-memory fallback
 """
 
 import json
 import logging
 from typing import Optional
 
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-from security import require_user
-from database import get_db
+from database import get_db, handle_database_error, require_database
+from security import AuthorizationDep, require_user
 from store import FAVORITES_DB, PRODUCTS_DB
 
 logger = logging.getLogger(__name__)
@@ -22,7 +21,10 @@ router = APIRouter(prefix="/api/favorites", tags=["Favorites"])
 
 
 @router.get("")
-async def get_favorites(authorization: str = None, db: Optional[Session] = Depends(get_db)):
+async def get_favorites(
+    authorization: AuthorizationDep = None,
+    db: Optional[Session] = Depends(get_db),
+):
     user_id = require_user(authorization)
 
     if db is not None:
@@ -38,53 +40,65 @@ async def get_favorites(authorization: str = None, db: Optional[Session] = Depen
             ).fetchall()
 
             items = []
-            for r in rows:
-                m = r._mapping
-                imgs = m["images"]
-                if isinstance(imgs, str):
-                    imgs = json.loads(imgs)
-                items.append({
-                    "id": m["id"], "name": m["name"],
-                    "description": m["description"] or "",
-                    "price": float(m["price"]),
-                    "original_price": float(m["original_price"]) if m.get("original_price") else None,
-                    "category": m["category"] or "", "material": m["material"] or "",
-                    "images": imgs if isinstance(imgs, list) else [],
-                    "stock": m["stock"], "rating": float(m["rating"]),
-                    "sales_count": m["sales_count"],
-                    "is_hot": m["is_hot"], "is_new": m["is_new"],
-                    "is_welfare": m.get("is_welfare", False),
-                    "origin": m.get("origin"), "certificate": m.get("certificate"),
-                    "blockchain_hash": m.get("blockchain_hash"),
-                    "material_verify": m.get("material_verify", "天然A货"),
-                })
+            for row in rows:
+                mapping = row._mapping
+                images = mapping["images"]
+                if isinstance(images, str):
+                    images = json.loads(images)
+                items.append(
+                    {
+                        "id": mapping["id"],
+                        "name": mapping["name"],
+                        "description": mapping["description"] or "",
+                        "price": float(mapping["price"]),
+                        "original_price": (
+                            float(mapping["original_price"])
+                            if mapping.get("original_price")
+                            else None
+                        ),
+                        "category": mapping["category"] or "",
+                        "material": mapping["material"] or "",
+                        "images": images if isinstance(images, list) else [],
+                        "stock": mapping["stock"],
+                        "rating": float(mapping["rating"]),
+                        "sales_count": mapping["sales_count"],
+                        "is_hot": mapping["is_hot"],
+                        "is_new": mapping["is_new"],
+                        "is_welfare": mapping.get("is_welfare", False),
+                        "origin": mapping.get("origin"),
+                        "certificate": mapping.get("certificate"),
+                        "blockchain_hash": mapping.get("blockchain_hash"),
+                        "material_verify": mapping.get("material_verify", "天然A货"),
+                    }
+                )
             return {"items": items, "total": len(items)}
-        except Exception as e:
-            logger.error(f"DB get_favorites: {e}")
+        except Exception as exc:
+            handle_database_error(db, "读取收藏夹", exc)
 
-    # memory
-    fav_ids = FAVORITES_DB.get(user_id, [])
-    products = [PRODUCTS_DB[pid] for pid in fav_ids if pid in PRODUCTS_DB]
-    return {"items": [p.model_dump() for p in products], "total": len(products)}
+    require_database(db, "读取收藏夹")
+
+    favorite_ids = FAVORITES_DB.get(user_id, [])
+    products = [PRODUCTS_DB[product_id] for product_id in favorite_ids if product_id in PRODUCTS_DB]
+    return {"items": [product.model_dump() for product in products], "total": len(products)}
 
 
 @router.post("/{product_id}")
-async def add_favorite(product_id: str, authorization: str = None, db: Optional[Session] = Depends(get_db)):
+async def add_favorite(
+    product_id: str,
+    authorization: AuthorizationDep = None,
+    db: Optional[Session] = Depends(get_db),
+):
     user_id = require_user(authorization)
-
-    if product_id not in PRODUCTS_DB:
-        if db is not None:
-            row = db.execute(
-                text("SELECT id FROM products WHERE id = :id AND is_active = true"),
-                {"id": product_id},
-            ).fetchone()
-            if not row:
-                raise HTTPException(status_code=404, detail="商品不存在")
-        else:
-            raise HTTPException(status_code=404, detail="商品不存在")
 
     if db is not None:
         try:
+            product = db.execute(
+                text("SELECT id FROM products WHERE id = :id AND is_active = true"),
+                {"id": product_id},
+            ).fetchone()
+            if not product:
+                raise HTTPException(status_code=404, detail="商品不存在")
+
             db.execute(
                 text(
                     "INSERT INTO favorites (user_id, product_id) "
@@ -93,20 +107,30 @@ async def add_favorite(product_id: str, authorization: str = None, db: Optional[
                 {"uid": user_id, "pid": product_id},
             )
             db.commit()
-        except Exception as e:
-            db.rollback()
-            logger.error(f"DB add_favorite: {e}")
+            return {"success": True, "message": "已添加收藏"}
+        except HTTPException:
+            raise
+        except Exception as exc:
+            handle_database_error(db, "添加收藏", exc)
 
-    if user_id not in FAVORITES_DB:
-        FAVORITES_DB[user_id] = []
-    if product_id not in FAVORITES_DB[user_id]:
-        FAVORITES_DB[user_id].append(product_id)
+    require_database(db, "添加收藏")
+
+    if product_id not in PRODUCTS_DB:
+        raise HTTPException(status_code=404, detail="商品不存在")
+
+    favorites = FAVORITES_DB.setdefault(user_id, [])
+    if product_id not in favorites:
+        favorites.append(product_id)
 
     return {"success": True, "message": "已添加收藏"}
 
 
 @router.delete("/{product_id}")
-async def remove_favorite(product_id: str, authorization: str = None, db: Optional[Session] = Depends(get_db)):
+async def remove_favorite(
+    product_id: str,
+    authorization: AuthorizationDep = None,
+    db: Optional[Session] = Depends(get_db),
+):
     user_id = require_user(authorization)
 
     if db is not None:
@@ -116,9 +140,11 @@ async def remove_favorite(product_id: str, authorization: str = None, db: Option
                 {"uid": user_id, "pid": product_id},
             )
             db.commit()
-        except Exception as e:
-            db.rollback()
-            logger.error(f"DB remove_favorite: {e}")
+            return {"success": True, "message": "已取消收藏"}
+        except Exception as exc:
+            handle_database_error(db, "取消收藏", exc)
+
+    require_database(db, "取消收藏")
 
     if user_id in FAVORITES_DB and product_id in FAVORITES_DB[user_id]:
         FAVORITES_DB[user_id].remove(product_id)

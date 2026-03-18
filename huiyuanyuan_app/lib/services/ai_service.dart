@@ -15,7 +15,7 @@ import 'dart:convert';
 
 import 'package:dio/dio.dart';
 import '../config/app_config.dart';
-import '../data/product_data.dart';
+import '../services/product_service.dart';
 
 /// AI服务类
 class AIService {
@@ -24,6 +24,7 @@ class AIService {
   AIService._internal();
 
   late final Dio _dio;
+  final ProductService _productService = ProductService();
   bool _initialized = false;
 
   /// 初始化
@@ -72,7 +73,10 @@ class AIService {
     String finalSystemPrompt =
         systemPrompt ?? _getDefaultSystemPrompt(language: language);
     if (includeProducts && systemPrompt == null) {
-      finalSystemPrompt += '\n\n${_getProductContext()}';
+      final productContext = await _getProductContext();
+      if (productContext.isNotEmpty) {
+        finalSystemPrompt += '\n\n$productContext';
+      }
     }
 
     if (!AppConfig.openRouterApiKey.contains('YOUR_') &&
@@ -135,7 +139,10 @@ class AIService {
     String finalSystemPrompt =
         systemPrompt ?? _getDefaultSystemPrompt(language: language);
     if (includeProducts && systemPrompt == null) {
-      finalSystemPrompt += '\n\n${_getProductContext()}';
+      final productContext = await _getProductContext();
+      if (productContext.isNotEmpty) {
+        finalSystemPrompt += '\n\n$productContext';
+      }
     }
 
     if (!AppConfig.openRouterApiKey.contains('YOUR_') &&
@@ -313,9 +320,9 @@ class AIService {
   }
 
   /// 生成商品上下文摘要（注入到 system prompt）
-  String _getProductContext() {
+  Future<String> _getProductContext() async {
     try {
-      final products = realProductData;
+      final products = await _productService.getProducts(pageSize: 50);
       if (products.isEmpty) return '';
 
       final buffer = StringBuffer();

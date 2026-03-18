@@ -19,13 +19,15 @@ from sqlalchemy.orm import Session
 from schemas.auth import LoginRequest, SmsCodeRequest, SmsVerifyRequest
 from schemas.user import UserResponse
 from security import (
+    AuthorizationDep,
     verify_password,
     create_jwt_token,
     create_refresh_token,
-    get_user_id_from_token,
+    get_user_id_from_refresh_token,
+    extract_bearer_token,
     JWT_AVAILABLE,
 )
-from config import SMS_REAL_MODE, JWT_ACCESS_EXPIRE_SECONDS
+from config import SMS_REAL_MODE, JWT_ACCESS_EXPIRE_SECONDS, IS_PRODUCTION
 from database import get_db, DB_AVAILABLE, SessionLocal
 from store import USERS_DB, TOKENS_DB
 from services.sms_service import (
@@ -68,9 +70,11 @@ def _db_find_user(db: Session, phone: str = None, username: str = None,
 
         where = " AND ".join(conditions)
         row = db.execute(
-            text(f"SELECT id, phone, username, password_hash, user_type, "
-                 f"operator_num, balance, points, avatar_url, is_admin, is_active "
-                 f"FROM users WHERE {where} LIMIT 1"),
+            text(
+                f"SELECT id, phone, username, password_hash, user_type, "
+                f"operator_num, balance, points, avatar_url, is_active "
+                f"FROM users WHERE {where} LIMIT 1"
+            ),
             params,
         ).fetchone()
         if not row:
@@ -98,11 +102,12 @@ def _db_find_user(db: Session, phone: str = None, username: str = None,
 def _login_success(user_id: str, user_data: dict) -> dict:
     """生成登录成功的标准响应"""
     token = create_jwt_token(user_id)
+    refresh_token = create_refresh_token(user_id)
     TOKENS_DB[token] = user_id
     return {
         "success": True,
         "token": token,
-        "refresh_token": create_refresh_token(user_id),
+        "refresh_token": refresh_token,
         "expires_in": JWT_ACCESS_EXPIRE_SECONDS if JWT_AVAILABLE else 3600,
         "user": UserResponse(**user_data).model_dump(),
     }
@@ -121,7 +126,7 @@ async def login(request: LoginRequest, db: Optional[Session] = Depends(get_db)):
             user_data = _db_find_user(db, phone=request.username, user_type="admin")
 
         # Memory fallback
-        if user_data is None:
+        if user_data is None and not IS_PRODUCTION:
             admin = USERS_DB.get("admin_001")
             if admin and request.username == admin.get("phone"):
                 user_data = {**admin}
@@ -153,7 +158,7 @@ async def login(request: LoginRequest, db: Optional[Session] = Depends(get_db)):
                 user_data = _db_find_user(db, username=request.username, user_type="operator")
 
         # Memory fallback
-        if user_data is None:
+        if user_data is None and not IS_PRODUCTION:
             operator_id = None
             try:
                 op_num = int(request.username) if request.username else 0
@@ -177,7 +182,7 @@ async def login(request: LoginRequest, db: Optional[Session] = Depends(get_db)):
             raise HTTPException(status_code=400, detail="手机号和验证码不能为空")
 
         # 使用 sms_service 校验验证码
-        verify_stored_code(request.phone, request.code)
+        verify_stored_code(request.phone, request.code, action="login")
 
         # 查找或创建用户 — DB first
         user_data = None
@@ -202,15 +207,17 @@ async def login(request: LoginRequest, db: Optional[Session] = Depends(get_db)):
                 except Exception as e:
                     db.rollback()
                     logger.error(f"DB create customer: {e}")
+                    if IS_PRODUCTION:
+                        raise HTTPException(status_code=503, detail="用户服务暂不可用")
 
         # Memory fallback
-        if user_data is None:
+        if user_data is None and not IS_PRODUCTION:
             for uid, user in USERS_DB.items():
                 if user.get("phone") == request.phone:
                     user_data = {**user}
                     break
 
-        if user_data is None:
+        if user_data is None and not IS_PRODUCTION:
             from security import hash_password
             new_id = f"customer_{int(datetime.now().timestamp() * 1000)}"
             expected_code = request.phone[-4:] if len(request.phone) >= 4 else request.phone
@@ -227,6 +234,9 @@ async def login(request: LoginRequest, db: Optional[Session] = Depends(get_db)):
             }
             USERS_DB[new_id] = user_data
 
+        if user_data is None:
+            raise HTTPException(status_code=503, detail="用户服务暂不可用")
+
         return _login_success(user_data["id"], user_data)
 
     raise HTTPException(status_code=401, detail="用户名或密码错误")
@@ -238,7 +248,7 @@ async def send_sms_code(body: SmsCodeRequest, request: Request):
     if not re.match(r"^1[3-9]\d{9}$", body.phone):
         raise HTTPException(status_code=400, detail="手机号格式错误")
 
-    code = generate_and_store_code(body.phone)
+    code = generate_and_store_code(body.phone, action=body.action)
 
     # 记录发送日志
     biz_id = ""
@@ -281,7 +291,7 @@ async def verify_sms_code(body: SmsVerifyRequest, db: Optional[Session] = Depend
         raise HTTPException(status_code=400, detail="手机号格式错误")
 
     # ---- 验证码校验 ----
-    verify_stored_code(body.phone, body.code)
+    verify_stored_code(body.phone, body.code, action=body.action)
 
     # ---- 查找或创建用户 ----
     user_id = None
@@ -332,9 +342,11 @@ async def verify_sms_code(body: SmsVerifyRequest, db: Optional[Session] = Depend
         except Exception as e:
             logger.error(f"DB error in verify_sms: {e}")
             db.rollback()
+            if IS_PRODUCTION:
+                raise HTTPException(status_code=503, detail="用户服务暂不可用")
 
     # ---- 降级：内存数据库 ----
-    if user_data is None:
+    if user_data is None and not IS_PRODUCTION:
         for uid, u in USERS_DB.items():
             if u.get("phone") == body.phone:
                 user_id = uid
@@ -355,6 +367,9 @@ async def verify_sms_code(body: SmsVerifyRequest, db: Optional[Session] = Depend
             from security import hash_password
             USERS_DB[user_id] = {**user_data, "password_hash": hash_password("")}
 
+    if user_data is None:
+        raise HTTPException(status_code=503, detail="用户服务暂不可用")
+
     # ---- 生成 Token ----
     token = create_jwt_token(user_id, {"phone": body.phone})
     refresh = create_refresh_token(user_id, {"phone": body.phone})
@@ -370,29 +385,30 @@ async def verify_sms_code(body: SmsVerifyRequest, db: Optional[Session] = Depend
 
 
 @router.post("/logout")
-async def logout(authorization: str = None):
+async def logout(authorization: AuthorizationDep = None):
     """用户登出"""
-    if authorization:
-        token = authorization.replace("Bearer ", "")
+    token = extract_bearer_token(authorization or "")
+    if token:
         TOKENS_DB.pop(token, None)
     return {"success": True, "message": "已退出登录"}
 
 
 @router.post("/refresh")
-async def refresh_token(authorization: str = None):
+async def refresh_token(authorization: AuthorizationDep = None):
     """刷新Token"""
-    user_id = get_user_id_from_token(authorization or "")
+    user_id = get_user_id_from_refresh_token(authorization or "")
     if not user_id:
-        raise HTTPException(status_code=401, detail="Token无效")
+        raise HTTPException(status_code=401, detail="Refresh Token无效")
 
     new_token = create_jwt_token(user_id)
+    new_refresh_token = create_refresh_token(user_id)
     TOKENS_DB[new_token] = user_id
 
-    old_token = (authorization or "").replace("Bearer ", "")
+    old_token = extract_bearer_token(authorization or "")
     TOKENS_DB.pop(old_token, None)
 
     return {
         "token": new_token,
-        "refresh_token": create_refresh_token(user_id),
+        "refresh_token": new_refresh_token,
         "expires_in": JWT_ACCESS_EXPIRE_SECONDS if JWT_AVAILABLE else 3600,
     }

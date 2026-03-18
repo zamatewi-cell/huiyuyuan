@@ -33,6 +33,10 @@ dependencies:
     sdk: flutter
   image_picker: ^1.2.1
   flutter_markdown: ^0.7.7+1
+  google_fonts: ^8.0.2
+  flutter_staggered_animations: ^1.1.1
+  page_transition: ^2.2.1
+  flutter_spinkit: ^5.2.2
 
 dev_dependencies:
   flutter_test:

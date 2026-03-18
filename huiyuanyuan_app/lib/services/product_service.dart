@@ -2,14 +2,14 @@
 ///
 /// 功能:
 /// - 统一管理商品数据获取
-/// - 自动切换API/本地数据源
+/// - API-first product fetching with cache
 /// - 缓存管理
 /// - 商品CRUD操作
 library;
 
+import 'package:flutter/foundation.dart';
 import '../models/user_model.dart';
 import '../config/api_config.dart';
-import '../data/product_data.dart';
 import 'api_service.dart';
 
 /// 商品服务
@@ -63,56 +63,44 @@ class ProductService {
     }
 
     // 尝试从API获取
-    if (!ApiConfig.useMockApi) {
-      try {
-        final result = await _api.get<List<dynamic>>(
-          ApiConfig.products,
-          params: {
-            if (category != null && category != '全部') 'category': category,
-            if (material != null) 'material': material,
-            if (minPrice != null) 'min_price': minPrice,
-            if (maxPrice != null) 'max_price': maxPrice,
-            if (isHot != null) 'is_hot': isHot,
-            if (isNew != null) 'is_new': isNew,
-            if (isWelfare != null) 'is_welfare': isWelfare,
-            if (search != null) 'search': search,
-            if (sortBy != null) 'sort_by': sortBy,
-            'page': page,
-            'page_size': pageSize,
-          },
-        );
+    try {
+      final result = await _api.get<List<dynamic>>(
+        ApiConfig.products,
+        params: {
+          if (category != null && category != '全部') 'category': category,
+          if (material != null) 'material': material,
+          if (minPrice != null) 'min_price': minPrice,
+          if (maxPrice != null) 'max_price': maxPrice,
+          if (isHot != null) 'is_hot': isHot,
+          if (isNew != null) 'is_new': isNew,
+          if (isWelfare != null) 'is_welfare': isWelfare,
+          if (search != null) 'search': search,
+          if (sortBy != null) 'sort_by': sortBy,
+          'page': page,
+          'page_size': pageSize,
+        },
+      );
 
-        if (result.success && result.data != null) {
-          final products = result.data!
-              .map(
-                  (json) => ProductModel.fromJson(json as Map<String, dynamic>))
-              .toList();
+      if (result.success && result.data != null) {
+        final products = result.data!
+            .map((json) => ProductModel.fromJson(json as Map<String, dynamic>))
+            .toList();
 
-          // 更新缓存（仅第一页）
-          if (page == 1) {
-            _cachedProducts = products;
-            _cacheTime = DateTime.now();
-          }
-
-          return products;
+        // 更新缓存（仅第一页）
+        if (page == 1) {
+          _cachedProducts = products;
+          _cacheTime = DateTime.now();
         }
-      } catch (_) {
-        // API失败，回退使用本地数据
+
+        return products;
       }
+    } catch (e) {
+      // API失败，返回空列表
+      debugPrint('[ProductService] 获取商品列表失败: $e');
     }
 
-    // 使用本地模拟数据
-    return _getLocalProducts(
-      category: category,
-      material: material,
-      minPrice: minPrice,
-      maxPrice: maxPrice,
-      isHot: isHot,
-      isNew: isNew,
-      isWelfare: isWelfare,
-      search: search,
-      sortBy: sortBy,
-    );
+    // Keep the service API-only. Callers decide how to handle empty results.
+    return [];
   }
 
   /// 获取商品详情
@@ -126,22 +114,19 @@ class ProductService {
     }
 
     // 从API获取
-    if (!ApiConfig.useMockApi) {
-      try {
-        final result = await _api.get<Map<String, dynamic>>(
-          ApiConfig.productDetail(productId),
-        );
+    try {
+      final result = await _api.get<Map<String, dynamic>>(
+        ApiConfig.productDetail(productId),
+      );
 
-        if (result.success && result.data != null) {
-          return ProductModel.fromJson(result.data!);
-        }
-      } catch (_) {
-        // API失败
+      if (result.success && result.data != null) {
+        return ProductModel.fromJson(result.data!);
       }
+    } catch (e) {
+      debugPrint('[ProductService] 获取商品详情失败: $e');
     }
 
-    // 从本地数据查找
-    return getLocalProductById(productId);
+    return null;
   }
 
   /// 创建商品（管理员）
@@ -159,61 +144,34 @@ class ProductService {
     String? origin,
     bool isWelfare = false,
   }) async {
-    if (!ApiConfig.useMockApi) {
-      try {
-        final result = await _api.post<Map<String, dynamic>>(
-          ApiConfig.products,
-          data: {
-            'name': name,
-            'description': description,
-            'price': price,
-            'original_price': originalPrice,
-            'category': category,
-            'material': material,
-            'images': images,
-            'stock': stock,
-            'is_hot': isHot,
-            'is_new': isNew,
-            'origin': origin,
-            'is_welfare': isWelfare,
-          },
-        );
+    try {
+      final result = await _api.post<Map<String, dynamic>>(
+        ApiConfig.products,
+        data: {
+          'name': name,
+          'description': description,
+          'price': price,
+          'original_price': originalPrice,
+          'category': category,
+          'material': material,
+          'images': images,
+          'stock': stock,
+          'is_hot': isHot,
+          'is_new': isNew,
+          'origin': origin,
+          'is_welfare': isWelfare,
+        },
+      );
 
-        if (result.success && result.data != null) {
-          final product = ProductModel.fromJson(result.data!);
-          _invalidateCache();
-          return product;
-        }
-      } catch (_) {
-        // 创建失败
+      if (result.success && result.data != null) {
+        final product = ProductModel.fromJson(result.data!);
+        _invalidateCache();
+        return product;
       }
-      return null;
+    } catch (e) {
+      debugPrint('[ProductService] 创建商品失败: $e');
     }
-
-    // Mock模式
-    final newId = 'HYY-MOCK${DateTime.now().millisecondsSinceEpoch}';
-    final product = ProductModel(
-      id: newId,
-      name: name,
-      description: description,
-      price: price,
-      originalPrice: originalPrice,
-      category: category,
-      material: material,
-      origin: origin,
-      images:
-          images.isNotEmpty ? images : [getDefaultImageForMaterial(material)],
-      stock: stock,
-      isHot: isHot,
-      isNew: isNew,
-      isWelfare: isWelfare,
-      certificate: 'MOCK-CERT-$newId',
-      materialVerify: material,
-    );
-
-    addProduct(product);
-    _invalidateCache();
-    return product;
+    return null;
   }
 
   /// 更新商品（管理员）
@@ -232,90 +190,51 @@ class ProductService {
     String? origin,
     bool? isWelfare,
   }) async {
-    if (!ApiConfig.useMockApi) {
-      try {
-        final result = await _api.put<Map<String, dynamic>>(
-          ApiConfig.productDetail(productId),
-          data: {
-            if (name != null) 'name': name,
-            if (description != null) 'description': description,
-            if (price != null) 'price': price,
-            if (originalPrice != null) 'original_price': originalPrice,
-            if (category != null) 'category': category,
-            if (material != null) 'material': material,
-            if (images != null) 'images': images,
-            if (stock != null) 'stock': stock,
-            if (isHot != null) 'is_hot': isHot,
-            if (isNew != null) 'is_new': isNew,
-            if (origin != null) 'origin': origin,
-            if (isWelfare != null) 'is_welfare': isWelfare,
-          },
-        );
+    try {
+      final result = await _api.put<Map<String, dynamic>>(
+        ApiConfig.productDetail(productId),
+        data: {
+          if (name != null) 'name': name,
+          if (description != null) 'description': description,
+          if (price != null) 'price': price,
+          if (originalPrice != null) 'original_price': originalPrice,
+          if (category != null) 'category': category,
+          if (material != null) 'material': material,
+          if (images != null) 'images': images,
+          if (stock != null) 'stock': stock,
+          if (isHot != null) 'is_hot': isHot,
+          if (isNew != null) 'is_new': isNew,
+          if (origin != null) 'origin': origin,
+          if (isWelfare != null) 'is_welfare': isWelfare,
+        },
+      );
 
-        if (result.success && result.data != null) {
-          final product = ProductModel.fromJson(result.data!);
-          _invalidateCache();
-          return product;
-        }
-      } catch (_) {
-        // 更新失败
+      if (result.success && result.data != null) {
+        final product = ProductModel.fromJson(result.data!);
+        _invalidateCache();
+        return product;
       }
-      return null;
+    } catch (e) {
+      debugPrint('[ProductService] 更新商品失败: $e');
     }
-
-    // Mock模式
-    final existingIndex = allProducts.indexWhere((p) => p.id == productId);
-    if (existingIndex < 0) return null;
-
-    final old = allProducts[existingIndex];
-    final updated = ProductModel(
-      id: old.id,
-      name: name ?? old.name,
-      description: description ?? old.description,
-      price: price ?? old.price,
-      originalPrice: originalPrice ?? old.originalPrice,
-      category: category ?? old.category,
-      material: material ?? old.material,
-      origin: origin ?? old.origin,
-      images: images ?? old.images,
-      stock: stock ?? old.stock,
-      isHot: isHot ?? old.isHot,
-      isNew: isNew ?? old.isNew,
-      isWelfare: isWelfare ?? old.isWelfare,
-      rating: old.rating,
-      salesCount: old.salesCount,
-      certificate: old.certificate,
-      blockchainHash: old.blockchainHash,
-      materialVerify: old.materialVerify,
-    );
-
-    allProducts[existingIndex] = updated;
-    _invalidateCache();
-    return updated;
+    return null;
   }
 
   /// 删除商品（管理员）
   Future<bool> deleteProduct(String productId) async {
-    if (!ApiConfig.useMockApi) {
-      try {
-        final result = await _api.delete<Map<String, dynamic>>(
-          ApiConfig.productDetail(productId),
-        );
+    try {
+      final result = await _api.delete<Map<String, dynamic>>(
+        ApiConfig.productDetail(productId),
+      );
 
-        if (result.success) {
-          _invalidateCache();
-          return true;
-        }
-      } catch (_) {
-        // 删除失败
+      if (result.success) {
+        _invalidateCache();
+        return true;
       }
-      return false;
+    } catch (e) {
+      debugPrint('[ProductService] 删除商品失败: $e');
     }
-
-    // Mock模式
-    final result = removeProduct(productId);
-    if (result) _invalidateCache();
-    return result;
+    return false;
   }
 
   /// 获取热门商品
@@ -372,78 +291,5 @@ class ProductService {
       return products;
     }
     return products.where((p) => p.category == category).toList();
-  }
-
-  /// 获取本地商品数据
-  List<ProductModel> _getLocalProducts({
-    String? category,
-    String? material,
-    double? minPrice,
-    double? maxPrice,
-    bool? isHot,
-    bool? isNew,
-    bool? isWelfare,
-    String? search,
-    String? sortBy,
-  }) {
-    List<ProductModel> products = List.from(allProducts);
-
-    // 分类筛选
-    if (category != null && category != '全部') {
-      products = products.where((p) => p.category == category).toList();
-    }
-
-    // 材质筛选
-    if (material != null) {
-      products = products.where((p) => p.material == material).toList();
-    }
-
-    // 价格筛选
-    if (minPrice != null) {
-      products = products.where((p) => p.price >= minPrice).toList();
-    }
-    if (maxPrice != null) {
-      products = products.where((p) => p.price <= maxPrice).toList();
-    }
-
-    // 标签筛选
-    if (isHot == true) {
-      products = products.where((p) => p.isHot).toList();
-    }
-    if (isNew == true) {
-      products = products.where((p) => p.isNew).toList();
-    }
-    if (isWelfare == true) {
-      products = products.where((p) => p.isWelfare).toList();
-    }
-
-    // 搜索
-    if (search != null && search.isNotEmpty) {
-      final keyword = search.toLowerCase();
-      products = products
-          .where((p) =>
-              p.name.toLowerCase().contains(keyword) ||
-              p.description.toLowerCase().contains(keyword) ||
-              p.material.toLowerCase().contains(keyword))
-          .toList();
-    }
-
-    // 排序
-    switch (sortBy) {
-      case 'price_asc':
-        products.sort((a, b) => a.price.compareTo(b.price));
-        break;
-      case 'price_desc':
-        products.sort((a, b) => b.price.compareTo(a.price));
-        break;
-      case 'sales':
-        products.sort((a, b) => b.salesCount.compareTo(a.salesCount));
-        break;
-      case 'rating':
-        products.sort((a, b) => b.rating.compareTo(a.rating));
-        break;
-    }
-
-    return products;
   }
 }

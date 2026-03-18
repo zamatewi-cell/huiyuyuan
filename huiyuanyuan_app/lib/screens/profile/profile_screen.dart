@@ -392,8 +392,8 @@ class ProfileScreen extends ConsumerWidget {
     final paid = stats['paid'] as int? ?? 0;
     final pendingWork = pending + paid;
     final amountStr = totalAmount >= 10000
-        ? '\u00A5${(totalAmount / 10000).toStringAsFixed(1)}\u4E07'
-        : '\u00A5${totalAmount.toStringAsFixed(0)}';
+        ? '¥${(totalAmount / 10000).toStringAsFixed(1)}万'
+        : '¥${totalAmount.toStringAsFixed(0)}';
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       padding: const EdgeInsets.all(20),
@@ -412,11 +412,11 @@ class ProfileScreen extends ConsumerWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          _buildAssetItem('\u8BA2\u5355\u603B\u6570', '$total', Icons.shopping_bag),
+          _buildAssetItem('订单总数', '$total', Icons.shopping_bag),
           _buildDivider(),
-          _buildAssetItem('\u7D2F\u8BA1\u4E1A\u7EE9', amountStr, Icons.trending_up),
+          _buildAssetItem('累计业绩', amountStr, Icons.trending_up),
           _buildDivider(),
-          _buildAssetItem('\u5F85\u5904\u7406', '$pendingWork', Icons.pending_actions),
+          _buildAssetItem('待处理', '$pendingWork', Icons.pending_actions),
         ],
       ),
     );

@@ -6,6 +6,7 @@
 /// - 订单查询
 library;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/user_model.dart';
 import '../config/api_config.dart';
@@ -28,59 +29,55 @@ class OrderNotifier extends StateNotifier<List<OrderModel>> {
 
   /// 加载订单列表
   Future<void> _loadOrders() async {
-    if (!ApiConfig.useMockApi) {
-      try {
-        final api = ApiService();
-        final result = await api.get<List<dynamic>>(ApiConfig.orders);
-        if (result.success && result.data != null) {
-          state = result.data!.map((json) {
-            // 解析订单状态
-            OrderStatus status = OrderStatus.pending;
-            switch (json['status']) {
-              case 'pending':
-                status = OrderStatus.pending;
-                break;
-              case 'paid':
-                status = OrderStatus.paid;
-                break;
-              case 'shipped':
-                status = OrderStatus.shipped;
-                break;
-              case 'delivered':
-                status = OrderStatus.delivered;
-                break;
-              case 'completed':
-                status = OrderStatus.completed;
-                break;
-              case 'cancelled':
-                status = OrderStatus.cancelled;
-                break;
-              case 'refunded':
-                status = OrderStatus.refunded;
-                break;
-            }
-            return OrderModel(
-              id: json['id'] ?? '',
-              productId: json['product_id'] ?? '',
-              productName: json['product_name'] ?? '',
-              quantity: json['quantity'] ?? 1,
-              amount: (json['amount'] ?? 0).toDouble(),
-              status: status,
-              createdAt: json['created_at'] != null
-                  ? DateTime.parse(json['created_at'])
-                  : DateTime.now(),
-              operatorId: json['operator_id'],
-            );
-          }).toList();
-          return;
-        }
-      } catch (_) {
-        // API失败则后退到模拟数据
+    try {
+      final api = ApiService();
+      final result = await api.get<List<dynamic>>(ApiConfig.orders);
+      if (result.success && result.data != null) {
+        state = result.data!.map((json) {
+          // 解析订单状态
+          OrderStatus status = OrderStatus.pending;
+          switch (json['status']) {
+            case 'pending':
+              status = OrderStatus.pending;
+              break;
+            case 'paid':
+              status = OrderStatus.paid;
+              break;
+            case 'shipped':
+              status = OrderStatus.shipped;
+              break;
+            case 'delivered':
+              status = OrderStatus.delivered;
+              break;
+            case 'completed':
+              status = OrderStatus.completed;
+              break;
+            case 'cancelled':
+              status = OrderStatus.cancelled;
+              break;
+            case 'refunded':
+              status = OrderStatus.refunded;
+              break;
+          }
+          return OrderModel(
+            id: json['id'] ?? '',
+            productId: json['product_id'] ?? '',
+            productName: json['product_name'] ?? '',
+            quantity: json['quantity'] ?? 1,
+            amount: (json['amount'] ?? 0).toDouble(),
+            status: status,
+            createdAt: json['created_at'] != null
+                ? DateTime.parse(json['created_at'])
+                : DateTime.now(),
+            operatorId: json['operator_id'],
+          );
+        }).toList();
+        return;
       }
+    } catch (e) {
+      // API失败，保持空列表
+      debugPrint('[OrderService] 加载订单失败: $e');
     }
-
-    // 从本地存储加载订单（模拟数据）
-    state = _getMockOrders();
   }
 
   /// 创建订单
@@ -101,82 +98,65 @@ class OrderNotifier extends StateNotifier<List<OrderModel>> {
     String? remark,
     String? operatorId,
   }) async {
-    if (!ApiConfig.useMockApi) {
-      try {
-        final api = ApiService();
-        final result = await api.post<Map<String, dynamic>>(
-          ApiConfig.orders,
-          data: {
-            'product_id': productId ?? '',
-            'product_name': productName,
-            'quantity': quantity,
-            'amount': amount,
-            'product_image': productImage,
-            'payment_method': paymentMethod?.name,
-            'recipient_name': recipientName,
-            'recipient_phone': recipientPhone,
-            'shipping_address': shippingAddress,
-            'operator_id': operatorId,
-          },
+    try {
+      final api = ApiService();
+      final result = await api.post<Map<String, dynamic>>(
+        ApiConfig.orders,
+        data: {
+          'product_id': productId ?? '',
+          'product_name': productName,
+          'quantity': quantity,
+          'amount': amount,
+          'product_image': productImage,
+          'payment_method': paymentMethod?.name,
+          'recipient_name': recipientName,
+          'recipient_phone': recipientPhone,
+          'shipping_address': shippingAddress,
+          'operator_id': operatorId,
+        },
+      );
+      if (result.success && result.data != null) {
+        final json = result.data!;
+        final order = OrderModel(
+          id: json['id'] ?? 'ORD${DateTime.now().millisecondsSinceEpoch}',
+          productId: productId ?? '',
+          productName: productName,
+          quantity: quantity,
+          amount: amount,
+          productImage: productImage,
+          paymentMethod: paymentMethod ?? PaymentMethod.wechat,
+          recipientName: recipientName,
+          recipientPhone: recipientPhone,
+          shippingAddress: shippingAddress,
+          status: OrderStatus.pending,
+          createdAt: json['created_at'] != null
+              ? DateTime.parse(json['created_at'])
+              : DateTime.now(),
+          operatorId: operatorId,
         );
-        if (result.success && result.data != null) {
-          final json = result.data!;
-          final order = OrderModel(
-            id: json['id'] ?? 'ORD${DateTime.now().millisecondsSinceEpoch}',
-            productId: productId ?? '',
-            productName: productName,
-            quantity: quantity,
-            amount: amount,
-            productImage: productImage,
-            paymentMethod: paymentMethod ?? PaymentMethod.wechat,
-            recipientName: recipientName,
-            recipientPhone: recipientPhone,
-            shippingAddress: shippingAddress,
-            status: OrderStatus.pending,
-            createdAt: json['created_at'] != null
-                ? DateTime.parse(json['created_at'])
-                : DateTime.now(),
-            operatorId: operatorId,
-          );
-          state = [order, ...state];
-          return order;
-        }
-      } catch (_) {}
+        state = [order, ...state];
+        return order;
+      }
+    } catch (e) {
+      debugPrint('[OrderService] 创建订单失败: $e');
     }
-
-    final order = OrderModel(
-      id: 'ORD${DateTime.now().millisecondsSinceEpoch}',
-      productId: productId ?? '',
-      productName: productName,
-      quantity: quantity,
-      amount: amount,
-      productImage: productImage,
-      paymentMethod: paymentMethod ?? PaymentMethod.wechat,
-      recipientName: recipientName,
-      recipientPhone: recipientPhone,
-      shippingAddress: shippingAddress,
-      status: OrderStatus.pending,
-      createdAt: DateTime.now(),
-      operatorId: operatorId,
-    );
-
-    state = [order, ...state];
-    return order;
+    return null;
   }
 
   /// 更新订单状态
   Future<bool> updateOrderStatus(String orderId, OrderStatus newStatus) async {
-    if (!ApiConfig.useMockApi) {
-      try {
-        final api = ApiService();
-        final result = await api.put<Map<String, dynamic>>(
-          ApiConfig.orderDetail(orderId),
-          data: {
-            'status': newStatus.name,
-          },
-        );
-        if (!result.success) return false;
-      } catch (_) {}
+    try {
+      final api = ApiService();
+      final result = await api.put<Map<String, dynamic>>(
+        ApiConfig.orderDetail(orderId),
+        data: {
+          'status': newStatus.name,
+        },
+      );
+      if (!result.success) return false;
+    } catch (e) {
+      debugPrint('[OrderService] 更新订单状态失败: $e');
+      return false;
     }
 
     final index = state.indexWhere((o) => o.id == orderId);
@@ -248,11 +228,11 @@ class OrderNotifier extends StateNotifier<List<OrderModel>> {
       shippedAt: now,
       logisticsEntries: [
         LogisticsEntry(
-          description: '\u5546\u5BB6\u5DF2\u53D1\u8D27\uFF0C$carrier\u8FD0\u9001\u4E2D',
+          description: '商家已发货，$carrier运送中',
           time: now,
         ),
         LogisticsEntry(
-          description: '\u5546\u5BB6\u6B63\u5728\u5904\u7406\u60A8\u7684\u8BA2\u5355',
+          description: '商家正在处理您的订单',
           time: now.subtract(const Duration(hours: 1)),
         ),
       ],
@@ -279,7 +259,7 @@ class OrderNotifier extends StateNotifier<List<OrderModel>> {
       completedAt: now,
       logisticsEntries: [
         LogisticsEntry(
-          description: '\u5DF2\u7B7E\u6536\uFF0C\u8BA2\u5355\u5B8C\u6210',
+          description: '已签收，订单完成',
           time: now,
         ),
         ...existing,
@@ -301,7 +281,7 @@ class OrderNotifier extends StateNotifier<List<OrderModel>> {
 
     final updatedOrder = state[index].copyWith(
       status: OrderStatus.refunding,
-      refundReason: reason ?? '\u4E70\u5BB6\u7533\u8BF7\u9000\u6B3E',
+      refundReason: reason ?? '买家申请退款',
       refundAmount: state[index].totalPaid,
     );
     state = [
@@ -347,38 +327,6 @@ class OrderNotifier extends StateNotifier<List<OrderModel>> {
     await _loadOrders();
   }
 
-  /// 模拟订单数据
-  List<OrderModel> _getMockOrders() {
-    return [
-      OrderModel(
-        id: 'ORD202601310001',
-        productId: 'prod_001',
-        productName: '和田玉福运手链',
-        quantity: 1,
-        amount: 299,
-        status: OrderStatus.paid,
-        createdAt: DateTime.now().subtract(const Duration(days: 1)),
-      ),
-      OrderModel(
-        id: 'ORD202601300001',
-        productId: 'prod_002',
-        productName: '缅甸翡翠平安扣',
-        quantity: 2,
-        amount: 1198,
-        status: OrderStatus.shipped,
-        createdAt: DateTime.now().subtract(const Duration(days: 3)),
-      ),
-      OrderModel(
-        id: 'ORD202601280001',
-        productId: 'prod_003',
-        productName: '南红玛瑙转运珠',
-        quantity: 1,
-        amount: 199,
-        status: OrderStatus.completed,
-        createdAt: DateTime.now().subtract(const Duration(days: 7)),
-      ),
-    ];
-  }
 }
 
 /// 订单统计Provider

@@ -349,56 +349,56 @@ class _OrderCard extends ConsumerWidget {
 
     switch (order.status) {
       case OrderStatus.pending:
-        buttons.add(_buildOutlineButton('\u53D6\u6D88\u8BA2\u5355', () {
+        buttons.add(_buildOutlineButton('取消订单', () {
           _showCancelDialog(context, ref);
         }, context));
         buttons.add(const SizedBox(width: 12));
-        buttons.add(_buildPrimaryButton('\u7ACB\u5373\u4ED8\u6B3E', () {
+        buttons.add(_buildPrimaryButton('立即付款', () {
           _showPaymentDialog(context, ref);
         }));
         break;
       case OrderStatus.paid:
-        buttons.add(_buildPrimaryButton('\u53BB\u53D1\u8D27', () {
+        buttons.add(_buildPrimaryButton('去发货', () {
           _showShippingDialog(context, ref);
         }));
         break;
       case OrderStatus.shipped:
-        buttons.add(_buildOutlineButton('\u67E5\u770B\u7269\u6D41', () {
+        buttons.add(_buildOutlineButton('查看物流', () {
           Navigator.push(
             context,
             MaterialPageRoute(builder: (_) => LogisticsScreen(order: order)),
           );
         }, context));
         buttons.add(const SizedBox(width: 12));
-        buttons.add(_buildPrimaryButton('\u786E\u8BA4\u6536\u8D27', () {
+        buttons.add(_buildPrimaryButton('确认收货', () {
           _showConfirmReceiptDialog(context, ref);
         }));
         break;
       case OrderStatus.completed:
       case OrderStatus.delivered:
-        buttons.add(_buildOutlineButton('\u53D1\u8D77\u9000\u8D27', () {
+        buttons.add(_buildOutlineButton('发起退货', () {
           _showReturnDialog(context, ref);
         }, context));
         buttons.add(const SizedBox(width: 12));
-        buttons.add(_buildPrimaryButton('\u8BC4\u4EF7\u6652\u5355', () async {
+        buttons.add(_buildPrimaryButton('评价晒单', () async {
           final result = await Navigator.push(
             context,
             MaterialPageRoute(
                 builder: (context) => PublishReviewScreen(order: order)),
           );
           if (result == true) {
-            debugPrint('\u8BC4\u4EF7\u6210\u529F!');
+            debugPrint('评价成功!');
           }
         }));
         break;
       case OrderStatus.cancelled:
       case OrderStatus.refunded:
-        buttons.add(_buildOutlineButton('\u5220\u9664\u8BA2\u5355', () {
+        buttons.add(_buildOutlineButton('删除订单', () {
           _showDeleteDialog(context, ref);
         }, context));
         break;
       default:
-        buttons.add(_buildOutlineButton('\u67E5\u770B\u8BE6\u60C5', () {
+        buttons.add(_buildOutlineButton('查看详情', () {
           Navigator.push(
             context,
             MaterialPageRoute(builder: (_) => OrderDetailScreen(order: order)),
@@ -474,17 +474,17 @@ class _OrderCard extends ConsumerWidget {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('\u53D6\u6D88\u8BA2\u5355'),
-        content: const Text('\u786E\u5B9A\u8981\u53D6\u6D88\u8FD9\u4E2A\u8BA2\u5355\u5417\uFF1F'),
+        title: const Text('取消订单'),
+        content: const Text('确定要取消这个订单吗？'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('\u518D\u60F3\u60F3')),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('再想想')),
           TextButton(
             onPressed: () {
               ref.read(orderProvider.notifier).cancelOrder(order.id);
               Navigator.pop(ctx);
             },
             style: TextButton.styleFrom(foregroundColor: JewelryColors.error),
-            child: const Text('\u786E\u8BA4\u53D6\u6D88'),
+            child: const Text('确认取消'),
           ),
         ],
       ),
@@ -505,7 +505,7 @@ class _OrderCard extends ConsumerWidget {
           );
       if (ok && context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('\u53D1\u8D27\u6210\u529F\uFF01')),
+          const SnackBar(content: Text('发货成功！')),
         );
       }
     }
@@ -515,19 +515,19 @@ class _OrderCard extends ConsumerWidget {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('\u786E\u8BA4\u6536\u8D27'),
-        content: const Text('\u8BF7\u786E\u8BA4\u5DF2\u6536\u5230\u5546\u54C1\uFF0C\u786E\u8BA4\u540E\u5C06\u65E0\u6CD5\u53D1\u8D77\u9000\u6B3E'),
+        title: const Text('确认收货'),
+        content: const Text('请确认已收到商品，确认后将无法发起退款'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('\u53D6\u6D88')),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('取消')),
           TextButton(
             onPressed: () {
               ref.read(orderProvider.notifier).confirmReceipt(order.id);
               Navigator.pop(ctx);
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('\u5DF2\u786E\u8BA4\u6536\u8D27\uFF01')),
+                const SnackBar(content: Text('已确认收货！')),
               );
             },
-            child: const Text('\u786E\u8BA4\u6536\u8D27'),
+            child: const Text('确认收货'),
           ),
         ],
       ),
@@ -539,24 +539,24 @@ class _OrderCard extends ConsumerWidget {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('\u7533\u8BF7\u9000\u8D27'),
+        title: const Text('申请退货'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text('\u8BF7\u586B\u5199\u9000\u8D27\u539F\u56E0\uFF1A'),
+            const Text('请填写退货原因：'),
             const SizedBox(height: 12),
             TextField(
               controller: controller,
               maxLines: 3,
               decoration: const InputDecoration(
-                hintText: '\u8BF7\u8F93\u5165\u9000\u8D27\u539F\u56E0...',
+                hintText: '请输入退货原因...',
                 border: OutlineInputBorder(),
               ),
             ),
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('\u53D6\u6D88')),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('取消')),
           TextButton(
             onPressed: () {
               ref.read(orderProvider.notifier).requestReturn(
@@ -567,10 +567,10 @@ class _OrderCard extends ConsumerWidget {
                   );
               Navigator.pop(ctx);
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('\u9000\u8D27\u7533\u8BF7\u5DF2\u63D0\u4EA4')),
+                const SnackBar(content: Text('退货申请已提交')),
               );
             },
-            child: const Text('\u63D0\u4EA4\u7533\u8BF7'),
+            child: const Text('提交申请'),
           ),
         ],
       ),
@@ -581,17 +581,17 @@ class _OrderCard extends ConsumerWidget {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('\u5220\u9664\u8BA2\u5355'),
-        content: const Text('\u786E\u5B9A\u8981\u5220\u9664\u8FD9\u4E2A\u8BA2\u5355\u5417\uFF1F\u5220\u9664\u540E\u65E0\u6CD5\u6062\u590D'),
+        title: const Text('删除订单'),
+        content: const Text('确定要删除这个订单吗？删除后无法恢复'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('\u53D6\u6D88')),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('取消')),
           TextButton(
             onPressed: () {
               ref.read(orderProvider.notifier).deleteOrder(order.id);
               Navigator.pop(ctx);
             },
             style: TextButton.styleFrom(foregroundColor: JewelryColors.error),
-            child: const Text('\u786E\u8BA4\u5220\u9664'),
+            child: const Text('确认删除'),
           ),
         ],
       ),

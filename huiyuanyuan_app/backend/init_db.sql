@@ -1,19 +1,20 @@
--- ============================================================
--- ª„”Ò‘¥ PostgreSQL  ˝æ›ø‚≥ı ºªØΩ≈±æ
--- ‘À––∑Ω Ω: psql -U huyy_user -d huiyuanyuan -f init_db.sql
+Ôªø-- ============================================================
+-- Ê±áÁéâÊ∫ê PostgreSQL Êï∞ÊçÆÂ∫ìÂàùÂßãÂåñËÑöÊú¨
+-- ËøêË°åÊñπÂºè: psql -U huyy_user -d huiyuanyuan -f init_db.sql
 -- ============================================================
 
--- ∆Ù”√¿©’π
+-- ÂêØÁî®Êâ©Â±ï
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 CREATE EXTENSION IF NOT EXISTS "pg_trgm";
 
 -- ============================================================
--- ”√ªß±Ì
+-- Áî®Êà∑Ë°®
 -- ============================================================
 CREATE TABLE IF NOT EXISTS users (
     id            VARCHAR(64) PRIMARY KEY DEFAULT 'u_' || replace(gen_random_uuid()::text, '-', ''),
     phone         VARCHAR(20) UNIQUE,
-    username      VARCHAR(64) NOT NULL DEFAULT '”√ªß',
+    username      VARCHAR(64) NOT NULL DEFAULT 'Áî®Êà∑',
     password_hash VARCHAR(256),
     avatar_url    TEXT,
     user_type     VARCHAR(20) NOT NULL DEFAULT 'customer'
@@ -29,12 +30,12 @@ CREATE TABLE IF NOT EXISTS users (
 CREATE INDEX IF NOT EXISTS idx_users_phone     ON users(phone);
 CREATE INDEX IF NOT EXISTS idx_users_user_type ON users(user_type);
 
--- ‘§÷√π‹¿Ì‘±£®√‹¬Î: admin123£¨bcrypt hash Ωˆ æ¿˝£¨≤ø  ±”¶÷ÿ–¬…˙≥…£©
+-- È¢ÑÁΩÆÁÆ°ÁêÜÂëòÔºàÂØÜÁ†Å: admin123Ôºåbcrypt hash ‰ªÖÁ§∫‰æãÔºåÈÉ®ÁΩ≤Êó∂Â∫îÈáçÊñ∞ÁîüÊàêÔºâ
 INSERT INTO users (id, phone, username, password_hash, user_type, balance, points)
 VALUES (
     'admin_001',
     '18937766669',
-    '≥¨º∂π‹¿Ì‘±',
+    'Ë∂ÖÁ∫ßÁÆ°ÁêÜÂëò',
     '$2b$12$placeholder_change_me_before_prod',
     'admin',
     999999.00,
@@ -42,7 +43,7 @@ VALUES (
 ) ON CONFLICT (id) DO NOTHING;
 
 -- ============================================================
--- …Ã∆∑±Ì
+-- ÂïÜÂìÅË°®
 -- ============================================================
 CREATE TABLE IF NOT EXISTS products (
     id              VARCHAR(32) PRIMARY KEY,
@@ -62,7 +63,7 @@ CREATE TABLE IF NOT EXISTS products (
     origin          VARCHAR(128),
     certificate     VARCHAR(256),
     blockchain_hash VARCHAR(256),
-    material_verify VARCHAR(64) DEFAULT 'ÃÏ»ªAªı',
+    material_verify VARCHAR(64) DEFAULT 'Â§©ÁÑ∂AË¥ß',
     is_active       BOOLEAN NOT NULL DEFAULT TRUE,
     created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -76,7 +77,7 @@ CREATE INDEX IF NOT EXISTS idx_products_price     ON products(price);
 CREATE INDEX IF NOT EXISTS idx_products_name_trgm ON products USING GIN (name gin_trgm_ops);
 
 -- ============================================================
---  ’ªıµÿ÷∑±Ì
+-- Êî∂Ë¥ßÂú∞ÂùÄË°®
 -- ============================================================
 CREATE TABLE IF NOT EXISTS addresses (
     id             VARCHAR(64) PRIMARY KEY DEFAULT 'addr_' || replace(gen_random_uuid()::text, '-', ''),
@@ -96,7 +97,7 @@ CREATE TABLE IF NOT EXISTS addresses (
 CREATE INDEX IF NOT EXISTS idx_addresses_user_id ON addresses(user_id);
 
 -- ============================================================
--- π∫ŒÔ≥µ±Ì
+-- Ë¥≠Áâ©ËΩ¶Ë°®
 -- ============================================================
 CREATE TABLE IF NOT EXISTS cart_items (
     id         SERIAL PRIMARY KEY,
@@ -111,18 +112,18 @@ CREATE TABLE IF NOT EXISTS cart_items (
 CREATE INDEX IF NOT EXISTS idx_cart_user_id ON cart_items(user_id);
 
 -- ============================================================
--- ∂©µ•±Ì
+-- ËÆ¢ÂçïË°®
 -- ============================================================
 CREATE TABLE IF NOT EXISTS orders (
     id             VARCHAR(64) PRIMARY KEY DEFAULT 'ord_' || replace(gen_random_uuid()::text, '-', ''),
     user_id        VARCHAR(64) NOT NULL REFERENCES users(id),
     address_id     VARCHAR(64) REFERENCES addresses(id),
-    address_snap   JSONB,                          -- œ¬µ• ±µÿ÷∑øÏ’’
+    address_snap   JSONB,                          -- ‰∏ãÂçïÊó∂Âú∞ÂùÄÂø´ÁÖß
     total_amount   NUMERIC(12,2) NOT NULL,
     status         VARCHAR(20) NOT NULL DEFAULT 'pending'
                    CHECK (status IN ('pending','paid','shipped','delivered','cancelled','refunding','refunded')),
     payment_method VARCHAR(20),
-    payment_no     VARCHAR(128),                   -- ÷ß∏∂∆ΩÃ®Ωª“◊∫≈
+    payment_no     VARCHAR(128),                   -- ÊîØ‰ªòÂπ≥Âè∞‰∫§ÊòìÂè∑
     remark         TEXT,
     paid_at        TIMESTAMPTZ,
     shipped_at     TIMESTAMPTZ,
@@ -138,13 +139,13 @@ CREATE INDEX IF NOT EXISTS idx_orders_status     ON orders(status);
 CREATE INDEX IF NOT EXISTS idx_orders_created_at ON orders(created_at DESC);
 
 -- ============================================================
--- ∂©µ•√˜œ∏±Ì
+-- ËÆ¢ÂçïÊòéÁªÜË°®
 -- ============================================================
 CREATE TABLE IF NOT EXISTS order_items (
     id            SERIAL PRIMARY KEY,
     order_id      VARCHAR(64) NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
     product_id    VARCHAR(32) NOT NULL,
-    product_snap  JSONB NOT NULL,                  -- œ¬µ• ±…Ã∆∑øÏ’’
+    product_snap  JSONB NOT NULL,                  -- ‰∏ãÂçïÊó∂ÂïÜÂìÅÂø´ÁÖß
     quantity      INTEGER NOT NULL DEFAULT 1,
     unit_price    NUMERIC(12,2) NOT NULL,
     subtotal      NUMERIC(12,2) NOT NULL
@@ -153,7 +154,7 @@ CREATE TABLE IF NOT EXISTS order_items (
 CREATE INDEX IF NOT EXISTS idx_order_items_order_id ON order_items(order_id);
 
 -- ============================================================
--- ÷ß∏∂º«¬º±Ì
+-- ÊîØ‰ªòËÆ∞ÂΩïË°®
 -- ============================================================
 CREATE TABLE IF NOT EXISTS payments (
     id             SERIAL PRIMARY KEY,
@@ -161,7 +162,7 @@ CREATE TABLE IF NOT EXISTS payments (
     user_id        VARCHAR(64) NOT NULL REFERENCES users(id),
     amount         NUMERIC(12,2) NOT NULL,
     method         VARCHAR(20) NOT NULL,           -- wechat / alipay / balance
-    trade_no       VARCHAR(128),                   -- µ⁄»˝∑Ωµ•∫≈
+    trade_no       VARCHAR(128),                   -- Á¨¨‰∏âÊñπÂçïÂè∑
     status         VARCHAR(20) NOT NULL DEFAULT 'pending'
                    CHECK (status IN ('pending','success','failed','refunded')),
     paid_at        TIMESTAMPTZ,
@@ -172,13 +173,13 @@ CREATE INDEX IF NOT EXISTS idx_payments_order_id ON payments(order_id);
 CREATE INDEX IF NOT EXISTS idx_payments_user_id  ON payments(user_id);
 
 -- ============================================================
--- SMS ∑¢ÀÕ»’÷æ£®∑¿À¢ + …Ûº∆£©
+-- SMS ÂèëÈÄÅÊó•ÂøóÔºàÈò≤Âà∑ + ÂÆ°ËÆ°Ôºâ
 -- ============================================================
 CREATE TABLE IF NOT EXISTS sms_logs (
     id          SERIAL PRIMARY KEY,
     phone       VARCHAR(20) NOT NULL,
     action      VARCHAR(32) NOT NULL DEFAULT 'login',  -- login / register / reset
-    biz_id      VARCHAR(128),                          -- ∞¢¿Ô‘∆ªÿ÷¥ BizId
+    biz_id      VARCHAR(128),                          -- ÈòøÈáå‰∫ëÂõûÊâß BizId
     send_status VARCHAR(20) NOT NULL DEFAULT 'sent',   -- sent / failed / verified
     ip_addr     VARCHAR(64),
     created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -188,7 +189,7 @@ CREATE INDEX IF NOT EXISTS idx_sms_logs_phone      ON sms_logs(phone);
 CREATE INDEX IF NOT EXISTS idx_sms_logs_created_at ON sms_logs(created_at DESC);
 
 -- ============================================================
--- …Ã∆∑∆¿º€±Ì
+-- ÂïÜÂìÅËØÑ‰ª∑Ë°®
 -- ============================================================
 CREATE TABLE IF NOT EXISTS reviews (
     id           VARCHAR(64) PRIMARY KEY DEFAULT 'rev_' || replace(gen_random_uuid()::text, '-', ''),
@@ -208,7 +209,7 @@ CREATE INDEX IF NOT EXISTS idx_reviews_product_id ON reviews(product_id);
 CREATE INDEX IF NOT EXISTS idx_reviews_user_id    ON reviews(user_id);
 
 -- ============================================================
--- updated_at ◊‘∂Ø∏¸–¬¥•∑¢∆˜
+-- updated_at Ëá™Âä®Êõ¥Êñ∞Ëß¶ÂèëÂô®
 -- ============================================================
 CREATE OR REPLACE FUNCTION set_updated_at()
 RETURNS TRIGGER LANGUAGE plpgsql AS $$
@@ -238,7 +239,7 @@ END;
 $$;
 
 -- ============================================================
--- v4.1: µÍ∆Ã±Ì
+-- v4.1: Â∫óÈì∫Ë°®
 -- ============================================================
 CREATE TABLE IF NOT EXISTS shops (
     id              VARCHAR(64) PRIMARY KEY,
@@ -247,7 +248,7 @@ CREATE TABLE IF NOT EXISTS shops (
     rating          NUMERIC(3,2) NOT NULL DEFAULT 5.00,
     conversion_rate NUMERIC(5,4) NOT NULL DEFAULT 0.0000,
     followers       INTEGER NOT NULL DEFAULT 0,
-    category        VARCHAR(64) NOT NULL DEFAULT '÷È±¶',
+    category        VARCHAR(64) NOT NULL DEFAULT 'Áè†ÂÆù',
     contact_status  VARCHAR(20) NOT NULL DEFAULT 'pending'
                     CHECK (contact_status IN ('pending', 'contacted', 'following', 'contracted', 'rejected')),
     shop_url        TEXT,
@@ -266,7 +267,7 @@ CREATE INDEX IF NOT EXISTS idx_shops_category  ON shops(category);
 CREATE INDEX IF NOT EXISTS idx_shops_operator  ON shops(operator_id);
 
 -- ============================================================
--- v4.1: …Ë±∏◊¢≤·±Ì£®Õ∆ÀÕÕ®÷™£©
+-- v4.1: ËÆæÂ§áÊ≥®ÂÜåË°®ÔºàÊé®ÈÄÅÈÄöÁü•Ôºâ
 -- ============================================================
 CREATE TABLE IF NOT EXISTS devices (
     id           SERIAL PRIMARY KEY,
@@ -283,7 +284,7 @@ CREATE INDEX IF NOT EXISTS idx_devices_user_id ON devices(user_id);
 CREATE INDEX IF NOT EXISTS idx_devices_token   ON devices(device_token);
 
 -- ============================================================
--- v4.1: Õ®÷™º«¬º±Ì
+-- v4.1: ÈÄöÁü•ËÆ∞ÂΩïË°®
 -- ============================================================
 CREATE TABLE IF NOT EXISTS notifications (
     id         VARCHAR(64) PRIMARY KEY DEFAULT 'ntf_' || replace(gen_random_uuid()::text, '-', ''),
@@ -300,7 +301,7 @@ CREATE INDEX IF NOT EXISTS idx_notifications_user_id    ON notifications(user_id
 CREATE INDEX IF NOT EXISTS idx_notifications_created_at ON notifications(created_at DESC);
 
 -- ============================================================
--- v4.0: orders ≤π≥‰◊÷∂Œ£®ºÊ»› Pydantic Order ƒ£–Õ£©
+-- v4.0: orders Ë°•ÂÖÖÂ≠óÊÆµÔºàÂÖºÂÆπ Pydantic Order Ê®°ÂûãÔºâ
 -- ============================================================
 ALTER TABLE orders ADD COLUMN IF NOT EXISTS cancel_reason      TEXT;
 ALTER TABLE orders ADD COLUMN IF NOT EXISTS logistics_company  VARCHAR(64);
@@ -311,7 +312,7 @@ ALTER TABLE orders ADD COLUMN IF NOT EXISTS payment_id         VARCHAR(64);
 ALTER TABLE orders ADD COLUMN IF NOT EXISTS delivered_at       TIMESTAMPTZ;
 
 -- ============================================================
--- v4.0:  ’≤ÿ±Ì
+-- v4.0: Êî∂ËóèË°®
 -- ============================================================
 CREATE TABLE IF NOT EXISTS favorites (
     user_id    VARCHAR(64) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -323,6 +324,6 @@ CREATE TABLE IF NOT EXISTS favorites (
 CREATE INDEX IF NOT EXISTS idx_favorites_user_id ON favorites(user_id);
 
 -- ============================================================
--- ÕÍ≥…
+-- ÂÆåÊàê
 -- ============================================================
 DO $$ BEGIN RAISE NOTICE 'init_db.sql v4.0 executed successfully'; END $$;

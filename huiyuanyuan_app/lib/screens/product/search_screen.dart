@@ -15,19 +15,27 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../themes/colors.dart';
 import '../../themes/jewelry_theme.dart';
-import '../../services/storage_service.dart';
-import '../../data/product_data.dart';
+import '../../services/user_data_service.dart';
 import '../../models/user_model.dart';
+import '../../widgets/common/error_handler.dart';
 import '../trade/product_detail_screen.dart';
 
-/// 搜索历史Provider
-final searchHistoryProvider = FutureProvider<List<String>>((ref) async {
-  final storage = StorageService();
-  await storage.init();
-  return storage.getSearchHistory();
+final _userDataServiceProvider = Provider<UserDataService>((ref) {
+  return UserDataService();
 });
 
-/// 热门搜索
+final searchHistoryProvider = FutureProvider<List<String>>((ref) async {
+  final service = ref.watch(_userDataServiceProvider);
+  await service.initialize();
+  return await service.getSearchHistory();
+});
+
+final hotProductsProvider = FutureProvider<List<ProductModel>>((ref) async {
+  final service = ref.watch(_userDataServiceProvider);
+  await service.initialize();
+  return await service.getHotProducts(limit: 4);
+});
+
 const List<String> hotSearches = [
   '和田玉',
   '翡翠手链',
@@ -39,7 +47,6 @@ const List<String> hotSearches = [
   '蜜蜡',
 ];
 
-/// 排序方式
 enum _SortType { relevance, priceLow, priceHigh, sales }
 
 class SearchScreen extends ConsumerStatefulWidget {
@@ -86,7 +93,6 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
     super.dispose();
   }
 
-  /// 执行真实商品搜索
   Future<void> _performSearch(String keyword) async {
     final kw = keyword.trim();
     if (kw.isEmpty) return;
@@ -99,32 +105,11 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
       _suggestions = [];
     });
 
-    // 保存搜索历史
-    final storage = StorageService();
-    await storage.init();
-    await storage.addSearchHistory(kw);
+    final service = ref.read(_userDataServiceProvider);
+    await service.addSearchHistory(kw);
     ref.invalidate(searchHistoryProvider);
 
-    // 在真实商品数据中搜索（名称/材质/分类/编号/产地/描述）
-    final kwLower = kw.toLowerCase();
-    _searchResults = realProductData.where((p) {
-      return p.name.toLowerCase().contains(kwLower) ||
-          p.material.toLowerCase().contains(kwLower) ||
-          p.category.toLowerCase().contains(kwLower) ||
-          p.id.toLowerCase().contains(kwLower) ||
-          (p.origin?.toLowerCase().contains(kwLower) ?? false) ||
-          p.description.toLowerCase().contains(kwLower);
-    }).toList();
-
-    // 相关度排序：名称匹配优先
-    _searchResults.sort((a, b) {
-      final aNameMatch = a.name.toLowerCase().contains(kwLower) ? 0 : 1;
-      final bNameMatch = b.name.toLowerCase().contains(kwLower) ? 0 : 1;
-      if (aNameMatch != bNameMatch) return aNameMatch.compareTo(bNameMatch);
-      return b.salesCount.compareTo(a.salesCount);
-    });
-
-    await Future.delayed(const Duration(milliseconds: 200));
+    _searchResults = await service.searchProducts(keyword: kw);
 
     if (mounted) {
       setState(() => _isSearching = false);
@@ -132,8 +117,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
     }
   }
 
-  /// 实时搜索建议
-  void _onSearchChanged(String value) {
+  Future<void> _onSearchChanged(String value) async {
     if (value.trim().isEmpty) {
       setState(() {
         _suggestions = [];
@@ -141,19 +125,16 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
       });
       return;
     }
-    final kw = value.trim().toLowerCase();
-    setState(() {
-      _suggestions = realProductData
-          .where((p) =>
-              p.name.toLowerCase().contains(kw) ||
-              p.material.toLowerCase().contains(kw) ||
-              p.category.toLowerCase().contains(kw))
-          .take(6)
-          .toList();
-    });
+    final kw = value.trim();
+    final service = ref.read(_userDataServiceProvider);
+    final results = await service.searchProducts(keyword: kw, pageSize: 6);
+    if (mounted) {
+      setState(() {
+        _suggestions = results;
+      });
+    }
   }
 
-  /// 获取已筛选/排序的结果
   List<ProductModel> get _filteredResults {
     var results = _filterCategory == '全部'
         ? List<ProductModel>.from(_searchResults)
@@ -181,13 +162,10 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
         child: Column(
           children: [
             _buildSearchBar(isDark),
-            // 实时建议（仅搜索未提交时显示）
             if (!_showResults && _suggestions.isNotEmpty)
               _buildSuggestionList(isDark),
-            // 历史 + 热搜 + 推荐
             if (!_showResults && _suggestions.isEmpty)
               Expanded(child: _buildSearchSuggestions(isDark)),
-            // 搜索结果
             if (_showResults) ...[
               if (_searchResults.isNotEmpty) _buildFilterSortBar(isDark),
               Expanded(child: _buildSearchResults(isDark)),
@@ -198,7 +176,6 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
     );
   }
 
-  // ─────────────── 搜索栏 ───────────────
   Widget _buildSearchBar(bool isDark) {
     return Container(
       padding: const EdgeInsets.fromLTRB(8, 12, 16, 12),
@@ -253,7 +230,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
                           color: context.adaptiveTextPrimary),
                       textInputAction: TextInputAction.search,
                       onSubmitted: _performSearch,
-                      onChanged: _onSearchChanged,
+                      onChanged: (value) {
+                        _onSearchChanged(value);
+                      },
                     ),
                   ),
                   if (_searchController.text.isNotEmpty)
@@ -300,7 +279,6 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
     );
   }
 
-  // ─────────────── 实时搜索建议 ───────────────
   Widget _buildSuggestionList(bool isDark) {
     return Container(
       constraints: const BoxConstraints(maxHeight: 280),
@@ -366,7 +344,6 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
     ]);
   }
 
-  // ─────────────── 历史 + 热门 + 推荐好物 ───────────────
   Widget _buildSearchSuggestions(bool isDark) {
     final historyAsync = ref.watch(searchHistoryProvider);
     return SingleChildScrollView(
@@ -374,7 +351,6 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 搜索历史
           historyAsync.when(
             data: (history) {
               if (history.isEmpty) return const SizedBox.shrink();
@@ -392,10 +368,16 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
                           )),
                       GestureDetector(
                         onTap: () async {
-                          final storage = StorageService();
-                          await storage.init();
-                          await storage.clearSearchHistory();
-                          ref.invalidate(searchHistoryProvider);
+                          final service = ref.read(_userDataServiceProvider);
+                          final success = await service.clearSearchHistory();
+                          if (success && mounted) {
+                            ref.invalidate(searchHistoryProvider);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('搜索历史已清空')),
+                            );
+                          } else if (mounted) {
+                            context.showError('清空失败，请重试');
+                          }
                         },
                         child: Row(
                           children: [
@@ -426,7 +408,6 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
             error: (_, __) => const SizedBox.shrink(),
           ),
 
-          // 热门搜索
           Row(
             children: [
               Text('热门搜索',
@@ -450,7 +431,6 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
           ),
 
           const SizedBox(height: 36),
-          // 发现好物
           Text('发现好物',
               style: TextStyle(
                 fontSize: 15,
@@ -533,23 +513,26 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
     );
   }
 
-  /// 推荐好物网格 — 热销前 4 个商品
   Widget _buildRecommendGrid(bool isDark) {
-    final hotItems = List<ProductModel>.from(realProductData)
-      ..sort((a, b) => b.salesCount.compareTo(a.salesCount));
-    final top4 = hotItems.take(4).toList();
-
-    return GridView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        childAspectRatio: 0.82,
-        crossAxisSpacing: 10,
-        mainAxisSpacing: 10,
-      ),
-      itemCount: top4.length,
-      itemBuilder: (_, i) => _buildMiniProductCard(top4[i], isDark),
+    final hotProductsAsync = ref.watch(hotProductsProvider);
+    return hotProductsAsync.when(
+      data: (products) {
+        if (products.isEmpty) return const SizedBox.shrink();
+        return GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 2,
+            childAspectRatio: 0.82,
+            crossAxisSpacing: 10,
+            mainAxisSpacing: 10,
+          ),
+          itemCount: products.length,
+          itemBuilder: (_, i) => _buildMiniProductCard(products[i], isDark),
+        );
+      },
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (_, __) => const SizedBox.shrink(),
     );
   }
 

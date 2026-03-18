@@ -647,7 +647,7 @@ class _ShopRadarState extends State<ShopRadar>
             controller: controller,
             padding: const EdgeInsets.all(20),
             children: [
-              // \u62D6\u62FD\u624B\u67C4
+              // 拖拽手柄
               Center(
                 child: Container(
                   width: 40, height: 4,
@@ -658,7 +658,7 @@ class _ShopRadarState extends State<ShopRadar>
                   ),
                 ),
               ),
-              // \u5E97\u94FA\u540D\u79F0 + \u5E73\u53F0
+              // 店铺名称 + 平台
               Row(
                 children: [
                   Container(
@@ -704,24 +704,24 @@ class _ShopRadarState extends State<ShopRadar>
                 ],
               ),
               const SizedBox(height: 24),
-              // \u6838\u5FC3\u6307\u6807
+              // 核心指标
               Row(
                 children: [
-                  _buildDetailStat('\u8BC4\u5206', shop.rating.toStringAsFixed(1), Icons.star, JewelryColors.gold),
-                  _buildDetailStat('\u7C89\u4E1D', '${shop.followers}', Icons.people, JewelryColors.primary),
-                  _buildDetailStat('\u8F6C\u5316\u7387', '${(shop.conversionRate * 100).toStringAsFixed(1)}%', Icons.trending_up, JewelryColors.success),
+                  _buildDetailStat('评分', shop.rating.toStringAsFixed(1), Icons.star, JewelryColors.gold),
+                  _buildDetailStat('粉丝', '${shop.followers}', Icons.people, JewelryColors.primary),
+                  _buildDetailStat('转化率', '${(shop.conversionRate * 100).toStringAsFixed(1)}%', Icons.trending_up, JewelryColors.success),
                 ],
               ),
               const SizedBox(height: 16),
               Row(
                 children: [
-                  _buildDetailStat('\u6708\u9500', '${shop.monthlySales ?? 0}', Icons.shopping_cart, const Color(0xFF667eea)),
-                  _buildDetailStat('\u5DEE\u8BC4\u7387', '${((shop.negativeRate ?? 0) * 100).toStringAsFixed(1)}%', Icons.thumb_down, JewelryColors.error),
-                  _buildDetailStat('AI\u4F18\u5148\u7EA7', '${shop.aiPriority ?? 0}', Icons.auto_awesome, const Color(0xFF8B5CF6)),
+                  _buildDetailStat('月销', '${shop.monthlySales ?? 0}', Icons.shopping_cart, const Color(0xFF667eea)),
+                  _buildDetailStat('差评率', '${((shop.negativeRate ?? 0) * 100).toStringAsFixed(1)}%', Icons.thumb_down, JewelryColors.error),
+                  _buildDetailStat('AI优先级', '${shop.aiPriority ?? 0}', Icons.auto_awesome, const Color(0xFF8B5CF6)),
                 ],
               ),
               const SizedBox(height: 24),
-              // \u8054\u7CFB\u72B6\u6001
+              // 联系状态
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
@@ -732,15 +732,15 @@ class _ShopRadarState extends State<ShopRadar>
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('\u8054\u7CFB\u72B6\u6001',
+                    const Text('联系状态',
                       style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600)),
                     const SizedBox(height: 10),
                     Text(
-                      shop.contactStatus.name == 'pending' ? '\u5F85\u8054\u7CFB'
-                        : shop.contactStatus.name == 'contacted' ? '\u5DF2\u8054\u7CFB'
-                        : shop.contactStatus.name == 'interested' ? '\u6709\u610F\u5411'
-                        : shop.contactStatus.name == 'cooperating' ? '\u5408\u4F5C\u4E2D'
-                        : '\u5DF2\u62D2\u7EDD',
+                      shop.contactStatus.name == 'pending' ? '待联系'
+                        : shop.contactStatus.name == 'contacted' ? '已联系'
+                        : shop.contactStatus.name == 'interested' ? '有意愿'
+                        : shop.contactStatus.name == 'cooperating' ? '合作中'
+                        : '已拒绝',
                       style: TextStyle(
                         color: shop.contactStatus.name == 'cooperating' ? JewelryColors.success : JewelryColors.gold,
                         fontSize: 14,
@@ -748,14 +748,14 @@ class _ShopRadarState extends State<ShopRadar>
                     ),
                     if (shop.lastContactAt != null) ...[
                       const SizedBox(height: 6),
-                      Text('\u4E0A\u6B21\u8054\u7CFB: ${shop.lastContactAt!.toString().substring(0, 16)}',
+                      Text('上次联系: ${shop.lastContactAt!.toString().substring(0, 16)}',
                         style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 12)),
                     ],
                   ],
                 ),
               ),
               const SizedBox(height: 20),
-              // \u64CD\u4F5C\u6309\u94AE
+              // 操作按钮
               Row(
                 children: [
                   Expanded(
@@ -768,7 +768,7 @@ class _ShopRadarState extends State<ShopRadar>
                         );
                       },
                       icon: const Icon(Icons.auto_awesome, size: 18),
-                      label: const Text('AI\u751F\u6210\u8BDD\u672F'),
+                      label: const Text('AI生成话术'),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: JewelryColors.primary,
                         foregroundColor: Colors.white,
@@ -782,7 +782,7 @@ class _ShopRadarState extends State<ShopRadar>
                     child: OutlinedButton.icon(
                       onPressed: () => Navigator.pop(ctx),
                       icon: const Icon(Icons.close, size: 18),
-                      label: const Text('\u5173\u95ED'),
+                      label: const Text('关闭'),
                       style: OutlinedButton.styleFrom(
                         foregroundColor: Colors.white70,
                         side: const BorderSide(color: Colors.white24),

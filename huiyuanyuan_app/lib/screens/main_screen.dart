@@ -74,37 +74,37 @@ class _MainScreenState extends ConsumerState<MainScreen>
     );
   }
 
-  /// \u83B7\u53D6\u9875\u9762\u5217\u8868 - \u6839\u636E\u89D2\u8272\u533A\u5206
+  /// 获取页面列表 - 根据角色区分
   List<Widget> _getPages(UserType role) {
     switch (role) {
       case UserType.admin:
         return const [
-          AdminDashboard(),       // \u4EEA\u8868\u76D8
-          ProductListScreen(),    // \u5546\u57CE
-          ShopRadar(),            // \u5E97\u94FA\u96F7\u8FBE
-          AIAssistantScreen(),    // AI\u52A9\u624B
-          ProfileScreen(),        // \u4E2A\u4EBA\u4E2D\u5FC3
+          AdminDashboard(),       // 仪表盘
+          ProductListScreen(),    // 商城
+          ShopRadar(),            // 店铺雷达
+          AIAssistantScreen(),    // AI助手
+          ProfileScreen(),        // 个人中心
         ];
       case UserType.operator:
         return const [
-          OperatorHome(),         // \u5DE5\u4F5C\u53F0
-          ProductListScreen(),    // \u5546\u57CE
-          ShopRadar(),            // \u5E97\u94FA\u96F7\u8FBE
-          AIAssistantScreen(),    // AI\u52A9\u624B
-          ProfileScreen(),        // \u4E2A\u4EBA\u4E2D\u5FC3
+          OperatorHome(),         // 工作台
+          ProductListScreen(),    // 商城
+          ShopRadar(),            // 店铺雷达
+          AIAssistantScreen(),    // AI助手
+          ProfileScreen(),        // 个人中心
         ];
       case UserType.customer:
         return const [
-          ProductListScreen(),    // \u5546\u57CE\u9996\u9875
-          OrderListScreen(),      // \u6211\u7684\u8BA2\u5355
-          ShopRadar(),            // \u5E97\u94FA\u96F7\u8FBE
-          AIAssistantScreen(),    // AI\u52A9\u624B
-          ProfileScreen(),        // \u4E2A\u4EBA\u4E2D\u5FC3
+          ProductListScreen(),    // 商城首页
+          OrderListScreen(),      // 我的订单
+          ShopRadar(),            // 店铺雷达
+          AIAssistantScreen(),    // AI助手
+          ProfileScreen(),        // 个人中心
         ];
     }
   }
 
-  /// \u5E95\u90E8\u5BFC\u822A\u680F
+  /// 底部导航栏
   Widget _buildBottomNavBar(UserType role) {
     return ClipRRect(
       borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
@@ -150,7 +150,7 @@ class _MainScreenState extends ConsumerState<MainScreen>
                     label: role == UserType.admin
                         ? ref.tr('admin_dashboard')
                         : role == UserType.operator
-                            ? '\u5DE5\u4F5C\u53F0'
+                            ? '工作台'
                             : ref.tr('nav_products'),
                   ),
                   _buildNavItem(
@@ -162,7 +162,7 @@ class _MainScreenState extends ConsumerState<MainScreen>
                         ? Icons.receipt_long
                         : Icons.storefront,
                     label: role == UserType.customer
-                        ? '\u6211\u7684\u8BA2\u5355'
+                        ? '我的订单'
                         : ref.tr('nav_products'),
                   ),
                   const SizedBox(width: 60), // FAB空间

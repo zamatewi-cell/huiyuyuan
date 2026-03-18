@@ -11,7 +11,7 @@ from schemas.product import Product
 from schemas.cart import CartItem
 from schemas.review import Review
 from schemas.shop import Shop
-from schemas.user import Address
+from schemas.user import Address, PaymentAccountResponse
 from schemas.order import Order
 
 logger = logging.getLogger(__name__)
@@ -48,6 +48,9 @@ DEVICES_DB: Dict[str, Dict] = {}
 
 # ---- 支付记录 ----
 PAYMENTS_DB: Dict[str, Dict] = {}
+
+# ---- 收款账户 ----
+PAYMENT_ACCOUNTS_DB: Dict[str, PaymentAccountResponse] = {}
 
 
 def init_default_users():

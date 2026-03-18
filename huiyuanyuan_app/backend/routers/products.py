@@ -1,54 +1,56 @@
-"""
-Products router - CRUD + filter + search + pagination
-DB-first with in-memory fallback
-"""
+"""Products router - DB-first with development-only in-memory fallback."""
 
 import json
-import uuid
 import logging
-from typing import Optional, List
+import uuid
+from typing import List, Optional
 
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
+from database import get_db, handle_database_error, require_database
 from schemas.product import Product, ProductCreate
-from security import require_user
-from database import get_db
-from store import PRODUCTS_DB, USERS_DB
+from security import AuthorizationDep, is_admin_user, require_user
+from store import PRODUCTS_DB
 
 logger = logging.getLogger(__name__)
-
 router = APIRouter(prefix="/api/products", tags=["Products"])
 
 
-def _row_to_product(m) -> Product:
-    imgs = m["images"]
-    if isinstance(imgs, str):
-        imgs = json.loads(imgs)
+def _row_to_product(mapping) -> Product:
+    images = mapping["images"]
+    if isinstance(images, str):
+        images = json.loads(images)
     return Product(
-        id=m["id"],
-        name=m["name"],
-        description=m["description"] or "",
-        price=float(m["price"]),
-        original_price=float(m["original_price"]) if m.get("original_price") else None,
-        category=m["category"] or "",
-        material=m["material"] or "",
-        images=imgs if isinstance(imgs, list) else [],
-        stock=m["stock"],
-        rating=float(m["rating"]),
-        sales_count=m["sales_count"],
-        is_hot=m["is_hot"],
-        is_new=m["is_new"],
-        is_welfare=m.get("is_welfare", False),
-        origin=m.get("origin"),
-        certificate=m.get("certificate"),
-        blockchain_hash=m.get("blockchain_hash"),
-        material_verify=m.get("material_verify", "天然A货"),
+        id=mapping["id"],
+        name=mapping["name"],
+        description=mapping["description"] or "",
+        price=float(mapping["price"]),
+        original_price=float(mapping["original_price"]) if mapping.get("original_price") is not None else None,
+        category=mapping["category"] or "",
+        material=mapping["material"] or "",
+        images=images if isinstance(images, list) else [],
+        stock=mapping["stock"],
+        rating=float(mapping["rating"]),
+        sales_count=mapping["sales_count"],
+        is_hot=mapping["is_hot"],
+        is_new=mapping["is_new"],
+        is_welfare=mapping.get("is_welfare", False),
+        origin=mapping.get("origin"),
+        certificate=mapping.get("certificate"),
+        blockchain_hash=mapping.get("blockchain_hash"),
+        material_verify=mapping.get("material_verify", "天然A货"),
     )
 
 
-# ====== LIST ======
+def _db_product(db: Session, product_id: str, *, active_only: bool = True) -> Optional[Product]:
+    sql = "SELECT * FROM products WHERE id = :id"
+    if active_only:
+        sql += " AND is_active = true"
+    row = db.execute(text(sql), {"id": product_id}).fetchone()
+    return None if not row else _row_to_product(row._mapping)
+
 
 @router.get("", response_model=List[Product])
 async def get_products(
@@ -67,232 +69,157 @@ async def get_products(
 ):
     if db is not None:
         try:
-            conds = ["is_active = true"]
-            params: dict = {}
-
+            conditions = ["is_active = true"]
+            params: dict[str, object] = {"lim": page_size, "off": (page - 1) * page_size}
             if category and category != "全部":
-                conds.append("category = :category")
+                conditions.append("category = :category")
                 params["category"] = category
             if material:
-                conds.append("material = :material")
+                conditions.append("material = :material")
                 params["material"] = material
             if min_price is not None:
-                conds.append("price >= :min_price")
+                conditions.append("price >= :min_price")
                 params["min_price"] = min_price
             if max_price is not None:
-                conds.append("price <= :max_price")
+                conditions.append("price <= :max_price")
                 params["max_price"] = max_price
             if is_hot is not None:
-                conds.append("is_hot = :is_hot")
+                conditions.append("is_hot = :is_hot")
                 params["is_hot"] = is_hot
             if is_new is not None:
-                conds.append("is_new = :is_new")
+                conditions.append("is_new = :is_new")
                 params["is_new"] = is_new
             if is_welfare is not None:
-                conds.append("is_welfare = :is_welfare")
+                conditions.append("is_welfare = :is_welfare")
                 params["is_welfare"] = is_welfare
             if search:
-                conds.append("(name ILIKE :q OR description ILIKE :q)")
+                conditions.append("(name ILIKE :q OR description ILIKE :q)")
                 params["q"] = f"%{search}%"
-
-            order_map = {
-                "price_asc": "price ASC",
-                "price_desc": "price DESC",
-                "sales": "sales_count DESC",
-                "rating": "rating DESC",
-            }
-            order = order_map.get(sort_by, "created_at DESC")
-
-            offset = (page - 1) * page_size
-            params["lim"] = page_size
-            params["off"] = offset
-
-            sql = (
-                f"SELECT * FROM products WHERE {' AND '.join(conds)} "
-                f"ORDER BY {order} LIMIT :lim OFFSET :off"
-            )
-            rows = db.execute(text(sql), params).fetchall()
-            return [_row_to_product(r._mapping) for r in rows]
-        except Exception as e:
-            logger.error(f"DB get_products: {e}")
-
-    # ---- memory fallback ----
+            order = {"price_asc": "price ASC", "price_desc": "price DESC", "sales": "sales_count DESC", "rating": "rating DESC"}.get(sort_by, "created_at DESC")
+            rows = db.execute(text(f"SELECT * FROM products WHERE {' AND '.join(conditions)} ORDER BY {order} LIMIT :lim OFFSET :off"), params).fetchall()
+            return [_row_to_product(row._mapping) for row in rows]
+        except Exception as exc:
+            handle_database_error(db, "读取商品列表", exc)
+    require_database(db, "读取商品列表")
     products = list(PRODUCTS_DB.values())
     if category and category != "全部":
-        products = [p for p in products if p.category == category]
+        products = [product for product in products if product.category == category]
     if material:
-        products = [p for p in products if p.material == material]
+        products = [product for product in products if product.material == material]
     if min_price is not None:
-        products = [p for p in products if p.price >= min_price]
+        products = [product for product in products if product.price >= min_price]
     if max_price is not None:
-        products = [p for p in products if p.price <= max_price]
+        products = [product for product in products if product.price <= max_price]
     if is_hot is not None:
-        products = [p for p in products if p.is_hot == is_hot]
+        products = [product for product in products if product.is_hot == is_hot]
     if is_new is not None:
-        products = [p for p in products if p.is_new == is_new]
+        products = [product for product in products if product.is_new == is_new]
     if is_welfare is not None:
-        products = [p for p in products if p.is_welfare == is_welfare]
+        products = [product for product in products if product.is_welfare == is_welfare]
     if search:
         q = search.lower()
-        products = [p for p in products if q in p.name.lower() or q in p.description.lower()]
-
+        products = [product for product in products if q in product.name.lower() or q in product.description.lower()]
     if sort_by == "price_asc":
-        products.sort(key=lambda x: x.price)
+        products.sort(key=lambda item: item.price)
     elif sort_by == "price_desc":
-        products.sort(key=lambda x: x.price, reverse=True)
+        products.sort(key=lambda item: item.price, reverse=True)
     elif sort_by == "sales":
-        products.sort(key=lambda x: x.sales_count, reverse=True)
+        products.sort(key=lambda item: item.sales_count, reverse=True)
     elif sort_by == "rating":
-        products.sort(key=lambda x: x.rating, reverse=True)
-
+        products.sort(key=lambda item: item.rating, reverse=True)
     start = (page - 1) * page_size
-    return products[start : start + page_size]
+    return products[start:start + page_size]
 
-
-# ====== DETAIL ======
 
 @router.get("/{product_id}", response_model=Product)
 async def get_product_detail(product_id: str, db: Optional[Session] = Depends(get_db)):
     if db is not None:
         try:
-            row = db.execute(
-                text("SELECT * FROM products WHERE id = :id AND is_active = true"),
-                {"id": product_id},
-            ).fetchone()
-            if row:
-                return _row_to_product(row._mapping)
-        except Exception as e:
-            logger.error(f"DB get_product_detail: {e}")
-
+            product = _db_product(db, product_id)
+            if not product:
+                raise HTTPException(status_code=404, detail="商品不存在")
+            return product
+        except HTTPException:
+            raise
+        except Exception as exc:
+            handle_database_error(db, "读取商品详情", exc)
+    require_database(db, "读取商品详情")
     if product_id not in PRODUCTS_DB:
         raise HTTPException(status_code=404, detail="商品不存在")
     return PRODUCTS_DB[product_id]
 
 
-# ====== CREATE ======
-
 @router.post("", response_model=Product)
-async def create_product(
-    product: ProductCreate,
-    authorization: str = None,
-    db: Optional[Session] = Depends(get_db),
-):
+async def create_product(product: ProductCreate, authorization: AuthorizationDep = None, db: Optional[Session] = Depends(get_db)):
     user_id = require_user(authorization)
-    if not USERS_DB.get(user_id, {}).get("is_admin"):
+    if not is_admin_user(user_id, db):
         raise HTTPException(status_code=403, detail="没有权限")
-
     product_id = f"HYY-{uuid.uuid4().hex[:6].upper()}"
-    bhash = f"0x{uuid.uuid4().hex[:40]}"
-    cert = f"GTC-2026-{product_id[-6:]}"
-
+    blockchain_hash = f"0x{uuid.uuid4().hex[:40]}"
+    certificate = f"GTC-2026-{product_id[-6:]}"
     if db is not None:
         try:
-            db.execute(
-                text(
-                    "INSERT INTO products "
-                    "(id, name, description, price, original_price, category, material, "
-                    " images, stock, is_hot, is_new, is_welfare, origin, certificate, blockchain_hash) "
-                    "VALUES (:id,:name,:desc,:price,:orig,:cat,:mat,"
-                    " :imgs::jsonb,:stock,:hot,:new,:welf,:origin,:cert,:bhash)"
-                ),
-                {
-                    "id": product_id, "name": product.name, "desc": product.description,
-                    "price": product.price, "orig": product.original_price,
-                    "cat": product.category, "mat": product.material,
-                    "imgs": json.dumps(product.images), "stock": product.stock,
-                    "hot": product.is_hot, "new": product.is_new,
-                    "welf": product.is_welfare, "origin": product.origin,
-                    "cert": cert, "bhash": bhash,
-                },
-            )
+            db.execute(text("INSERT INTO products (id, name, description, price, original_price, category, material, images, stock, is_hot, is_new, is_welfare, origin, certificate, blockchain_hash) VALUES (:id, :name, :description, :price, :original_price, :category, :material, :images::jsonb, :stock, :is_hot, :is_new, :is_welfare, :origin, :certificate, :blockchain_hash)"), {"id": product_id, "name": product.name, "description": product.description, "price": product.price, "original_price": product.original_price, "category": product.category, "material": product.material, "images": json.dumps(product.images), "stock": product.stock, "is_hot": product.is_hot, "is_new": product.is_new, "is_welfare": product.is_welfare, "origin": product.origin, "certificate": certificate, "blockchain_hash": blockchain_hash})
             db.commit()
-        except Exception as e:
-            db.rollback()
-            logger.error(f"DB create_product: {e}")
+            return _db_product(db, product_id, active_only=False) or Product(id=product_id, certificate=certificate, blockchain_hash=blockchain_hash, **product.model_dump())
+        except Exception as exc:
+            handle_database_error(db, "创建商品", exc)
+    require_database(db, "创建商品")
+    created = Product(id=product_id, certificate=certificate, blockchain_hash=blockchain_hash, **product.model_dump())
+    PRODUCTS_DB[product_id] = created
+    return created
 
-    new_product = Product(id=product_id, blockchain_hash=bhash, certificate=cert, **product.model_dump())
-    PRODUCTS_DB[product_id] = new_product
-    return new_product
-
-
-# ====== UPDATE ======
 
 @router.put("/{product_id}", response_model=Product)
-async def update_product(
-    product_id: str,
-    product: ProductCreate,
-    authorization: str = None,
-    db: Optional[Session] = Depends(get_db),
-):
+async def update_product(product_id: str, product: ProductCreate, authorization: AuthorizationDep = None, db: Optional[Session] = Depends(get_db)):
     user_id = require_user(authorization)
-    if not USERS_DB.get(user_id, {}).get("is_admin"):
+    if not is_admin_user(user_id, db):
         raise HTTPException(status_code=403, detail="没有权限")
-
-    if product_id not in PRODUCTS_DB:
-        raise HTTPException(status_code=404, detail="商品不存在")
-
     if db is not None:
         try:
-            db.execute(
-                text(
-                    "UPDATE products SET "
-                    "name=:name, description=:desc, price=:price, original_price=:orig, "
-                    "category=:cat, material=:mat, images=:imgs::jsonb, stock=:stock, "
-                    "is_hot=:hot, is_new=:new, is_welfare=:welf, origin=:origin "
-                    "WHERE id = :id"
-                ),
-                {
-                    "id": product_id, "name": product.name, "desc": product.description,
-                    "price": product.price, "orig": product.original_price,
-                    "cat": product.category, "mat": product.material,
-                    "imgs": json.dumps(product.images), "stock": product.stock,
-                    "hot": product.is_hot, "new": product.is_new,
-                    "welf": product.is_welfare, "origin": product.origin,
-                },
-            )
+            existing = _db_product(db, product_id, active_only=False)
+            if not existing:
+                raise HTTPException(status_code=404, detail="商品不存在")
+            result = db.execute(text("UPDATE products SET name = :name, description = :description, price = :price, original_price = :original_price, category = :category, material = :material, images = :images::jsonb, stock = :stock, is_hot = :is_hot, is_new = :is_new, is_welfare = :is_welfare, origin = :origin WHERE id = :id"), {"id": product_id, "name": product.name, "description": product.description, "price": product.price, "original_price": product.original_price, "category": product.category, "material": product.material, "images": json.dumps(product.images), "stock": product.stock, "is_hot": product.is_hot, "is_new": product.is_new, "is_welfare": product.is_welfare, "origin": product.origin})
+            if result.rowcount == 0:
+                raise HTTPException(status_code=404, detail="商品不存在")
             db.commit()
-        except Exception as e:
-            db.rollback()
-            logger.error(f"DB update_product: {e}")
-
+            return _db_product(db, product_id, active_only=False) or Product(id=product_id, certificate=existing.certificate, blockchain_hash=existing.blockchain_hash, rating=existing.rating, sales_count=existing.sales_count, **product.model_dump())
+        except HTTPException:
+            if db is not None:
+                db.rollback()
+            raise
+        except Exception as exc:
+            handle_database_error(db, "更新商品", exc)
+    require_database(db, "更新商品")
+    if product_id not in PRODUCTS_DB:
+        raise HTTPException(status_code=404, detail="商品不存在")
     existing = PRODUCTS_DB[product_id]
-    updated = Product(
-        id=product_id,
-        blockchain_hash=existing.blockchain_hash,
-        certificate=existing.certificate,
-        rating=existing.rating,
-        sales_count=existing.sales_count,
-        **product.model_dump(),
-    )
+    updated = Product(id=product_id, certificate=existing.certificate, blockchain_hash=existing.blockchain_hash, rating=existing.rating, sales_count=existing.sales_count, **product.model_dump())
     PRODUCTS_DB[product_id] = updated
     return updated
 
 
-# ====== DELETE ======
-
 @router.delete("/{product_id}")
-async def delete_product(
-    product_id: str,
-    authorization: str = None,
-    db: Optional[Session] = Depends(get_db),
-):
+async def delete_product(product_id: str, authorization: AuthorizationDep = None, db: Optional[Session] = Depends(get_db)):
     user_id = require_user(authorization)
-    if not USERS_DB.get(user_id, {}).get("is_admin"):
+    if not is_admin_user(user_id, db):
         raise HTTPException(status_code=403, detail="没有权限")
-
-    if product_id not in PRODUCTS_DB:
-        raise HTTPException(status_code=404, detail="商品不存在")
-
     if db is not None:
         try:
-            db.execute(
-                text("UPDATE products SET is_active = false WHERE id = :id"),
-                {"id": product_id},
-            )
+            result = db.execute(text("UPDATE products SET is_active = false WHERE id = :id"), {"id": product_id})
+            if result.rowcount == 0:
+                raise HTTPException(status_code=404, detail="商品不存在")
             db.commit()
-        except Exception as e:
-            db.rollback()
-            logger.error(f"DB delete_product: {e}")
-
+            return {"success": True, "message": "商品已删除"}
+        except HTTPException:
+            if db is not None:
+                db.rollback()
+            raise
+        except Exception as exc:
+            handle_database_error(db, "删除商品", exc)
+    require_database(db, "删除商品")
+    if product_id not in PRODUCTS_DB:
+        raise HTTPException(status_code=404, detail="商品不存在")
     PRODUCTS_DB.pop(product_id, None)
     return {"success": True, "message": "商品已删除"}

@@ -51,15 +51,15 @@ class _ShippingDialogState extends State<ShippingDialog> {
   bool _isFaceToFace = false;
 
   static const List<String> _carriers = [
-    '\u987A\u4E30\u901F\u8FD0',   // SF Express
-    '\u4E2D\u901A\u5FEB\u9012',   // ZTO
-    '\u5706\u901A\u901F\u9012',   // YTO
-    '\u97F5\u8FBE\u5FEB\u9012',   // Yunda
-    '\u7533\u901A\u5FEB\u9012',   // STO
-    '\u90AE\u653F\u5FEB\u9012',   // EMS
-    '\u4EAC\u4E1C\u7269\u6D41',   // JD Logistics
-    '\u6781\u5154\u5FEB\u9012',   // J&T
-    '\u5FB7\u90A6\u5FEB\u9012',   // Deppon
+    '顺丰速运',   // SF Express
+    '中通快递',   // ZTO
+    '圆通速递',   // YTO
+    '韵达快递',   // Yunda
+    '申通快递',   // STO
+    '邮政快递',   // EMS
+    '京东物流',   // JD Logistics
+    '极兔快递',   // J&T
+    '德邦快递',   // Deppon
   ];
 
   @override
@@ -71,7 +71,7 @@ class _ShippingDialogState extends State<ShippingDialog> {
   void _confirm() {
     if (_isFaceToFace) {
       Navigator.of(context).pop(ShippingResult(
-        carrier: '\u9762\u5BF9\u9762\u4EA4\u4ED8', // Face-to-face
+        carrier: '面对面交付', // Face-to-face
         trackingNumber: 'F2F-${widget.orderId.substring(0, 8)}',
         isFaceToFace: true,
       ));
@@ -81,7 +81,7 @@ class _ShippingDialogState extends State<ShippingDialog> {
     if (!_formKey.currentState!.validate()) return;
     if (_selectedCarrier.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('\u8BF7\u9009\u62E9\u5FEB\u9012\u516C\u53F8')), // Select carrier
+        const SnackBar(content: Text('请选择快递公司')), // Select carrier
       );
       return;
     }
@@ -133,7 +133,7 @@ class _ShippingDialogState extends State<ShippingDialog> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            '\u786E\u8BA4\u53D1\u8D27', // Confirm Shipping
+                            '确认发货', // Confirm Shipping
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.w600,
@@ -171,7 +171,7 @@ class _ShippingDialogState extends State<ShippingDialog> {
                     value: _isFaceToFace,
                     onChanged: (v) => setState(() => _isFaceToFace = v ?? false),
                     title: Text(
-                      '\u9762\u5BF9\u9762\u4EA4\u4ED8', // Face-to-face
+                      '面对面交付', // Face-to-face
                       style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w500,
@@ -179,7 +179,7 @@ class _ShippingDialogState extends State<ShippingDialog> {
                       ),
                     ),
                     subtitle: Text(
-                      '\u65E0\u9700\u5FEB\u9012\uFF0C\u76F4\u63A5\u4EA4\u4ED8\u7ED9\u4E70\u5BB6', // No courier needed
+                      '无需快递，直接交付给买家', // No courier needed
                       style: TextStyle(fontSize: 12, color: textSecondary),
                     ),
                     activeColor: JewelryColors.primaryGreen,
@@ -194,7 +194,7 @@ class _ShippingDialogState extends State<ShippingDialog> {
                   const SizedBox(height: 16),
                   // Carrier selection
                   Text(
-                    '\u5FEB\u9012\u516C\u53F8', // Carrier
+                    '快递公司', // Carrier
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
@@ -244,7 +244,7 @@ class _ShippingDialogState extends State<ShippingDialog> {
                   const SizedBox(height: 16),
                   // Tracking number
                   Text(
-                    '\u5FEB\u9012\u5355\u53F7', // Tracking number
+                    '快递单号', // Tracking number
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
@@ -255,7 +255,7 @@ class _ShippingDialogState extends State<ShippingDialog> {
                   TextFormField(
                     controller: _trackingController,
                     decoration: InputDecoration(
-                      hintText: '\u8BF7\u8F93\u5165\u5FEB\u9012\u5355\u53F7', // Enter tracking number
+                      hintText: '请输入快递单号', // Enter tracking number
                       hintStyle: TextStyle(color: textSecondary.withAlpha(150)),
                       filled: true,
                       fillColor: cardBg,
@@ -269,7 +269,7 @@ class _ShippingDialogState extends State<ShippingDialog> {
                       ),
                     ),
                     validator: (v) =>
-                        v == null || v.trim().isEmpty ? '\u8BF7\u8F93\u5165\u5FEB\u9012\u5355\u53F7' : null,
+                        v == null || v.trim().isEmpty ? '请输入快递单号' : null,
                   ),
                 ],
                 const SizedBox(height: 24),
@@ -288,7 +288,7 @@ class _ShippingDialogState extends State<ShippingDialog> {
                           side: BorderSide(color: textSecondary.withAlpha(100)),
                         ),
                         child: Text(
-                          '\u53D6\u6D88', // Cancel
+                          '取消', // Cancel
                           style: TextStyle(color: textSecondary),
                         ),
                       ),
@@ -307,7 +307,7 @@ class _ShippingDialogState extends State<ShippingDialog> {
                           elevation: 0,
                         ),
                         child: const Text(
-                          '\u786E\u8BA4\u53D1\u8D27', // Confirm
+                          '确认发货', // Confirm
                           style: TextStyle(fontWeight: FontWeight.w600),
                         ),
                       ),

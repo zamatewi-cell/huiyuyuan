@@ -1,4 +1,3 @@
-import 'dart:typed_data';
 import 'dart:ui';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -8,8 +7,8 @@ import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../services/ai_service.dart';
 import '../../services/api_service.dart';
+import '../../services/product_service.dart';
 import '../../services/storage_service.dart';
-import '../../data/product_data.dart';
 import '../../models/user_model.dart';
 import '../../themes/colors.dart';
 import '../../l10n/l10n_provider.dart';
@@ -32,10 +31,13 @@ class AIAssistantScreen extends ConsumerStatefulWidget {
 class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen>
     with TickerProviderStateMixin {
   final _aiService = AIService();
+  final _productService = ProductService();
   final _storage = StorageService();
   final _messageController = TextEditingController();
   final _scrollController = ScrollController();
   final List<ChatMessage> _messages = [];
+  final Map<String, ProductModel?> _recommendedProducts = {};
+  final Set<String> _loadingRecommendedProducts = {};
   bool _isLoading = false;
 
   /// 当前正在流式输出的内容
@@ -544,10 +546,74 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen>
     return matches.map((m) => m.group(1)!.trim()).toList();
   }
 
+  void _ensureRecommendedProductLoaded(String productId) {
+    if (_recommendedProducts.containsKey(productId) ||
+        _loadingRecommendedProducts.contains(productId)) {
+      return;
+    }
+
+    _loadingRecommendedProducts.add(productId);
+    _productService.getProductDetail(productId).then((product) {
+      if (!mounted) return;
+      setState(() {
+        _recommendedProducts[productId] = product;
+        _loadingRecommendedProducts.remove(productId);
+      });
+    }).catchError((_) {
+      if (!mounted) return;
+      setState(() {
+        _recommendedProducts[productId] = null;
+        _loadingRecommendedProducts.remove(productId);
+      });
+    });
+  }
+
   /// 构建商品推荐卡片
   Widget _buildProductCard(String productId, bool isDark) {
-    final product = realProductData.where((p) => p.id == productId).firstOrNull;
-    if (product == null) return const SizedBox.shrink();
+    _ensureRecommendedProductLoaded(productId);
+    final product = _recommendedProducts[productId];
+    final isLoading = _loadingRecommendedProducts.contains(productId);
+
+    if (product == null) {
+      if (!isLoading && _recommendedProducts.containsKey(productId)) {
+        return const SizedBox.shrink();
+      }
+
+      return Container(
+        margin: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF1E2A3A) : Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: JewelryColors.primary.withOpacity(0.3),
+            width: 1,
+          ),
+        ),
+        child: Row(
+          children: [
+            SizedBox(
+              width: 24,
+              height: 24,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: JewelryColors.primary,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                '正在加载推荐商品...',
+                style: TextStyle(
+                  fontSize: 13,
+                  color: isDark ? Colors.white70 : Colors.black54,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
 
     return GestureDetector(
       onTap: () => _navigateToProduct(product),

@@ -1,7 +1,9 @@
-"""用户 & 地址相关 Pydantic 模型"""
+"""User, address, and payment-account schemas."""
+
+from datetime import datetime
+from typing import Literal, Optional
 
 from pydantic import BaseModel
-from typing import Optional
 
 
 class UserResponse(BaseModel):
@@ -13,6 +15,7 @@ class UserResponse(BaseModel):
     points: int = 0
     avatar: Optional[str] = None
     operator_number: Optional[int] = None
+    payment_account_id: Optional[str] = None
     user_type: str = "operator"
 
 
@@ -40,3 +43,31 @@ class AddressCreate(BaseModel):
     is_default: bool = False
     postal_code: Optional[str] = None
     tag: Optional[str] = None
+
+
+PaymentAccountType = Literal["bank", "alipay", "wechat", "cash", "other"]
+
+
+class PaymentAccountBase(BaseModel):
+    name: str
+    type: PaymentAccountType = "bank"
+    account_number: Optional[str] = None
+    bank_name: Optional[str] = None
+    qr_code_url: Optional[str] = None
+    is_active: bool = True
+    is_default: bool = False
+
+
+class PaymentAccountCreate(PaymentAccountBase):
+    pass
+
+
+class PaymentAccountUpdate(PaymentAccountBase):
+    pass
+
+
+class PaymentAccountResponse(PaymentAccountBase):
+    id: str
+    user_id: str
+    created_at: datetime
+    updated_at: datetime

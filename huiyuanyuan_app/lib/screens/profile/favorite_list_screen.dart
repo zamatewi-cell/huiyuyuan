@@ -11,49 +11,32 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'dart:ui';
 import '../../themes/colors.dart';
 import '../../themes/jewelry_theme.dart';
-import '../../services/storage_service.dart';
+import '../../services/user_data_service.dart';
 import '../../widgets/common/empty_state.dart';
 import '../../widgets/common/skeleton.dart';
-import '../../data/product_data.dart';
+import '../../widgets/common/error_handler.dart';
 
-/// \u6536\u85CFProvider
-final favoritesProvider =
-    FutureProvider<List<Map<String, dynamic>>>((ref) async {
-  final storage = StorageService();
-  await storage.init();
-  final favoriteIds = await storage.getFavorites();
-
-  // \u4ECE\u771F\u5B9E\u5546\u54C1\u6570\u636E\u4E2D\u67E5\u627E
-  return favoriteIds.map((id) => _findProduct(id)).toList();
+final _userDataServiceProvider = Provider<UserDataService>((ref) {
+  return UserDataService();
 });
 
-Map<String, dynamic> _findProduct(String id) {
-  final match = realProductData.where((p) => p.id == id);
-  if (match.isNotEmpty) {
-    final p = match.first;
-    return {
-      'id': p.id,
-      'name': p.name,
-      'price': p.price,
-      'originalPrice': p.originalPrice ?? p.price,
-      'material': p.material,
-      'image': p.images.isNotEmpty ? p.images.first : null,
-    };
-  }
-  return {
-    'id': id,
-    'name': '\u672A\u77E5\u5546\u54C1',
-    'price': 0,
-    'material': '',
-    'image': null,
-  };
-}
+final favoritesProvider =
+    FutureProvider<List<Map<String, dynamic>>>((ref) async {
+  final service = ref.watch(_userDataServiceProvider);
+  await service.initialize();
+  return await service.getFavorites();
+});
 
-class FavoriteListScreen extends ConsumerWidget {
+class FavoriteListScreen extends ConsumerStatefulWidget {
   const FavoriteListScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<FavoriteListScreen> createState() => _FavoriteListScreenState();
+}
+
+class _FavoriteListScreenState extends ConsumerState<FavoriteListScreen> {
+  @override
+  Widget build(BuildContext context) {
     final favoritesAsync = ref.watch(favoritesProvider);
 
     return Scaffold(
@@ -65,9 +48,23 @@ class FavoriteListScreen extends ConsumerWidget {
                 type: EmptyType.favorite,
                 onAction: () => Navigator.pop(context),
               )
-            : _buildFavoriteList(context, ref, favorites),
+            : _buildFavoriteList(context, favorites),
         loading: () => _buildLoadingState(),
-        error: (_, __) => const ErrorStateWidget(),
+        error: (error, _) => Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.error_outline, size: 48, color: JewelryColors.error),
+              const SizedBox(height: 16),
+              Text('加载失败: ${error.toString()}'),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () => ref.invalidate(favoritesProvider),
+                child: const Text('重试'),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -128,7 +125,6 @@ class FavoriteListScreen extends ConsumerWidget {
 
   Widget _buildFavoriteList(
     BuildContext context,
-    WidgetRef ref,
     List<Map<String, dynamic>> favorites,
   ) {
     return ListView.separated(
@@ -136,16 +132,42 @@ class FavoriteListScreen extends ConsumerWidget {
       itemCount: favorites.length,
       separatorBuilder: (_, __) => const SizedBox(height: 12),
       itemBuilder: (context, index) {
-        return _FavoriteCard(product: favorites[index]);
+        return _FavoriteCard(
+          product: favorites[index],
+          onRemove: () => _removeFavorite(favorites[index]['id']),
+        );
       },
     );
+  }
+
+  Future<void> _removeFavorite(String productId) async {
+    try {
+      final service = ref.read(_userDataServiceProvider);
+      final success = await service.removeFromFavorites(productId);
+      if (success && mounted) {
+        ref.invalidate(favoritesProvider);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('已取消收藏')),
+        );
+      } else if (mounted) {
+        context.showError('取消收藏失败，请重试');
+      }
+    } catch (e) {
+      if (mounted) {
+        context.showError(e);
+      }
+    }
   }
 }
 
 class _FavoriteCard extends StatelessWidget {
   final Map<String, dynamic> product;
+  final VoidCallback onRemove;
 
-  const _FavoriteCard({required this.product});
+  const _FavoriteCard({
+    required this.product,
+    required this.onRemove,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -166,7 +188,6 @@ class _FavoriteCard extends StatelessWidget {
         padding: const EdgeInsets.all(12),
         child: Row(
           children: [
-            // 商品图片 — 优先使用真实图片
             Container(
               width: 90,
               height: 90,
@@ -195,7 +216,6 @@ class _FavoriteCard extends StatelessWidget {
             ),
             const SizedBox(width: 12),
 
-            // 商品信息
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -232,9 +252,9 @@ class _FavoriteCard extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(width: 8),
-                      if (product['originalPrice'] != null)
+                      if (product['original_price'] != null)
                         Text(
-                          '¥${product['originalPrice']}',
+                          '¥${product['original_price']}',
                           style: TextStyle(
                             fontSize: 12,
                             color: JewelryColors.textHint,
@@ -247,7 +267,6 @@ class _FavoriteCard extends StatelessWidget {
               ),
             ),
 
-            // 操作按钮
             Column(
               children: [
                 IconButton(
@@ -255,13 +274,7 @@ class _FavoriteCard extends StatelessWidget {
                     Icons.favorite,
                     color: Colors.red.shade400,
                   ),
-                  onPressed: () async {
-                    final storage = StorageService();
-                    await storage.toggleFavorite(product['id']);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('已取消收藏')),
-                    );
-                  },
+                  onPressed: onRemove,
                 ),
                 IconButton(
                   icon: const Icon(

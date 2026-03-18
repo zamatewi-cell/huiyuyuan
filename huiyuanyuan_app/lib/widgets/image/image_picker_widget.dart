@@ -242,7 +242,7 @@ class _ImagePickerWidgetState extends State<ImagePickerWidget> {
       }
     } catch (e) {
       if (mounted) {
-        _showError('\u76F8\u518C\u9009\u62E9\u5931\u8D25: $e'); // 相册选择失败
+        _showError('相册选择失败: $e'); // 相册选择失败
       }
     }
   }
@@ -269,7 +269,7 @@ class _ImagePickerWidgetState extends State<ImagePickerWidget> {
       }
     } catch (e) {
       if (mounted) {
-        _showError('\u62CD\u6444\u5931\u8D25: $e'); // 拍摄失败
+        _showError('拍摄失败: $e'); // 拍摄失败
       }
     }
   }
@@ -292,7 +292,7 @@ class _ImagePickerWidgetState extends State<ImagePickerWidget> {
       }
     } catch (e) {
       if (mounted) {
-        _showError('AI\u8BC6\u522B\u5931\u8D25: $e'); // AI识别失败
+        _showError('AI识别失败: $e'); // AI识别失败
       }
     }
   }
@@ -697,7 +697,7 @@ class _ImagePickerWidgetState extends State<ImagePickerWidget> {
   }
 }
 
-/// \u5168\u5C4F\u56FE\u7247\u753B\u5ECA (Full-screen image gallery)
+/// 全屏图片画廊 (Full-screen image gallery)
 class _FullScreenGallery extends StatefulWidget {
   final List<ImageItem> images;
   final int initialIndex;
@@ -779,7 +779,7 @@ class _FullScreenGalleryState extends State<_FullScreenGallery> {
       backgroundColor: Colors.black,
       body: Stack(
         children: [
-          // \u53EF\u6ED1\u52A8\u56FE\u7247 (Swipeable images)
+          // 可滑动图片 (Swipeable images)
           PageView.builder(
             controller: _pageController,
             itemCount: widget.images.length,
@@ -792,7 +792,7 @@ class _FullScreenGalleryState extends State<_FullScreenGallery> {
             },
           ),
 
-          // \u5173\u95ED\u6309\u94AE (Close button)
+          // 关闭按钮 (Close button)
           Positioned(
             top: MediaQuery.of(context).padding.top + 8,
             right: 16,
@@ -802,7 +802,7 @@ class _FullScreenGalleryState extends State<_FullScreenGallery> {
             ),
           ),
 
-          // \u9875\u7801\u6307\u793A\u5668 (Page indicator)
+          // 页码指示器 (Page indicator)
           if (widget.images.length > 1)
             Positioned(
               bottom: MediaQuery.of(context).padding.bottom + 24,
@@ -832,7 +832,7 @@ class _FullScreenGalleryState extends State<_FullScreenGallery> {
               ),
             ),
 
-          // \u5220\u9664\u6309\u94AE (Delete button)
+          // 删除按钮 (Delete button)
           if (widget.onDelete != null)
             Positioned(
               top: MediaQuery.of(context).padding.top + 8,

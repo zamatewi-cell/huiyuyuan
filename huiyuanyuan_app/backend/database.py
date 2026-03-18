@@ -1,15 +1,16 @@
 """
 数据库连接管理 — SQLAlchemy + PostgreSQL
-DB_AVAILABLE=False 时自动降级到内存存储
+生产环境必须连接数据库；仅开发环境允许降级到内存存储。
 """
 
 import logging
 from typing import Optional, Generator
 
+from fastapi import HTTPException
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker, Session
 
-from config import DATABASE_URL
+from config import DATABASE_URL, IS_PRODUCTION
 
 logger = logging.getLogger(__name__)
 
@@ -34,8 +35,12 @@ if DATABASE_URL:
         DB_AVAILABLE = True
         logger.info("? PostgreSQL 连接成功")
     except Exception as e:
+        if IS_PRODUCTION:
+            raise RuntimeError(f"PostgreSQL 连接失败，生产环境不能降级到内存存储: {e}") from e
         logger.warning(f"??  PostgreSQL 不可用: {e}，将使用内存存储")
 else:
+    if IS_PRODUCTION:
+        raise RuntimeError("DATABASE_URL 未配置，生产环境必须连接 PostgreSQL。")
     logger.info("DATABASE_URL 未配置，使用内存存储")
 
 
@@ -67,3 +72,28 @@ def get_db() -> Generator[Optional[Session], None, None]:
         yield db
     finally:
         db.close()
+
+
+def require_database(db: Optional[Session], operation: str = "当前操作") -> Optional[Session]:
+    """生产环境缺少数据库时直接拒绝回退到内存。"""
+    if db is None and IS_PRODUCTION:
+        raise HTTPException(status_code=503, detail=f"{operation}依赖数据库服务")
+    return db
+
+
+def handle_database_error(
+    db: Optional[Session],
+    operation: str,
+    exc: Exception,
+) -> None:
+    """记录数据库异常；生产环境直接返回 503。"""
+    if db is not None:
+        try:
+            db.rollback()
+        except Exception:
+            logger.exception("DB rollback failed during %s", operation)
+
+    logger.error("DB %s: %s", operation, exc)
+
+    if IS_PRODUCTION:
+        raise HTTPException(status_code=503, detail=f"{operation}失败，请稍后重试")

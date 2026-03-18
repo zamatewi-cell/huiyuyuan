@@ -1,139 +1,92 @@
-"""
-Reviews router - create + product review list
-DB-first with in-memory fallback
-"""
+"""Reviews router - DB-first with development-only in-memory fallback."""
 
 import json
-import uuid
 import logging
+import uuid
 from datetime import datetime
-from typing import Optional, List
+from typing import List, Optional
 
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-from schemas.review import Review, ReviewCreate
+from database import get_db, handle_database_error, require_database
 from schemas.product import Product
-from security import require_user
-from database import get_db
-from store import REVIEWS_DB, USERS_DB, PRODUCTS_DB
+from schemas.review import Review, ReviewCreate
+from security import AuthorizationDep, get_user_record, require_user
+from store import PRODUCTS_DB, REVIEWS_DB, USERS_DB
 
 logger = logging.getLogger(__name__)
-
 router = APIRouter(tags=["Reviews"])
 
 
-def _row_to_review(m) -> Review:
-    imgs = m.get("images")
-    if isinstance(imgs, str):
-        imgs = json.loads(imgs)
+def _row_to_review(mapping) -> Review:
+    images = mapping.get("images")
+    if isinstance(images, str):
+        images = json.loads(images)
     return Review(
-        id=m["id"],
-        product_id=m["product_id"],
-        user_id=m["user_id"],
-        user_name=m.get("user_name") or m.get("username", "用户"),
-        user_avatar=m.get("user_avatar") or m.get("avatar_url"),
-        rating=m["rating"],
-        content=m.get("content", ""),
-        images=imgs if isinstance(imgs, list) else [],
-        created_at=m["created_at"].isoformat() if hasattr(m["created_at"], "isoformat") else str(m["created_at"]),
-        is_anonymous=m.get("is_anonymous", False),
-        like_count=m.get("like_count", 0),
-        is_verified=m.get("is_verified", True),
+        id=mapping["id"],
+        product_id=mapping["product_id"],
+        user_id=mapping["user_id"],
+        user_name=mapping.get("user_name") or mapping.get("username", "用户"),
+        user_avatar=mapping.get("user_avatar") or mapping.get("avatar_url"),
+        rating=mapping["rating"],
+        content=mapping.get("content", ""),
+        images=images if isinstance(images, list) else [],
+        created_at=mapping["created_at"].isoformat() if hasattr(mapping["created_at"], "isoformat") else str(mapping["created_at"]),
+        is_anonymous=mapping.get("is_anonymous", False),
+        like_count=mapping.get("like_count", 0),
+        is_verified=mapping.get("is_verified", True),
     )
 
 
 @router.get("/api/products/{product_id}/reviews", response_model=List[Review])
-async def get_product_reviews(
-    product_id: str,
-    page: int = 1,
-    page_size: int = 20,
-    db: Optional[Session] = Depends(get_db),
-):
+async def get_product_reviews(product_id: str, page: int = 1, page_size: int = 20, db: Optional[Session] = Depends(get_db)):
     if db is not None:
         try:
-            offset = (page - 1) * page_size
-            rows = db.execute(
-                text(
-                    "SELECT r.*, "
-                    "  CASE WHEN r.is_anonymous THEN '匿名用户' ELSE u.username END as user_name, "
-                    "  CASE WHEN r.is_anonymous THEN NULL ELSE u.avatar_url END as user_avatar "
-                    "FROM reviews r "
-                    "LEFT JOIN users u ON r.user_id = u.id "
-                    "WHERE r.product_id = :pid "
-                    "ORDER BY r.created_at DESC "
-                    "LIMIT :lim OFFSET :off"
-                ),
-                {"pid": product_id, "lim": page_size, "off": offset},
-            ).fetchall()
-            return [_row_to_review(r._mapping) for r in rows]
-        except Exception as e:
-            logger.error(f"DB get_product_reviews: {e}")
-
-    reviews = [r for r in REVIEWS_DB.values() if r.product_id == product_id]
-    reviews.sort(key=lambda x: x.created_at, reverse=True)
+            rows = db.execute(text("SELECT r.*, CASE WHEN r.is_anonymous THEN '匿名用户' ELSE u.username END AS user_name, CASE WHEN r.is_anonymous THEN NULL ELSE u.avatar_url END AS user_avatar FROM reviews r LEFT JOIN users u ON r.user_id = u.id WHERE r.product_id = :pid ORDER BY r.created_at DESC LIMIT :lim OFFSET :off"), {"pid": product_id, "lim": page_size, "off": (page - 1) * page_size}).fetchall()
+            return [_row_to_review(row._mapping) for row in rows]
+        except Exception as exc:
+            handle_database_error(db, "读取商品评价", exc)
+    require_database(db, "读取商品评价")
+    reviews = [review for review in REVIEWS_DB.values() if review.product_id == product_id]
+    reviews.sort(key=lambda item: item.created_at, reverse=True)
     start = (page - 1) * page_size
-    return reviews[start : start + page_size]
+    return reviews[start:start + page_size]
 
 
 @router.post("/api/reviews", response_model=Review)
-async def create_review(review: ReviewCreate, authorization: str = None, db: Optional[Session] = Depends(get_db)):
+async def create_review(review: ReviewCreate, authorization: AuthorizationDep = None, db: Optional[Session] = Depends(get_db)):
     user_id = require_user(authorization)
-    user = USERS_DB.get(user_id, {})
-
     review_id = f"rev_{uuid.uuid4().hex[:8]}"
-    user_name = "匿名用户" if review.is_anonymous else user.get("username", "用户")
-    user_avatar = None if review.is_anonymous else user.get("avatar")
-    now_str = datetime.now().isoformat()
-
+    now = datetime.now().isoformat()
     if db is not None:
         try:
-            db.execute(
-                text(
-                    "INSERT INTO reviews "
-                    "(id, product_id, order_id, user_id, rating, content, images, is_anonymous) "
-                    "VALUES (:id, :pid, :oid, :uid, :rating, :content, :imgs::jsonb, :anon)"
-                ),
-                {
-                    "id": review_id, "pid": review.product_id,
-                    "oid": review.order_id, "uid": user_id,
-                    "rating": review.rating, "content": review.content,
-                    "imgs": json.dumps(review.images), "anon": review.is_anonymous,
-                },
-            )
-            # update product avg rating
-            avg_row = db.execute(
-                text("SELECT AVG(rating)::numeric(3,1) as avg_r FROM reviews WHERE product_id = :pid"),
-                {"pid": review.product_id},
-            ).fetchone()
-            if avg_row and avg_row._mapping["avg_r"] is not None:
-                db.execute(
-                    text("UPDATE products SET rating = :r WHERE id = :pid"),
-                    {"r": float(avg_row._mapping["avg_r"]), "pid": review.product_id},
-                )
+            user = get_user_record(user_id, db)
+            if not user:
+                raise HTTPException(status_code=404, detail="用户不存在")
+            product_row = db.execute(text("SELECT id FROM products WHERE id = :id AND is_active = true"), {"id": review.product_id}).fetchone()
+            if not product_row:
+                raise HTTPException(status_code=404, detail="商品不存在")
+            db.execute(text("INSERT INTO reviews (id, product_id, order_id, user_id, rating, content, images, is_anonymous) VALUES (:id, :pid, :oid, :uid, :rating, :content, :images::jsonb, :anonymous)"), {"id": review_id, "pid": review.product_id, "oid": review.order_id, "uid": user_id, "rating": review.rating, "content": review.content, "images": json.dumps(review.images), "anonymous": review.is_anonymous})
+            avg_row = db.execute(text("SELECT AVG(rating)::numeric(3,1) AS avg_rating FROM reviews WHERE product_id = :pid"), {"pid": review.product_id}).fetchone()
+            if avg_row and avg_row._mapping["avg_rating"] is not None:
+                db.execute(text("UPDATE products SET rating = :rating WHERE id = :pid"), {"rating": float(avg_row._mapping["avg_rating"]), "pid": review.product_id})
             db.commit()
-        except Exception as e:
-            db.rollback()
-            logger.error(f"DB create_review: {e}")
-
-    new_review = Review(
-        id=review_id, product_id=review.product_id,
-        user_id=user_id, user_name=user_name, user_avatar=user_avatar,
-        rating=review.rating, content=review.content,
-        images=review.images, created_at=now_str,
-        is_anonymous=review.is_anonymous,
-    )
+            return Review(id=review_id, product_id=review.product_id, user_id=user_id, user_name="匿名用户" if review.is_anonymous else user.get("username", "用户"), user_avatar=None if review.is_anonymous else user.get("avatar"), rating=review.rating, content=review.content, images=review.images, created_at=now, is_anonymous=review.is_anonymous)
+        except HTTPException:
+            if db is not None:
+                db.rollback()
+            raise
+        except Exception as exc:
+            handle_database_error(db, "创建评价", exc)
+    require_database(db, "创建评价")
+    user = USERS_DB.get(user_id, {})
+    new_review = Review(id=review_id, product_id=review.product_id, user_id=user_id, user_name="匿名用户" if review.is_anonymous else user.get("username", "用户"), user_avatar=None if review.is_anonymous else user.get("avatar"), rating=review.rating, content=review.content, images=review.images, created_at=now, is_anonymous=review.is_anonymous)
     REVIEWS_DB[review_id] = new_review
-
-    # update memory product rating
     if review.product_id in PRODUCTS_DB:
         product = PRODUCTS_DB[review.product_id]
-        all_reviews = [r for r in REVIEWS_DB.values() if r.product_id == review.product_id]
-        if all_reviews:
-            avg = sum(r.rating for r in all_reviews) / len(all_reviews)
-            PRODUCTS_DB[review.product_id] = Product(
-                **{**product.model_dump(), "rating": round(avg, 1)}
-            )
-
+        product_reviews = [item for item in REVIEWS_DB.values() if item.product_id == review.product_id]
+        if product_reviews:
+            PRODUCTS_DB[review.product_id] = Product(**{**product.model_dump(), "rating": round(sum(item.rating for item in product_reviews) / len(product_reviews), 1)})
     return new_review
