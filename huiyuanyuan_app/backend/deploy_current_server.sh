@@ -72,5 +72,19 @@ fi
 
 red "health check failed, rolling back ${SNAP_TS}"
 cp -a "${SNAP_PATH}/"* "${APP_DIR}/" 2>/dev/null || true
+
+if [ -f "${APP_DIR}/huiyuanyuan-backend.service" ]; then
+  cp "${APP_DIR}/huiyuanyuan-backend.service" "${SYSTEMD_UNIT}"
+  systemctl daemon-reload
+fi
+
+if [ -f "${APP_DIR}/nginx_current.conf" ]; then
+  mkdir -p /etc/nginx/snippets
+  cp "${APP_DIR}/nginx_current.conf" "${NGINX_CONF}"
+  cp "${APP_DIR}/nginx_proxy_params.conf" /etc/nginx/snippets/proxy_params.conf 2>/dev/null || true
+  nginx -t
+  systemctl reload nginx
+fi
+
 systemctl restart "${SERVICE_NAME}"
 exit 1
