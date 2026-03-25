@@ -1,14 +1,14 @@
 # ============================================================
-# 汇玉源项目 - 根目录 .gitignore
+# HuiYuYuan root .gitignore
 # ============================================================
 
-# 临时文件/测试文件
+# Temporary / scratch files
 tmp_*.txt
 analyze*.txt
 tmp_*.py
 test_*.py
 
-# 操作系统文件
+# OS files
 .DS_Store
 Thumbs.db
 desktop.ini
@@ -20,12 +20,12 @@ desktop.ini
 *.swo
 *~
 
-# 敏感配置（自动排除，不要提交）
+# Environment files
 .env
 .env.*
 !.env.example
 
-# 敏感文件
+# Sensitive files
 secrets.dart
 *.key
 *.pem
@@ -34,35 +34,37 @@ secrets.dart
 *.jks
 *.keystore
 
-# Python 缓存
+# Python cache
 __pycache__/
 *.pyc
 *.pyo
 
-# 部署日志
+# Deployment logs
 deploy_*.log
 
-# 构建产物（APK/AAB 等二进制文件）
+# Build artifacts
 builds/*.apk
 builds/*.aab
+builds/migration/
 
-# Copilot Agent 自动创建目录
+# Agent-generated local directories
 .agent/
+CLAUDE.md
 
-# Python 虚拟环境
+# Python virtual environments
 .venv/
 venv/
 
-# Flutter 构建目录
+# Flutter build directories
 huiyuanyuan_app/build/
 huiyuanyuan_app/.dart_tool/
 huiyuanyuan_app/.flutter-plugins
 huiyuanyuan_app/.flutter-plugins-dependencies
 huiyuanyuan_app/.packages
 
-# 数据库备份
+# Database backups
 *.sql.gz
 backups/
 
-# 上传文件
+# Uploads
 uploads/
