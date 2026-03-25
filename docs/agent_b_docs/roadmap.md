@@ -1,114 +1,69 @@
-# Agent B 开发路线图
+# Agent B - Frontend Quality Engineer Roadmap
 
-> 基于 `docs/planning/v4_master_plan.md`，从 Agent B（前端质量工程师）视角规划后续工作。
-
----
-
-## ? 已完成 — Phase 2 前端数据集成
-
-| 任务 | 状态 | 完成日期 |
-|---|---|---|
-| B1: 消灭 7 处假数据 | ? 完成 | 2026-02-27 |
-| B2: Payment 安全修复 | ? 完成 | 2026-02-27 |
-| B3: 客户端硬编码凭据清理 | ? 完成 | 2026-02-27 |
-| B4: 库存 Provider 持久化 | ? 完成 | 2026-02-27 |
-| B5: 评价数据后端同步 | ? 完成 | 2026-02-27 |
-| B6: 推送通知基础实现 | ? 完成 | 2026-02-27 |
-| 静态分析验证 (0 error / 0 warning) | ? 完成 | 2026-02-27 |
+> Last updated: 2026-03-25
 
 ---
 
-## ? 下一阶段 — Phase 3 前端联调与增强（预计 1-2 周）
+## Completed
 
-### 优先级 P0：与后端联调
+### B1: Mock Data Elimination
+- [x] Replace hardcoded products/shops/orders/favorites with API calls + static fallback
+- [x] NotificationCenter: deleted _generateSampleData() (6 hardcoded items)
+- [x] ShopRadar: deleted _loadMockData() (5 hardcoded shops)
+- [x] BrowseHistory: replaced "Product {id}" with real product name/price/image
+- [x] FavoriteList: added real product images via Image.network
+- [x] ContactService (new): API-first contact record management
+- [x] LogisticsScreen: StatelessWidget -> StatefulWidget, real API data
 
-**前提**: Agent A 完成后端 API 路由实现
+### B2: Payment Security Fix
+- [x] PaymentScreen: removed direct Dio() + Bearer mock_token hardcode
+- [x] Removed auto-success simulation (pollCount >= 3 auto-redirect)
+- [x] simulatePayment() wrapped in kDebugMode guard
+- [x] Unified auth via ApiService
 
-| 任务 | 描述 | 预计工时 |
-|---|---|---|
-| 联调库存 API | 验证 `GET/PUT /api/inventory` 数据格式，调整 fromJson 兼容性 | 2h |
-| 联调评价 API | 验证 `POST /api/reviews`、`GET /api/products/{id}/reviews` | 2h |
-| 联调通知 API | 验证 `GET /api/notifications`、`POST markAsRead` | 1h |
-| 联调联系记录 API | 验证 `/api/shops/{id}/contacts`、`/api/contacts/recent` | 1h |
-| 联调登录 API | 验证 `POST /api/auth/login` (admin/operator 角色) | 2h |
-| 联调支付 API | 端到端支付流程（创建→轮询→回调） | 3h |
+### B3: Client Credential Cleanup
+- [x] app_config.dart: adminPassword, adminAuthCode, operatorDefaultPassword -> String.fromEnvironment with empty Release defaults
+- [x] login_screen.dart: phone pre-fill only in kDebugMode
+- [x] auth_provider.dart: all inline credentials replaced with AppConfig refs
 
-### 优先级 P1：错误处理增强
+### B4: Inventory Persistence
+- [x] InventoryNotifier: _loadFromStorage() (API -> local cache -> static seed)
+- [x] _saveToLocal() + _syncStockToApi() after each change
+- [x] Deleted _buildSampleTransactions() (TX-001~TX-005)
+- [x] Added API endpoints: inventoryItem, inventoryStock, inventoryTransactions
 
-| 任务 | 描述 | 预计工时 |
-|---|---|---|
-| 统一错误 Toast | 所有 API 错误统一使用 SnackBar/Toast 提示用户 | 3h |
-| 网络状态监听 | 接入 `connectivity_plus`，离线时自动切换本地缓存模式 | 4h |
-| 重试机制 | API 失败时 exponential backoff 重试 (最多 3 次) | 2h |
-| Token 过期处理 | 401 时自动刷新 token 或跳转登录页 | 3h |
+### B5: Review Backend Sync
+- [x] ReviewService -> GET /api/reviews + POST /api/reviews
+- [x] Deleted _getMockReviews() (REVIEW-MOCK-001~005)
+- [x] Empty-state display when no reviews
 
-### 优先级 P2：离线体验优化
-
-| 任务 | 描述 | 预计工时 |
-|---|---|---|
-| 离线操作队列 | 离线时将写操作入队，联网后批量同步 | 6h |
-| 缓存过期策略 | SharedPreferences 数据添加 TTL，过期自动刷新 | 3h |
-| 图片缓存升级 | 从 `Image.network` 迁移到 `CachedNetworkImage` 全覆盖 | 2h |
-
----
-
-## ? Phase 4 前端功能增强（预计 2-3 周）
-
-### FCM 推送完整集成
-
-| 任务 | 描述 | 预计工时 |
-|---|---|---|
-| Firebase 项目配置 | 创建 Firebase 项目、下载 google-services.json | 1h |
-| `firebase_messaging` 接入 | 取消 push_service.dart 中 TODO 注释，启用实际 FCM | 4h |
-| `flutter_local_notifications` | 前台通知展示、点击路由跳转 | 3h |
-| 通知权限引导 | 首次使用时引导用户授权通知权限 | 2h |
-
-### 实时通信
-
-| 任务 | 描述 | 预计工时 |
-|---|---|---|
-| WebSocket 连接 | `web_socket_channel` 连接 `/ws/notifications` | 4h |
-| 聊天消息实时推送 | AI 对话 SSE + 人工客服 WebSocket | 6h |
-| 订单状态实时更新 | 支付成功/发货/签收等状态自动刷新 | 3h |
-
-### 支付体系完善
-
-| 任务 | 描述 | 预计工时 |
-|---|---|---|
-| 支付宝/微信 SDK | 接入原生 SDK (仅移动端) | 8h |
-| Web 支付方案 | H5 支付网关（扫码模式） | 4h |
-| 支付结果页优化 | 成功/失败/超时三态 UI | 2h |
+### B6: Push Notification Foundation
+- [x] _startPolling() every 2 min -> /api/notifications
+- [x] Persists last 200 notifications to SharedPreferences
+- [x] Debug-only mock device token (kDebugMode guard)
 
 ---
 
-## ? Phase 5 质量与性能（预计 1-2 周）
+## P1 - Next Steps
 
-| 任务 | 描述 | 预计工时 |
-|---|---|---|
-| `prefer_const_constructors` 清理 | 消除所有 182 个 info hints | 4h |
-| Widget 测试补全 | 为 B1-B6 修改的 7 个 Screen 补充 Widget 测试 | 8h |
-| 集成测试更新 | 更新 `login_flow_test.dart` 适配 API 登录逻辑 | 3h |
-| 性能 profiling | DevTools 分析启动耗时、内存占用、构建帧率 | 4h |
-| 图片懒加载 | 商品列表/店铺列表大图滚动优化 | 3h |
-| 包体积优化 | `--split-debug-info`、`--obfuscate`、tree-shake icons | 2h |
+### Order Status WebSocket
+- [ ] Connect to ws://.../api/ws?token=...
+- [ ] Handle order lifecycle push: created -> paid -> shipped -> delivered
+- [ ] Reconnect with exponential backoff
+
+### Cart Cloud Sync on Login
+- [ ] Full cart sync after login (replace partial implementation)
+- [ ] Conflict resolution: prefer server state
+
+### AI Image Upload
+- [ ] GeminiImageService -> backend /api/ai/analyze-image proxy
+- [ ] Upload progress indicator
+- [ ] Handle backend 30s timeout gracefully
 
 ---
 
-## 依赖关系
+## P2 - Backlog
 
-```
-Phase 2 (已完成) ─┬─→ Phase 3 P0 (需要 Agent A 后端 API 就绪)
-                  ├─→ Phase 3 P1-P2 (可独立进行)
-                  └─→ Phase 5 (可独立进行)
-
-Phase 3 完成 ────→ Phase 4 (FCM 需要 Firebase 项目; WebSocket 需要后端)
-```
-
-## 风险项
-
-| 风险 | 影响 | 缓解措施 |
-|---|---|---|
-| 后端 API 格式变更 | fromJson 解析失败 | 所有 API 调用已包含 try-catch + fallback |
-| FCM 配置延迟 | 推送功能停留在轮询模式 | 轮询已实现，用户体验可接受 |
-| 支付 SDK 审核 | 移动端支付无法上线 | Web 端可用扫码支付作为替代 |
-| SharedPreferences 容量 | 大量数据导致启动慢 | 已限制通知最多 200 条；后续加 TTL |
+- [ ] Favorites real-time sync
+- [ ] Product search history persistence
+- [ ] FCM/APNs push (requires app signing, Phase 3)

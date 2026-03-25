@@ -1,128 +1,76 @@
-# Agent C — 测试与安全专家 路线图
+# Agent C - Testing & Security Roadmap
 
-> 按优先级排列的测试与安全改进计划
+> Last updated: 2026-03-25
 
 ---
 
-## 已完成 ?
+## Completed
 
-### C1: 后端 pytest 基础设施 ?
-- [x] 创建 `conftest.py` 共享 fixture (client, auth tokens, clean_state)
-- [x] 适配模块化后端架构 (`store` 模块导入)
-- [x] 适配 SMS 验证码变更 (`888888`)
-- [x] 适配 JWT 无状态登出行为
-- [x] 57 个测试用例全部通过
-- [x] 覆盖 8 个路由器: health, auth, products, cart, orders, favorites, reviews, users/admin
+### C1: Backend pytest Infrastructure
+- [x] conftest.py shared fixtures (client, auth tokens, clean_state autouse)
+- [x] Adapted to modular backend (store module imports)
+- [x] Adapted to SMS code change (888888)
+- [x] Adapted to JWT stateless logout behavior
+- [x] 57 -> 78 test cases all passing
+- [x] Coverage: 10 of 13 routers (health, auth, products, cart, orders, misc, shops, notifications, admin, upload)
 
-### C2: Flutter Widget 测试 ?
-- [x] LoginScreen 5 测试 (动画处理: pump 替代 pumpAndSettle)
-- [x] ProductListScreen 5 测试 (FadeSlideTransition 计时器刷新)
-- [x] CartScreen 5 测试 (Riverpod Provider 集成)
-- [x] CheckoutScreen 5 测试 (FlutterError.onError 测试体内设置)
-- [x] OrderListScreen 5 测试 (TabBar + initialTab)
-- [x] 25 个测试用例全部通过
+### C2: Flutter Widget Tests
+- [x] LoginScreen 5 tests (pump vs pumpAndSettle)
+- [x] ProductListScreen 5 tests (FadeSlideTransition timer fix)
+- [x] CartScreen 5 tests (Riverpod integration)
+- [x] CheckoutScreen 5 tests (FlutterError.onError in test body)
+- [x] OrderListScreen 5 tests (TabBar + initialTab)
+- [x] All 25 tests passing
 
-### C3: CI 安全扫描 ?
-- [x] 硬编码凭据检测 (grep 扫描)
-- [x] API Key / Secret 泄露扫描 (正则: sk-*, AIza*, AKIA*, ghp_*, PEM)
-- [x] `.env` / `secrets.dart` 防提交检测
+### C3: CI Security Scanning
+- [x] Credential leak detection (grep: sk-*, AIza*, AKIA*, ghp_*, PEM)
+- [x] .env / secrets.dart accidental commit check
 - [x] Python SAST (bandit)
-- [x] Python 依赖审计 (pip-audit / safety)
-- [x] `.gitignore` 安全规则完整性检查
-- [x] 安全配置审查 (DEBUG 硬编码检测)
-- [x] 部署依赖链加入安全扫描 (`needs: security-scan`)
+- [x] Dependency audit (pip-audit)
+- [x] .gitignore completeness check
+- [x] Security config audit (DEBUG=True detection)
+- [x] deploy-backend now depends on security-scan passing
 
 ---
 
-## P0 — 紧急 / 下一步 (预计: 1-2 天)
+## P0 - Next Steps (ETA: 1-2 days)
 
-### ? 后端测试覆盖率提升
-- **当前**: 57 用例，主要覆盖 HTTP 路由的正常/异常路径
-- **目标**: ≥80% 行覆盖率
-- **缺口分析**:
-  - [ ] WebSocket 测试 (`routers/ws.py`): 连接建立、令牌认证、消息推送
-  - [ ] 文件上传测试 (`routers/upload.py`): multipart 上传、文件类型/大小校验
-  - [ ] AI 代理测试 (`routers/ai.py`): 图片分析接口 mock
-  - [ ] 通知测试 (`routers/notifications.py`): 设备注册、通知拉取、标记已读
-  - [ ] 商铺测试 (`routers/shops.py`): 列表过滤、分页
-  - [ ] 边界条件: 超长字符串、特殊字符注入、并发请求
+### Backend Coverage Increase (target >=80% line)
+- [ ] WebSocket tests (routers/ws.py): connect, token auth, message push
+- [ ] File upload tests (multipart, type/size validation)
+- [ ] AI proxy tests (routers/ai.py): image analysis endpoint mock
+- [ ] Boundary conditions: oversized strings, injection, concurrent requests
 
-### ? 集成测试扩展
-- **当前**: `test/integration/` 下有 login_flow, shopping_flow, ai_chat_flow 骨架
-- **目标**: 补充完整的端到端流程测试
-- [ ] 登录→浏览→加购→结算→支付 完整购物流程
-- [ ] 管理员登录→商品管理→订单发货 管理流程
-- [ ] AI 对话降级链路: DeepSeek → Gemini → 离线响应
-
-### ?? UI 溢出问题修复 (反馈给 Agent B)
-- **发现**: 多个屏幕存在 RenderFlex overflow 真实 UI Bug
-  - `OrderListScreen`: AppBar 内 Column 溢出
-  - `CheckoutScreen`: 小屏幕布局溢出
-  - `ProductListScreen`: 商品卡片区域溢出
-- **行动**: 提交 Issue 给前端负责人修复，修复后移除测试中的溢出抑制代码
+### Integration Test Expansion
+- [ ] Full flow: login -> browse -> cart -> checkout -> pay
+- [ ] Admin flow: login -> product manage -> ship order
+- [ ] AI fallback chain: DashScope -> offline response
 
 ---
 
-## P1 — 重要 / 本迭代 (预计: 3-5 天)
+## P1 - Important (ETA: 3-5 days)
 
-### ? 属性测试 (Property-Based Testing)
-- 使用 `hypothesis` 对关键业务逻辑进行模糊测试
-- 场景: 订单金额计算、库存扣减/恢复原子性、价格过滤边界
-- 收益: 发现手工用例难以覆盖的边界 Bug
-
-### ? 性能/负载测试基线
-- 使用 `locust` 或 `k6` 建立 API 性能基线
-- 关键指标: `/api/products` 列表延迟 (P95)、`/api/orders` 创建 QPS
-- 产出: 性能回归检测阈值
-
-### ?? Dart 静态安全分析
-- CI 中 `dart analyze --fatal-infos` 已在 flutter-build job 运行
-- **增强**: 添加自定义 lint 规则检测前端硬编码 URL、日志中的敏感数据
-- 工具: `custom_lint` 或 `dart_code_metrics`
-
-### ?? DAST (动态应用安全测试)
-- 使用 OWASP ZAP 对部署后的 API 进行自动化安全扫描
-- 场景: SQL 注入、XSS、CORS 配置、认证绕过
-- 集成: CI 中添加 `zap-scan` job (依赖 deploy-backend 后执行)
+- [ ] Property-based testing (hypothesis): order amount, stock atomicity
+- [ ] Load testing baseline (locust/k6): /api/products P95, /api/orders QPS
+- [ ] DAST (OWASP ZAP): SQL injection, XSS, CORS, auth bypass
 
 ---
 
-## P2 — 改进 / 后续版本 (预计: 下个迭代)
+## P2 - Backlog
 
-### ? Visual Regression 测试
-- 使用 `golden_toolkit` 对关键屏幕生成黄金截图
-- 屏幕: LoginScreen、ProductListScreen、CartScreen
-- CI 中自动对比截图差异
-
-### ? Accessibility 测试
-- Flutter `Semantics` 测试: 确保所有可交互元素有正确的语义标签
-- 屏幕阅读器兼容性验证
-
-### ?? 供应链安全
-- 锁定依赖版本 (`pubspec.lock` + `requirements.txt` pin)
-- 定期自动化依赖更新 (Dependabot / Renovate)
-- Flutter pub 许可证审计
-
-### ?? 安全响应计划
-- 建立安全漏洞报告模板 (SECURITY.md)
-- 密钥轮换流程文档化
-- 生产环境安全事件响应 SOP
-
-### ? 测试覆盖率仪表板
-- CI 中生成并发布覆盖率报告到 PR 评论
-- 后端: `pytest-cov` → lcov → Codecov/Coveralls
-- 前端: `flutter test --coverage` → lcov → 同步上传
-- 目标: 后端 ≥80%、前端 ≥60% 行覆盖率
+- [ ] Visual regression testing (golden_toolkit)
+- [ ] Accessibility testing (Flutter Semantics)
+- [ ] Supply chain security (Dependabot, pub license audit)
+- [ ] Coverage dashboard (pytest-cov -> Codecov, flutter --coverage)
 
 ---
 
-## 指标总览
+## Metrics
 
-| 指标 | 当前值 | 目标值 |
+| Metric | Current | Target |
 |---|---|---|
-| 后端测试用例 | 57 | 80+ |
-| 前端 Widget 测试 | 25 | 40+ |
-| 后端覆盖率 | ~60% (估) | ≥80% |
-| 前端覆盖率 | ~20% (估) | ≥60% |
-| CI 安全检查步骤 | 6 | 10+ |
-| UI 溢出已知问题 | 3 屏幕 | 0 |
+| Backend test cases | 78 | 100+ |
+| Frontend widget tests | 25 | 40+ |
+| Backend coverage | ~65% (est.) | >=80% |
+| Frontend coverage | ~20% (est.) | >=60% |
+| CI security checks | 6 | 10+ |

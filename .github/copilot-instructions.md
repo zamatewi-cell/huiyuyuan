@@ -1,52 +1,56 @@
-# GitHub Copilot 自定义指令 — 汇玉源项目
+# GitHub Copilot Custom Instructions - HuiYuYuan Project
 
-## 项目概述
-汇玉源（HuiYuYuan）— Flutter 跨平台珠宝智能交易平台 v3.0。前端 Flutter (Dart)，后端 FastAPI (Python) 单文件 `huiyuanyuan_app/backend/main.py`（1800+ 行），部署于阿里云 ECS `47.98.188.141`。
+> Last updated: 2026-03-25
 
-## 数据流与组件交互
+## Project Overview
+
+**HuiYuYuan** is a full-stack cross-platform jewelry AI trading platform:
+- **Frontend**: Flutter/Dart, Riverpod, Android/iOS/Windows/Web
+- **Backend**: Python FastAPI (modular) + PostgreSQL + Redis on Alibaba Cloud ECS 47.112.98.191
+- **AI**: Alibaba Cloud DashScope (qwen-plus text, qwen-vl-plus-latest vision)
+- **Design**: Liquid Glass glassmorphism, jade green #2E8B57, gold #D4AF37, dark #0D1B2A
+
+## Architecture
+
 ```
-用户操作
-  → Screen (ConsumerWidget，通过 ref.watch/read 消费 Provider)
-    → Provider (Riverpod AsyncNotifier/Notifier，管理业务状态)
-      → Service (单例，封装 HTTP/AI/存储逻辑)
-        → ApiService → Nginx (/api/*) → FastAPI (main.py)
-        → AIService → DeepSeek API / Gemini API / 离线回复
-        → StorageService → SharedPreferences + FlutterSecureStorage
-```
-
-**关键交互链路**:
-- **认证**: `LoginScreen` → `ref.read(authProvider.notifier).loginAdmin()` → `StorageService.saveUser()` → `MainScreen` 根据 `isAdminProvider` 切换管理员/操作员页面集
-- **AI 对话**: `AIAssistantScreen` → `AIService.chatStream()` → DeepSeek(流式SSE) → 失败回退 Gemini → 再失败返回离线预设
-- **商品数据**: `BackendService.getProducts()` 请求后端 → 失败时 `product_data.dart` 静态数据降级
-- **配置流**: `secrets.dart`(Key) → `app_config.dart`(常量) → `api_config.dart`(URL路由) → 各 Service 消费
-
-**角色差异化**: `MainScreen._getPages(isAdmin)` — 管理员看 `AdminDashboard`，操作员看 `OperatorHome`，其余页面共享
-
-## 架构与关键路径
-
-### 前端 (`huiyuanyuan_app/lib/`)
-```
-config/          # api_config.dart (路由+超时), app_config.dart (常量), secrets.dart (API Key，git忽略)
-data/            # 静态商品/店铺数据 (product_data.dart, shop_data.dart)，后端不可用时本地降级
-models/          # Dart 数据模型 (UserModel, ProductModel 等定义在 user_model.dart 内)
-providers/       # Riverpod：auth_provider (AsyncNotifier), app_settings_provider, inventory_provider, payment_provider
-screens/         # 按功能分目录：admin/, operator/, chat/, trade/, shop/, order/, product/, profile/
-services/        # 单例服务层 (factory 构造 + _instance 模式)
-themes/          # colors.dart (JewelryColors), jewelry_theme.dart (亮/暗主题)
-l10n/            # 自定义 i18n：app_strings.dart (Map<String,String>), l10n_provider.dart (stringsProvider/tProvider)
-widgets/         # 通用 UI 组件
+Screen (ConsumerWidget)
+  -> Provider (Riverpod AsyncNotifier)
+    -> Service (singleton factory)
+      -> ApiService -> Nginx /api/* -> FastAPI routers
+      -> AIDashScopeService -> DashScope API (fallback: offline response)
+      -> StorageService -> SharedPreferences + FlutterSecureStorage
 ```
 
-### 后端 (`huiyuanyuan_app/backend/`)
-- **单文件 FastAPI** `main.py`：所有路由、Pydantic 模型、内存模拟数据库均在此文件
-- 可选依赖优雅降级：PostgreSQL (`DB_AVAILABLE`)、Redis (`REDIS_AVAILABLE`)、JWT (`JWT_AVAILABLE`) 不可用时自动 fallback
-- Nginx 反向代理 `/api/` → `127.0.0.1:8000`，前端静态文件 → `/var/www/huiyuanyuan/`；短信接口 `/api/auth/send-sms` 有独立限流 (5r/m)
-- 环境变量配置见 `backend/.env.example`：`DATABASE_URL`, `REDIS_URL`, `JWT_SECRET_KEY`, `ALIYUN_ACCESS_KEY_*`
+## Frontend Key Paths (huiyuanyuan_app/lib/)
 
-## 核心模式 (必须遵循)
+```
+config/      # api_config.dart, app_config.dart, secrets.dart (gitignored)
+data/        # product_data.dart, shop_data.dart (local fallback)
+models/      # UserModel, ProductModel, OrderModel, CartItemModel, etc.
+providers/   # auth_provider, app_settings_provider, inventory_provider
+screens/     # admin/, operator/, chat/, trade/, shop/, order/, product/, profile/
+services/    # ApiService, AIDashScopeService, ReviewService, PushService, etc.
+themes/      # colors.dart (JewelryColors), jewelry_theme.dart
+l10n/        # app_strings.dart, l10n_provider.dart
+```
 
-### 1. 服务层单例模式
-所有 `services/` 使用 `factory` + `static _instance` 模式：
+## Backend Key Paths (huiyuanyuan_app/backend/)
+
+```
+main.py           # FastAPI entry (~100 lines)
+config.py         # Pydantic Settings from env vars
+database.py       # SQLAlchemy engine + SessionLocal + Redis client
+security.py       # JWT create/validate, bcrypt, require_user
+store.py          # In-memory fallback storage + init_store()
+routers/          # 13 routers: auth, products, orders, cart, users, admin, ...
+services/         # ai_service.py, sms_service.py, oss_service.py
+schemas/          # Pydantic v2 request/response models
+tests/            # pytest: 78 tests all passing
+```
+
+## Core Patterns
+
+### Service Singleton
 ```dart
 class XxxService {
   static final XxxService _instance = XxxService._internal();
@@ -55,76 +59,73 @@ class XxxService {
 }
 ```
 
-### 2. AI 三级降级策略
-`ai_service.dart` 中的 `chat()` / `chatStream()`：DeepSeek → Gemini → 离线预设回复 (`_getOfflineResponse`)。新增 AI 功能必须保持这三级 fallback 链。
+### AI Service (Current)
+| Function | Provider | Model |
+|---|---|---|
+| Text Chat | DashScope | qwen-plus |
+| Image Analysis | DashScope via backend proxy | qwen-vl-plus-latest |
+| Fallback | Local offline presets | - |
 
-### 3. API URL 平台感知
-`api_config.dart` 中 `baseUrl` 根据 `kIsWeb` 返回空字符串（走 Nginx 同源代理）或服务器 IP。修改 API 配置时注意 Web/Native 差异。
+> Note: Historical docs may mention DeepSeek/Gemini/OpenRouter - those are obsolete.
 
-### 4. Riverpod 状态管理
-- 认证：`authProvider` (AsyncNotifierProvider<AuthNotifier, UserModel?>)
-- 设置：`appSettingsProvider` (NotifierProvider)
-- 多语言：`ref.watch(tProvider)('key')` 或 `ref.tr('key')`
-- **不要**引入 Provider/Bloc 等其他状态管理方案
+### State Management
+- Auth: `authProvider` (AsyncNotifierProvider)
+- Settings: `appSettingsProvider` (NotifierProvider)
+- i18n: `ref.watch(tProvider)('key')` or `ref.tr('key')`
+- Do NOT introduce other state management solutions
 
-### 5. 多语言 (自定义方案，非 flutter_localizations ARB)
-在 `l10n/app_strings.dart` 中以 `Map<AppLanguage, Map<String, String>>` 维护翻译。新增 UI 文案时须同时添加 zh_CN、en、zh_TW 三个语言键。
+### i18n
+Custom solution (not ARB). Add translations in `l10n/app_strings.dart`:
+`Map<AppLanguage, Map<String, String>>` - always add zh_CN, en, zh_TW keys together.
+
+## Production Server
+
+| Item | Value |
+|---|---|
+| IP | 47.112.98.191 |
+| Domain | https://xn--lsws2cdzg.top |
+| SSH | root@47.112.98.191 |
+| Backend path | /srv/huiyuanyuan/backend/ |
+| Env file | /srv/huiyuanyuan/.env |
+| systemd | huiyuanyuan-backend |
+| Frontend | /var/www/huiyuanyuan/ |
+| Nginx conf | /etc/nginx/conf.d/huiyuanyuan.conf |
+| Health check | curl https://xn--lsws2cdzg.top/api/health |
 
 ## CI/CD (GitHub Actions)
-工作流文件：`.github/workflows/ci.yml`，Flutter 3.32.0 + Java 17。
 
-| 触发条件 | Jobs |
+File: `.github/workflows/ci.yml`, Flutter 3.32.0 + Java 17
+
+| Trigger | Job | Action |
+|---|---|---|
+| push/PR to main/dev | flutter-build | pub get, analyze --fatal-infos, test --coverage |
+| push to main (passing) | deploy-backend | SCP, pip install, systemctl restart, health check |
+| push to main (passing) | deploy-web | flutter build web, SCP, nginx reload |
+
+Required secrets: `SERVER_HOST`, `SERVER_USER`, `SERVER_SSH_KEY`, `DASHSCOPE_API_KEY`
+
+## Deploy Commands
+
+| Action | Command |
 |---|---|
-| push/PR → `main`/`dev` | `flutter-build`: pub get → analyze --fatal-infos → test --coverage → PR 构建 Debug APK / main 构建 Release AAB |
-| push → `main` 且 build 通过 | `deploy-backend`: SCP main.py + requirements.txt → pip install → systemctl restart → 健康检查 (5 次重试) |
-| push → `main` 且 build 通过 | `deploy-web`: flutter build web → SCP → nginx reload |
+| Full deploy | `scripts/deploy.ps1` or VSCode Ctrl+Shift+B |
+| Frontend only | `scripts/deploy.ps1 -Target web` |
+| Backend only | `scripts/deploy.ps1 -Target backend` |
+| Skip analyze | `scripts/deploy.ps1 -SkipAnalyze` |
+| Dry run | `scripts/deploy.ps1 -DryRun` |
+| View logs | `ssh root@47.112.98.191 "journalctl -u huiyuanyuan-backend -n 50"` |
 
-**必需 Secrets**: `SERVER_HOST`, `SERVER_USER`, `SERVER_SSH_KEY`, `DEEPSEEK_API_KEY`, `GEMINI_API_KEY`
+## Coding Standards
 
-Release 构建通过 `--dart-define` 注入 API Key，不硬编码到产物中。
+- **Dart**: follow `analysis_options.yaml`, no deprecated_member_use
+- **Python**: PEP8, Pydantic v2 models, async/await
+- **Colors**: use `JewelryColors` constants, never hardcode hex
+- **API Keys**: in `config/secrets.dart` (gitignored); local dev uses `.env.json`
 
-## 测试策略
-```
-test/
-├── widget_test.dart              # 应用加载冒烟测试
-├── models/                       # 数据模型序列化/反序列化 (user_model_test, payment_account_test)
-├── providers/                    # Riverpod Provider 状态测试 (auth_provider_test, cart_provider_test)
-├── services/                     # 服务层单元测试 (ai_service_test 等 7 个，主要验证离线/降级逻辑)
-├── l10n/                         # 多语言 Provider 测试
-└── integration/                  # 集成测试 (login_flow, shopping_flow, ai_chat_flow)
-```
+## Test Accounts
 
-**测试约定**:
-- AI 服务测试验证**离线逻辑**，不依赖实际 API 调用（无需 Key 即可运行）
-- 集成测试需 mock `flutter_secure_storage` 的 MethodChannel（参见 `login_flow_test.dart` setUp）
-- 运行全部测试：`cd huiyuanyuan_app && flutter test`
-- CI 中使用 `flutter test --coverage` 并上传 lcov 报告
-
-## 部署与开发命令
-| 操作 | 命令 |
-|---|---|
-| 全量部署 | `scripts/deploy.ps1` 或 VSCode `Ctrl+Shift+B` |
-| 仅前端 | `scripts/deploy.ps1 -Target web` |
-| 仅后端 | `scripts/deploy.ps1 -Target backend` |
-| 快速部署(跳过分析) | `scripts/deploy.ps1 -SkipAnalyze` |
-| 模拟运行 | `scripts/deploy.ps1 -DryRun` |
-| 本地构建 | `cd huiyuanyuan_app; flutter build web --no-tree-shake-icons --release` |
-| 静态分析 | `cd huiyuanyuan_app; dart analyze lib/` |
-| 运行测试 | `cd huiyuanyuan_app; flutter test` |
-| 服务器日志 | `ssh root@47.98.188.141 "journalctl -u huiyuanyuan -n 50"` |
-| 健康检查 | `curl http://47.98.188.141/api/health` |
-
-部署流程：dart analyze → flutter build web → SCP 上传 → pip install → systemctl restart → 健康检查重试
-
-## 编码规范
-- **Dart**: 遵循 `analysis_options.yaml`（flutter_lints + strict rules），`deprecated_member_use` 已 ignore
-- **Python**: PEP8，async/await，Pydantic v2 模型
-- **提交消息**: 中文，格式 `类型: 描述`（如 `修复: AI对话流式输出断行问题`）
-- **密钥管理**: API Key 放 `config/secrets.dart`（已 gitignore），示例见 `secrets.dart.example`
-- **设计风格**: "Liquid Glass" 毛玻璃风格，主色翡翠绿 `#2E8B57`，点缀金色 `#D4AF37`，背景深色 `#0D1B2A`，使用 `JewelryColors` 和 `JewelryTheme` 常量
-
-## 测试账号
-| 角色 | 账号 | 密码 | 验证码 |
+| Role | Account | Password | SMS Code |
 |---|---|---|---|
-| 管理员 | 18937766669 | admin123 | 8888 |
-| 操作员 | 1-10 (任意) | op123456 | - |
+| Admin | 18937766669 | admin123 | 8888 |
+| Operator | 1-10 (any) | op123456 | - |
+| Customer | any phone | - | 8888 (dev universal) |
