@@ -3,7 +3,6 @@
 生产环境应使用 PostgreSQL，此模块作为开发/回退使用
 """
 
-import uuid
 import logging
 from typing import Dict, List
 
@@ -13,6 +12,7 @@ from schemas.review import Review
 from schemas.shop import Shop
 from schemas.user import Address, PaymentAccountResponse
 from schemas.order import Order
+from services.product_seed_import_service import build_in_memory_seed_products
 
 logger = logging.getLogger(__name__)
 
@@ -89,14 +89,9 @@ def init_default_users():
 
 def init_products():
     """从种子数据初始化商品"""
-    from data.seed_products import SEED_PRODUCTS
-
-    for p in SEED_PRODUCTS:
-        if p["id"] not in PRODUCTS_DB:
-            p_copy = dict(p)
-            if "blockchain_hash" not in p_copy:
-                p_copy["blockchain_hash"] = f"0x{uuid.uuid4().hex[:40]}"
-            PRODUCTS_DB[p_copy["id"]] = Product(**p_copy)
+    for product in build_in_memory_seed_products():
+        if product.id not in PRODUCTS_DB:
+            PRODUCTS_DB[product.id] = product
 
 
 def init_store():

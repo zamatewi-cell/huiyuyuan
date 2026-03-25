@@ -6,6 +6,8 @@
 /// - 地址校验
 library;
 
+import 'json_parsing.dart';
+
 /// 收货地址模型
 class AddressModel {
   final String id;
@@ -53,22 +55,18 @@ class AddressModel {
   /// 从 JSON 创建
   factory AddressModel.fromJson(Map<String, dynamic> json) {
     return AddressModel(
-      id: json['id'] ?? '',
-      recipientName: json['recipient_name'] ?? '',
-      phoneNumber: json['phone_number'] ?? '',
-      province: json['province'] ?? '',
-      city: json['city'] ?? '',
-      district: json['district'] ?? '',
-      detailAddress: json['detail_address'] ?? '',
-      postalCode: json['postal_code'],
-      isDefault: json['is_default'] ?? false,
-      tag: json['tag'],
-      createdAt: json['created_at'] != null
-          ? DateTime.parse(json['created_at'])
-          : DateTime.now(),
-      updatedAt: json['updated_at'] != null
-          ? DateTime.parse(json['updated_at'])
-          : null,
+      id: jsonAsString(json['id']),
+      recipientName: jsonAsString(json['recipient_name']),
+      phoneNumber: jsonAsString(json['phone_number']),
+      province: jsonAsString(json['province']),
+      city: jsonAsString(json['city']),
+      district: jsonAsString(json['district']),
+      detailAddress: jsonAsString(json['detail_address']),
+      postalCode: jsonAsNullableString(json['postal_code']),
+      isDefault: jsonAsBool(json['is_default']),
+      tag: jsonAsNullableString(json['tag']),
+      createdAt: jsonAsDateTime(json['created_at']),
+      updatedAt: jsonAsNullableDateTime(json['updated_at']),
     );
   }
 

@@ -41,6 +41,8 @@ extension PaymentTypeExtension on PaymentType {
   }
 }
 
+const Object _paymentFieldUnset = Object();
+
 class PaymentAccount {
   final String id;
   final String? userId;
@@ -54,7 +56,7 @@ class PaymentAccount {
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
-  PaymentAccount({
+  const PaymentAccount({
     required this.id,
     this.userId,
     required this.name,
@@ -77,7 +79,6 @@ class PaymentAccount {
     bool isActive = true,
     bool isDefault = false,
   }) {
-    final now = DateTime.now();
     return PaymentAccount(
       id: '',
       name: name,
@@ -87,36 +88,46 @@ class PaymentAccount {
       qrCodeUrl: qrCodeUrl,
       isActive: isActive,
       isDefault: isDefault,
-      createdAt: now,
-      updatedAt: now,
     );
   }
 
   PaymentAccount copyWith({
     String? id,
-    String? userId,
+    Object? userId = _paymentFieldUnset,
     String? name,
-    String? accountNumber,
-    String? bankName,
+    Object? accountNumber = _paymentFieldUnset,
+    Object? bankName = _paymentFieldUnset,
     PaymentType? type,
-    String? qrCodeUrl,
+    Object? qrCodeUrl = _paymentFieldUnset,
     bool? isActive,
     bool? isDefault,
-    DateTime? createdAt,
-    DateTime? updatedAt,
+    Object? createdAt = _paymentFieldUnset,
+    Object? updatedAt = _paymentFieldUnset,
   }) {
     return PaymentAccount(
       id: id ?? this.id,
-      userId: userId ?? this.userId,
+      userId: identical(userId, _paymentFieldUnset)
+          ? this.userId
+          : userId as String?,
       name: name ?? this.name,
-      accountNumber: accountNumber ?? this.accountNumber,
-      bankName: bankName ?? this.bankName,
+      accountNumber: identical(accountNumber, _paymentFieldUnset)
+          ? this.accountNumber
+          : accountNumber as String?,
+      bankName: identical(bankName, _paymentFieldUnset)
+          ? this.bankName
+          : bankName as String?,
       type: type ?? this.type,
-      qrCodeUrl: qrCodeUrl ?? this.qrCodeUrl,
+      qrCodeUrl: identical(qrCodeUrl, _paymentFieldUnset)
+          ? this.qrCodeUrl
+          : qrCodeUrl as String?,
       isActive: isActive ?? this.isActive,
       isDefault: isDefault ?? this.isDefault,
-      createdAt: createdAt ?? this.createdAt,
-      updatedAt: updatedAt ?? this.updatedAt,
+      createdAt: identical(createdAt, _paymentFieldUnset)
+          ? this.createdAt
+          : createdAt as DateTime?,
+      updatedAt: identical(updatedAt, _paymentFieldUnset)
+          ? this.updatedAt
+          : updatedAt as DateTime?,
     );
   }
 
@@ -150,28 +161,24 @@ class PaymentAccount {
 
   factory PaymentAccount.fromMap(Map<String, dynamic> map) {
     return PaymentAccount(
-      id: map['id'] ?? '',
-      userId: map['user_id'] ?? '',
-      name: map['name'] ?? '',
-      accountNumber: map['account_number'],
-      bankName: map['bank_name'],
-      type: PaymentTypeExtension.fromString(map['type']),
-      qrCodeUrl: map['qr_code_url'],
-      isActive: map['is_active'] ?? true,
-      isDefault: map['is_default'] ?? false,
-      createdAt: map['created_at'] != null
-          ? DateTime.tryParse(map['created_at'].toString()) ?? DateTime.now()
-          : DateTime.now(),
-      updatedAt: map['updated_at'] != null
-          ? DateTime.tryParse(map['updated_at'].toString()) ?? DateTime.now()
-          : DateTime.now(),
+      id: map['id']?.toString() ?? '',
+      userId: _asNullableString(map['user_id']),
+      name: map['name']?.toString() ?? '',
+      accountNumber: _asNullableString(map['account_number']),
+      bankName: _asNullableString(map['bank_name']),
+      type: PaymentTypeExtension.fromString(map['type']?.toString()),
+      qrCodeUrl: _asNullableString(map['qr_code_url']),
+      isActive: _asBool(map['is_active'], fallback: true),
+      isDefault: _asBool(map['is_default'], fallback: false),
+      createdAt: _parseDateTime(map['created_at']),
+      updatedAt: _parseDateTime(map['updated_at']),
     );
   }
 
   String toJson() => json.encode(toMap());
 
   factory PaymentAccount.fromJson(String source) =>
-      PaymentAccount.fromMap(json.decode(source));
+      PaymentAccount.fromMap(json.decode(source) as Map<String, dynamic>);
 
   String get typeName {
     switch (type) {
@@ -186,5 +193,40 @@ class PaymentAccount {
       case PaymentType.other:
         return '其他';
     }
+  }
+
+  static String? _asNullableString(dynamic value) {
+    if (value == null) {
+      return null;
+    }
+
+    final text = value.toString();
+    return text.isEmpty ? null : text;
+  }
+
+  static bool _asBool(dynamic value, {required bool fallback}) {
+    if (value is bool) {
+      return value;
+    }
+    if (value is num) {
+      return value != 0;
+    }
+    if (value is String) {
+      final normalized = value.toLowerCase().trim();
+      if (normalized == 'true' || normalized == '1') {
+        return true;
+      }
+      if (normalized == 'false' || normalized == '0') {
+        return false;
+      }
+    }
+    return fallback;
+  }
+
+  static DateTime? _parseDateTime(dynamic value) {
+    if (value == null) {
+      return null;
+    }
+    return DateTime.tryParse(value.toString());
   }
 }

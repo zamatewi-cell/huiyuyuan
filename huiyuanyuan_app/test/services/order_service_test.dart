@@ -1,24 +1,29 @@
-/// 汇玉源 - 订单服务测试
-/// 
-/// 测试内容:
-/// - 订单创建
-/// - 订单状态管理
-/// - 订单查询
-/// - 订单统计
+// 汇玉源 - 订单服务测试
+//
+// 测试内容:
+// - 订单创建
+// - 订单状态管理
+// - 订单查询
+// - 订单统计
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:huiyuanyuan/config/api_config.dart';
 import 'package:huiyuanyuan/services/order_service.dart';
 import 'package:huiyuanyuan/models/user_model.dart';
 
 void main() {
   late ProviderContainer container;
+  late bool originalUseMockApi;
 
   setUp(() {
+    originalUseMockApi = ApiConfig.useMockApi;
+    ApiConfig.useMockApi = true;
     container = ProviderContainer();
   });
 
   tearDown(() {
     container.dispose();
+    ApiConfig.useMockApi = originalUseMockApi;
   });
 
   group('OrderStatus 枚举测试', () {

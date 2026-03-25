@@ -7,6 +7,7 @@ import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../services/ai_service.dart';
 import '../../services/api_service.dart';
+import '../../services/ai_product_context_service.dart';
 import '../../services/product_service.dart';
 import '../../services/storage_service.dart';
 import '../../models/user_model.dart';
@@ -14,6 +15,7 @@ import '../../themes/colors.dart';
 import '../../l10n/l10n_provider.dart';
 import '../../providers/app_settings_provider.dart';
 import '../../providers/auth_provider.dart';
+import '../../utils/text_sanitizer.dart';
 import '../../screens/trade/product_detail_screen.dart';
 import '../../widgets/common/glassmorphic_card.dart';
 import '../../widgets/animations/typing_indicator.dart';
@@ -32,6 +34,7 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen>
     with TickerProviderStateMixin {
   final _aiService = AIService();
   final _productService = ProductService();
+  final _productContextService = AIProductContextService();
   final _storage = StorageService();
   final _messageController = TextEditingController();
   final _scrollController = ScrollController();
@@ -39,6 +42,7 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen>
   final Map<String, ProductModel?> _recommendedProducts = {};
   final Set<String> _loadingRecommendedProducts = {};
   bool _isLoading = false;
+  String? _lastAiErrorMessage;
 
   /// 当前正在流式输出的内容
   String _streamingContent = '';
@@ -126,6 +130,11 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen>
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final aiOnline =
+        _aiService.isOnlineConfigured && _lastAiErrorMessage == null;
+    final aiStatusColor =
+        aiOnline ? JewelryColors.success : JewelryColors.warning;
+    final aiStatusText = aiOnline ? '在线' : '离线';
 
     // 动态更新欢迎语
     if (_messages.isNotEmpty && _messages[0].id == 'welcome') {
@@ -177,14 +186,23 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen>
                 width: 6,
                 height: 6,
                 decoration: BoxDecoration(
-                  color: JewelryColors.success,
+                  color: aiStatusColor,
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
-                      color: JewelryColors.success.withOpacity(0.5),
+                      color: aiStatusColor.withOpacity(0.5),
                       blurRadius: 4,
                     ),
                   ],
+                ),
+              ),
+              const SizedBox(width: 4),
+              Text(
+                aiStatusText,
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: aiStatusColor,
                 ),
               ),
             ],
@@ -373,10 +391,11 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen>
     final isUser = message.isUser;
 
     // 从 AI 消息中提取商品 ID
-    final productIds = _extractProductIds(message.content);
+    final productIds =
+        _productContextService.extractProductIds(message.content);
     // 清理文本中的 [PRODUCT:xxx] 标签
     final cleanContent =
-        message.content.replaceAll(RegExp(r'\[PRODUCT:[^\]]+\]\s*'), '').trim();
+        sanitizeUtf16(_productContextService.stripProductTags(message.content));
 
     return FadeSlideTransition(
         key: ValueKey(message.id),
@@ -540,12 +559,6 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen>
         ));
   }
 
-  /// 从 AI 回复中提取 [PRODUCT:xxx] 标签
-  List<String> _extractProductIds(String content) {
-    final matches = RegExp(r'\[PRODUCT:([^\]]+)\]').allMatches(content);
-    return matches.map((m) => m.group(1)!.trim()).toList();
-  }
-
   void _ensureRecommendedProductLoaded(String productId) {
     if (_recommendedProducts.containsKey(productId) ||
         _loadingRecommendedProducts.contains(productId)) {
@@ -592,7 +605,7 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen>
         ),
         child: Row(
           children: [
-            SizedBox(
+            const SizedBox(
               width: 24,
               height: 24,
               child: CircularProgressIndicator(
@@ -826,7 +839,7 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen>
                 TextSpan(
                   children: [
                     TextSpan(
-                      text: _streamingContent,
+                      text: sanitizeUtf16(_streamingContent),
                       style: TextStyle(
                         color: isDark
                             ? Colors.white.withOpacity(0.9)
@@ -836,7 +849,7 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen>
                       ),
                     ),
                     // ✨ 闪烁光标：仅在流式输出时显示
-                    WidgetSpan(
+                    const WidgetSpan(
                       alignment: PlaceholderAlignment.baseline,
                       baseline: TextBaseline.alphabetic,
                       child: BlinkingCursor(
@@ -1061,11 +1074,12 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen>
 
   /// 发送消息 — 使用流式输出
   Future<void> _sendMessage() async {
-    final text = _messageController.text.trim();
+    final text = sanitizeUtf16(_messageController.text.trim());
     final imageFile = _selectedImage;
     final imageBytes = _selectedImageBytes;
-    if ((text.isEmpty && imageFile == null) || _isLoading || _isStreaming)
+    if ((text.isEmpty && imageFile == null) || _isLoading || _isStreaming) {
       return;
+    }
 
     // 获取发送前的纯历史对话（不包含当前即将发出的消息）
     final history = _messages
@@ -1138,7 +1152,7 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen>
       _isStreaming = true;
     });
 
-    // 尝试流式输出 (OpenRouter 作主模型)
+    // Try streaming output with DashScope as the primary model.
     final currentLanguage = ref.read(appSettingsProvider).language.code;
     await _aiService.chatStream(
       userMessage: queryToAI,
@@ -1148,7 +1162,7 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen>
       onToken: (token) {
         if (mounted) {
           setState(() {
-            _streamingContent += token;
+            _streamingContent = sanitizeUtf16(_streamingContent + token);
           });
           _scrollToBottom();
         }
@@ -1157,6 +1171,7 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen>
         if (mounted) {
           setState(() {
             _isStreaming = false;
+            _lastAiErrorMessage = null;
             _messages.add(ChatMessage(
               id: DateTime.now().millisecondsSinceEpoch.toString(),
               content:
@@ -1174,6 +1189,7 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen>
       onError: (error) {
         // 网络异常时显示友好提示（不显示原始错误）
         if (mounted) {
+          final message = _formatAiFallbackMessage(error);
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Row(
@@ -1181,22 +1197,47 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen>
                   const Icon(Icons.wifi_off, color: Colors.white, size: 18),
                   const SizedBox(width: 8),
                   Expanded(
-                    child: Text('网络连接不稳定，已切换到离线模式'),
+                    child: Text(message),
                   ),
                 ],
               ),
               backgroundColor: JewelryColors.warning,
               behavior: SnackBarBehavior.floating,
               margin: const EdgeInsets.all(16),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+              shape: const RoundedRectangleBorder(
+                borderRadius: BorderRadius.all(Radius.circular(12)),
               ),
               duration: const Duration(seconds: 3),
             ),
           );
+          setState(() {
+            _lastAiErrorMessage = message;
+          });
         }
       },
     );
+  }
+
+  String _formatAiFallbackMessage(String error) {
+    final message = sanitizeUtf16(error.trim());
+    if (message.isEmpty) {
+      return 'AI assistant is offline. Switched to fallback mode.';
+    }
+
+    if (message.contains('DashScope') ||
+        message.contains('Qwen') ||
+        message.contains('千问')) {
+      return message;
+    }
+
+    if (message.contains('网络') ||
+        message.contains('timeout') ||
+        message.contains('SocketException') ||
+        message.contains('Connection refused')) {
+      return 'AI network request failed. Switched to fallback mode.';
+    }
+
+    return 'AI fallback mode enabled: $message';
   }
 
   void _scrollToBottom() {
@@ -1222,7 +1263,8 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen>
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Row(
           children: [
-            Icon(Icons.delete_outline, color: JewelryColors.error, size: 22),
+            const Icon(Icons.delete_outline,
+                color: JewelryColors.error, size: 22),
             const SizedBox(width: 8),
             Text(
               '清空对话',

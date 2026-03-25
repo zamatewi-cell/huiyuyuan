@@ -16,7 +16,7 @@ class JewelryTheme {
         brightness: Brightness.light,
 
         // 颜色方案
-        colorScheme: ColorScheme.light(
+        colorScheme: const ColorScheme.light(
           primary: JewelryColors.primary,
           onPrimary: JewelryColors.textOnPrimary,
           secondary: JewelryColors.gold,
@@ -31,17 +31,17 @@ class JewelryTheme {
         scaffoldBackgroundColor: JewelryColors.background,
 
         // AppBar主题
-        appBarTheme: AppBarTheme(
+        appBarTheme: const AppBarTheme(
           elevation: 0,
           centerTitle: true,
           backgroundColor: JewelryColors.primary,
           foregroundColor: Colors.white,
-          titleTextStyle: const TextStyle(
+          titleTextStyle: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w600,
             color: Colors.white,
           ),
-          iconTheme: const IconThemeData(color: Colors.white),
+          iconTheme: IconThemeData(color: Colors.white),
         ),
 
         // 卡片主题
@@ -119,7 +119,7 @@ class JewelryTheme {
             borderRadius: JewelryRadius.mdAll,
             borderSide: const BorderSide(color: JewelryColors.error, width: 1),
           ),
-          hintStyle: TextStyle(color: JewelryColors.textHint, fontSize: 14),
+          hintStyle: const TextStyle(color: JewelryColors.textHint, fontSize: 14),
           labelStyle: const TextStyle(color: JewelryColors.textSecondary),
         ),
 
@@ -256,13 +256,13 @@ class JewelryTheme {
         brightness: Brightness.dark,
 
         // 颜色方案
-        colorScheme: ColorScheme.dark(
+        colorScheme: const ColorScheme.dark(
           primary: JewelryColors.primaryLight,
           onPrimary: Colors.white,
           secondary: JewelryColors.gold,
           onSecondary: Colors.black,
-          surface: const Color(0xFF1E1E2E),
-          onSurface: const Color(0xFFE8E8EC),
+          surface: Color(0xFF1E1E2E),
+          onSurface: Color(0xFFE8E8EC),
           error: JewelryColors.error,
           onError: Colors.white,
         ),

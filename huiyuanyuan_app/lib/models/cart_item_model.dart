@@ -2,6 +2,7 @@
 /// 强类型购物车数据结构，替代原有 Map<String, dynamic>
 library;
 
+import 'json_parsing.dart';
 import 'product_model.dart';
 
 /// 购物车项模型
@@ -43,26 +44,21 @@ class CartItemModel {
     // 新格式: 包含 'product' key
     if (json.containsKey('product') && json['product'] is Map) {
       return CartItemModel(
-        product: ProductModel.fromJson(
-            Map<String, dynamic>.from(json['product'])),
-        quantity: json['quantity'] ?? 1,
-        selectedSpec: json['selected_spec'],
-        isSelected: json['is_selected'] ?? true,
-        addedAt: json['added_at'] != null
-            ? DateTime.parse(json['added_at'])
-            : null,
+        product: ProductModel.fromJson(jsonAsMap(json['product'])),
+        quantity: jsonAsInt(json['quantity'], fallback: 1),
+        selectedSpec: jsonAsNullableString(json['selected_spec']),
+        isSelected: jsonAsBool(json['is_selected'], fallback: true),
+        addedAt: jsonAsNullableDateTime(json['added_at']),
       );
     }
 
     // 旧格式: 扁平 Map（兼容现有 StorageService 数据）
     return CartItemModel(
       product: ProductModel.fromJson(json),
-      quantity: json['quantity'] ?? 1,
-      selectedSpec: json['selected_spec'],
-      isSelected: json['is_selected'] ?? true,
-      addedAt: json['added_at'] != null
-          ? DateTime.parse(json['added_at'])
-          : null,
+      quantity: jsonAsInt(json['quantity'], fallback: 1),
+      selectedSpec: jsonAsNullableString(json['selected_spec']),
+      isSelected: jsonAsBool(json['is_selected'], fallback: true),
+      addedAt: jsonAsNullableDateTime(json['added_at']),
     );
   }
 

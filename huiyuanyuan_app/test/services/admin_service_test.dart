@@ -36,6 +36,23 @@ void main() {
       expect(stats.lowStockProducts, 0);
       expect(stats.totalCustomers, 0);
     });
+
+    test('accepts current backend dashboard payload aliases', () {
+      final stats = DashboardStats.fromJson({
+        'total_orders': 18,
+        'total_revenue': 12888.5,
+        'pending_ship': 3,
+        'total_products': 96,
+        'low_stock_items': 7,
+      });
+
+      expect(stats.totalOrders, 18);
+      expect(stats.totalAmount, 12888.5);
+      expect(stats.pendingOrders, 3);
+      expect(stats.totalProducts, 96);
+      expect(stats.lowStockProducts, 7);
+      expect(stats.shippedOrders, 0);
+    });
   });
 
   group('RestockSuggestion', () {
@@ -101,6 +118,21 @@ void main() {
       expect(activity.color, '#06B6D4');
       expect(activity.icon, 'info');
     });
+
+    test('normalizes current backend activity payloads', () {
+      final activity = ActivityItem.fromJson({
+        'type': 'order_paid',
+        'tag': '支付',
+        'title': '支付完成: 和田玉手链',
+        'subtitle': '￥299',
+        'time': '2026-03-23T10:00:00',
+      });
+
+      expect(activity.tag, '订单');
+      expect(activity.icon, 'payment');
+      expect(activity.color, '#06B6D4');
+      expect(activity.id, contains('order_paid'));
+    });
   });
 
   group('OperatorReport', () {
@@ -134,6 +166,125 @@ void main() {
       expect(report.successCount, 0);
       expect(report.aiUsageCount, 0);
       expect(report.orderAmount, 0.0);
+    });
+  });
+
+  group('SystemStatusSnapshot', () {
+    test('parses service map and metric map payloads', () {
+      final snapshot = SystemStatusSnapshot.fromJson({
+        'status': 'healthy',
+        'message': 'all systems operational',
+        'timestamp': '2026-03-20T10:00:00Z',
+        'services': {
+          'database': {'status': 'healthy', 'message': 'connected'},
+          'redis': false,
+        },
+        'metrics': {
+          'cpu_usage': {'value': 24, 'unit': '%'},
+          'uptime': '72h',
+        },
+        'warnings': ['cache warmup pending'],
+      });
+
+      expect(snapshot.level, HealthLevel.healthy);
+      expect(snapshot.message, 'all systems operational');
+      expect(snapshot.checkedAt, isNotNull);
+      expect(snapshot.services.length, 2);
+      expect(snapshot.services.first.name, 'database');
+      expect(snapshot.services.first.level, HealthLevel.healthy);
+      expect(snapshot.services[1].level, HealthLevel.unhealthy);
+      expect(snapshot.metrics.length, 2);
+      expect(snapshot.metrics.first.name, 'cpu_usage');
+      expect(snapshot.warnings, ['cache warmup pending']);
+    });
+
+    test('falls back to implicit top-level service and metric fields', () {
+      final snapshot = SystemStatusSnapshot.fromJson({
+        'health': 'degraded',
+        'database': true,
+        'cpu_usage': 48,
+        'memory_usage': 73,
+      });
+
+      expect(snapshot.level, HealthLevel.degraded);
+      expect(snapshot.services.any((item) => item.name == 'database'), true);
+      expect(snapshot.metrics.any((item) => item.name == 'cpu_usage'), true);
+      expect(snapshot.metrics.any((item) => item.name == 'memory_usage'), true);
+    });
+  });
+
+  group('ProductImageUploadResult', () {
+    test('parses common upload aliases', () {
+      final result = ProductImageUploadResult.fromJson({
+        'success': true,
+        'url': 'https://cdn.example.com/image.png',
+        'filename': 'image.png',
+        'message': '上传成功',
+      });
+
+      expect(result.success, true);
+      expect(result.imageUrl, 'https://cdn.example.com/image.png');
+      expect(result.fileName, 'image.png');
+      expect(result.message, '上传成功');
+    });
+
+    test('defaults missing upload fields safely', () {
+      final result = ProductImageUploadResult.fromJson(<String, dynamic>{});
+
+      expect(result.success, true);
+      expect(result.imageUrl, isNull);
+      expect(result.fileName, isNull);
+      expect(result.message, isNull);
+    });
+  });
+
+  group('ProductUpsertRequest', () {
+    test('serializes create payload with optional fields', () {
+      const request = ProductUpsertRequest(
+        name: '羊脂白玉手镯',
+        description: '温润细腻，适合日常佩戴',
+        price: 2999,
+        originalPrice: 3699,
+        category: '手镯',
+        material: '和田玉',
+        images: ['https://cdn.example.com/bracelet.png'],
+        stock: 12,
+        isNew: true,
+        certificate: 'NGTC-2026-NEW',
+      );
+
+      expect(request.toJson(), {
+        'name': '羊脂白玉手镯',
+        'description': '温润细腻，适合日常佩戴',
+        'price': 2999.0,
+        'original_price': 3699.0,
+        'category': '手镯',
+        'material': '和田玉',
+        'images': ['https://cdn.example.com/bracelet.png'],
+        'stock': 12,
+        'is_new': true,
+        'certificate': 'NGTC-2026-NEW',
+      });
+    });
+
+    test('omits nullable fields when not provided', () {
+      const request = ProductUpsertRequest(
+        name: '南红手串',
+        description: '精品南红，色泽浓郁',
+        price: 599,
+        category: '手串',
+        material: '南红玛瑙',
+        stock: 30,
+      );
+
+      expect(request.toJson(), {
+        'name': '南红手串',
+        'description': '精品南红，色泽浓郁',
+        'price': 599.0,
+        'category': '手串',
+        'material': '南红玛瑙',
+        'stock': 30,
+      });
     });
   });
 }

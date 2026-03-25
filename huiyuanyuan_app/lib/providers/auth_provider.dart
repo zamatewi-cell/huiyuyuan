@@ -1,21 +1,24 @@
-/// 汇玉源 - 认证状态管理
-///
-/// 功能:
-/// - 管理员登录认证
-/// - 操作员登录认证
-/// - 登录状态持久化
+// 汇玉源 - 认证状态管理
+//
+// 功能:
+// - 管理员登录认证
+// - 操作员登录认证
+// - 登录状态持久化
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/user_model.dart';
 import '../services/storage_service.dart';
 import '../services/api_service.dart';
 import '../config/api_config.dart';
+import '../config/app_config.dart';
+import 'cart_provider.dart';
 
-/// 认证状态Provider
+// 认证状态Provider
 final authProvider = AsyncNotifierProvider<AuthNotifier, UserModel?>(() {
   return AuthNotifier();
 });
 
-/// 认证状态Notifier
+// 认证状态Notifier
 class AuthNotifier extends AsyncNotifier<UserModel?> {
   final _storage = StorageService();
 
@@ -79,14 +82,53 @@ class AuthNotifier extends AsyncNotifier<UserModel?> {
         final user = UserModel.fromJson(userData);
         await _storage.saveUser(user.toJson());
         state = AsyncValue.data(user);
+        // 登录后触发购物车云端同步（非阻塞）
+        _syncCartAfterLogin();
         return true;
+      }
+      // API 返回失败时，Debug 模式今回退到本地凯据验证（包含测试环境 HTTP 400 的情况）
+      if (AppConfig.allowLocalCredentialFallback) {
+        return _localAdminFallback(phone, password, authCode);
       }
       lastLoginError = res.message ?? '登录失败，请检查账号密码';
       return false;
     } catch (e) {
+      // 网络异常 也回退到本地 Debug 验证
+      if (AppConfig.allowLocalCredentialFallback) {
+        return _localAdminFallback(phone, password, authCode);
+      }
       lastLoginError = '网络异常：$e';
       return false;
     }
+  }
+
+  /// Debug 模式本地凭据验证（仅用于开发/测试，Release 不执行）
+  Future<bool> _localAdminFallback(
+      String phone, String password, String authCode) async {
+    final expectedPhone = AppConfig.adminPhone;
+    final expectedPassword = AppConfig.adminPassword;
+    final expectedCode = AppConfig.adminAuthCode;
+
+    if (phone != expectedPhone ||
+        password != expectedPassword ||
+        authCode != expectedCode) {
+      lastLoginError = '本地密码验证失败';
+      return false;
+    }
+
+    final mockToken = 'debug-admin-${DateTime.now().microsecondsSinceEpoch}';
+    final user = UserModel(
+      id: 'admin-local',
+      phone: phone,
+      username: '管理员',
+      userType: UserType.admin,
+      token: mockToken,
+    );
+    try { await _storage.saveToken(mockToken); } catch (_) {}
+    await _storage.saveUser(user.toJson());
+    state = AsyncValue.data(user);
+    _syncCartAfterLogin();
+    return true;
   }
 
   /// 操作员登录
@@ -152,17 +194,51 @@ class AuthNotifier extends AsyncNotifier<UserModel?> {
         final user = UserModel.fromJson(userData);
         await _storage.saveUser(user.toJson());
         state = AsyncValue.data(user);
+        // 登录后触发购物车云端同步（非阻塞）
+        _syncCartAfterLogin();
         return true;
+      }
+      // API失败 —— Debug 下回退本地验证
+      if (AppConfig.allowLocalCredentialFallback) {
+        return _localOperatorFallback(operatorNumber, password);
       }
       lastLoginError = res.message ?? '登录失败，请检查账号密码';
       return false;
     } catch (e) {
+      if (AppConfig.allowLocalCredentialFallback) {
+        return _localOperatorFallback(operatorNumber, password);
+      }
       lastLoginError = '网络异常：$e';
       return false;
     }
   }
 
+  /// Debug 模式操作员本地验证
+  Future<bool> _localOperatorFallback(int opNum, String password) async {
+    if (password != AppConfig.operatorDefaultPassword) {
+      lastLoginError = '操作员密码错误';
+      return false;
+    }
+
+    final mockToken =
+        'debug-operator-$opNum-${DateTime.now().microsecondsSinceEpoch}';
+    final user = UserModel(
+      id: 'operator-local-$opNum',
+      phone: '0000000000$opNum',
+      username: '操作员$opNum号',
+      userType: UserType.operator,
+      token: mockToken,
+      operatorNumber: opNum,
+    );
+    try { await _storage.saveToken(mockToken); } catch (_) {}
+    await _storage.saveUser(user.toJson());
+    state = AsyncValue.data(user);
+    _syncCartAfterLogin();
+    return true;
+  }
+
   /// 用户登录
+
   ///
   /// [phone] 手机号
   /// [authCode] 验证码
@@ -217,6 +293,8 @@ class AuthNotifier extends AsyncNotifier<UserModel?> {
         final user = UserModel.fromJson(userData);
         await _storage.saveUser(user.toJson());
         state = AsyncValue.data(user);
+        // 登录后触发购物车云端同步（非阻塞）
+        _syncCartAfterLogin();
         return true;
       }
       lastLoginError = res.message ?? '验证失败，请重试';
@@ -229,8 +307,23 @@ class AuthNotifier extends AsyncNotifier<UserModel?> {
 
   /// 退出登录
   Future<void> logout() async {
+    // 退出前先清空本地购物车（防止账号切换后状态残留）
+    try {
+      await ref.read(cartProvider.notifier).clearCart();
+    } catch (e) {
+      debugPrint('[Auth] 清空购物车失败: $e');
+    }
     await _storage.clearUser(); // 同时清除加密 Token
     state = const AsyncValue.data(null);
+  }
+
+  /// 登录后非阻塞地同步购物车到服务端
+  void _syncCartAfterLogin() {
+    try {
+      ref.read(cartProvider.notifier).syncToServer();
+    } catch (e) {
+      debugPrint('[Auth] 购物车同步失败: $e');
+    }
   }
 
   /// 发送短信验证码
@@ -287,37 +380,37 @@ class AuthNotifier extends AsyncNotifier<UserModel?> {
   }
 }
 
-/// 简易版本的认证状态Provider（用于同步访问）
+// 简易版本的认证状态Provider（用于同步访问）
 final currentUserProvider = Provider<UserModel?>((ref) {
   return ref.watch(authProvider).valueOrNull;
 });
 
-/// 是否已登录Provider
+// 是否已登录Provider
 final isLoggedInProvider = Provider<bool>((ref) {
   return ref.watch(currentUserProvider) != null;
 });
 
-/// 是否为管理员Provider
+// 是否为管理员Provider
 final isAdminProvider = Provider<bool>((ref) {
   return ref.watch(currentUserProvider)?.isAdmin ?? false;
 });
 
-/// 是否为操作员Provider
+// 是否为操作员Provider
 final isOperatorProvider = Provider<bool>((ref) {
   return ref.watch(currentUserProvider)?.userType == UserType.operator;
 });
 
-/// 是否为普通用户Provider
+// 是否为普通用户Provider
 final isCustomerProvider = Provider<bool>((ref) {
   return ref.watch(currentUserProvider)?.isCustomer ?? true;
 });
 
-/// 当前用户角色Provider
+// 当前用户角色Provider
 final userRoleProvider = Provider<UserType>((ref) {
   return ref.watch(currentUserProvider)?.userType ?? UserType.customer;
 });
 
-/// 操作员编号Provider
+// 操作员编号Provider
 final operatorNumberProvider = Provider<int?>((ref) {
   return ref.watch(currentUserProvider)?.operatorNumber;
 });

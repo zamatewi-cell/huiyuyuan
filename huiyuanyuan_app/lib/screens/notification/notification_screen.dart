@@ -10,26 +10,34 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../models/notification_models.dart';
+import '../../repositories/notification_repository.dart';
 import '../../themes/colors.dart';
 import '../../themes/jewelry_theme.dart';
-import '../../services/notification_service.dart';
 
 // ─── Provider (API 优先，失败返回空列表) ───
+final notificationRepositoryProvider = Provider<NotificationRepository>((ref) {
+  return NotificationRepository();
+});
+
 final notificationProvider =
     StateNotifierProvider<NotificationNotifier, List<NotificationItem>>((ref) {
-  return NotificationNotifier();
+  final repository = ref.watch(notificationRepositoryProvider);
+  return NotificationNotifier.withRepository(repository);
 });
 
 class NotificationNotifier extends StateNotifier<List<NotificationItem>> {
-  NotificationNotifier() : super([]) {
+  NotificationNotifier() : this.withRepository(NotificationRepository());
+
+  NotificationNotifier.withRepository(this._repository) : super(const []) {
     _loadFromApi();
   }
 
-  final NotificationApiService _service = NotificationApiService();
+  final NotificationRepository _repository;
 
   /// 从后端加载通知（失败时保持空列表）
   Future<void> _loadFromApi() async {
-    final items = await _service.fetchNotifications();
+    final items = await _repository.fetchNotifications();
     if (mounted) {
       state = items;
     }
@@ -41,16 +49,16 @@ class NotificationNotifier extends StateNotifier<List<NotificationItem>> {
   }
 
   void markAsRead(String id) {
-    _service.markAsRead(id); // 异步通知后端，不阻塞 UI
+    _repository.markAsRead(id);
     state = [
       for (final n in state)
-        if (n.id == id) (n..isRead = true) else n
+        if (n.id == id) n.copyWith(isRead: true) else n
     ];
   }
 
   void markAllAsRead() {
-    _service.markAllAsRead();
-    state = [for (final n in state) n..isRead = true];
+    _repository.markAllAsRead();
+    state = [for (final n in state) n.copyWith(isRead: true)];
   }
 
   int get unreadCount => state.where((n) => !n.isRead).length;
@@ -121,7 +129,7 @@ class _NotificationScreenState extends ConsumerState<NotificationScreen>
           if (notifier.unreadCount > 0)
             TextButton(
               onPressed: () => notifier.markAllAsRead(),
-              child: Text('全部已读',
+              child: const Text('全部已读',
                   style: TextStyle(
                       color: JewelryColors.primary, fontSize: 13)),
             ),
@@ -329,7 +337,7 @@ class _NotificationScreenState extends ConsumerState<NotificationScreen>
             color: JewelryColors.info.withOpacity(0.1),
             borderRadius: BorderRadius.circular(10),
           ),
-          child: Icon(Icons.info_outline_rounded,
+          child: const Icon(Icons.info_outline_rounded,
               color: JewelryColors.info, size: 20),
         );
     }
@@ -450,7 +458,7 @@ class _NotificationCard extends StatelessWidget {
             color: JewelryColors.info.withOpacity(0.1),
             borderRadius: BorderRadius.circular(10),
           ),
-          child: Icon(Icons.info_outline_rounded,
+          child: const Icon(Icons.info_outline_rounded,
               color: JewelryColors.info, size: 18),
         );
     }

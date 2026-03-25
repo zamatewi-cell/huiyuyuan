@@ -9,6 +9,7 @@ library;
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/review_model.dart';
+import '../models/json_parsing.dart';
 import 'api_service.dart';
 import '../config/api_config.dart';
 
@@ -250,7 +251,7 @@ class ReviewService {
       final res = await _api.get(ApiConfig.reviews);
       if (res.success && res.data is List) {
         final reviews = (res.data as List)
-            .map((json) => ReviewModel.fromJson(json as Map<String, dynamic>))
+            .map((json) => ReviewModel.fromJson(jsonAsMap(json)))
             .toList();
         // 回写本地缓存
         _saveReviewsLocal(reviews);
@@ -264,7 +265,7 @@ class ReviewService {
     if (data != null) {
       try {
         final list = jsonDecode(data) as List;
-        return list.map((json) => ReviewModel.fromJson(json)).toList();
+        return list.map((json) => ReviewModel.fromJson(jsonAsMap(json))).toList();
       } catch (_) {}
     }
 

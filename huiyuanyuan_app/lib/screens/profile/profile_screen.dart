@@ -160,7 +160,7 @@ class ProfileScreen extends ConsumerWidget {
                     _buildMenuItem(
                       icon: Icons.info,
                       title: ref.tr('settings_about'),
-                      trailing: 'v3.0.0',
+                      trailing: 'v3.0.3',
                       onTap: () => _showAboutDialog(context),
                     ),
 
@@ -1064,7 +1064,7 @@ class ProfileScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 4),
               Text(
-                'v3.0.0 · Build 202602',
+                'v3.0.3 · Build 20260318',
                 style: TextStyle(
                     color:
                         (isDark ? Colors.white : Colors.black).withOpacity(0.5),

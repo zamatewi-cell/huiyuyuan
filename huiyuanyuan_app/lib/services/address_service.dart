@@ -9,6 +9,7 @@ library;
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/address_model.dart';
+import '../models/json_parsing.dart';
 
 /// 地址服务类
 class AddressService {
@@ -40,7 +41,7 @@ class AddressService {
 
     try {
       final list = jsonDecode(data) as List;
-      return list.map((json) => AddressModel.fromJson(json)).toList();
+      return list.map((json) => AddressModel.fromJson(jsonAsMap(json))).toList();
     } catch (e) {
       return [];
     }

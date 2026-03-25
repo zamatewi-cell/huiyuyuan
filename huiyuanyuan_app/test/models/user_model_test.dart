@@ -1,10 +1,10 @@
-/// 汇玉源 - 用户模型测试
-/// 
-/// 测试内容:
-/// - UserModel 的创建和字段验证
-/// - 枚举类型转换
-/// - JSON 序列化/反序列化
-/// - 辅助方法测试
+// 汇玉源 - 用户模型测试
+//
+// 测试内容:
+// - UserModel 的创建和字段验证
+// - 枚举类型转换
+// - JSON 序列化/反序列化
+// - 辅助方法测试
 import 'package:flutter_test/flutter_test.dart';
 import 'package:huiyuanyuan/models/user_model.dart';
 

@@ -1,7 +1,7 @@
-/// Widget Test - OrderListScreen
-///
-/// 5 cases: renders with TabBar, has 5 tabs, shows scaffold,
-/// initialTab parameter works, no overflow
+// Widget Test - OrderListScreen
+//
+// 5 cases: renders with TabBar, has 5 tabs, shows scaffold,
+// initialTab parameter works, no overflow
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';

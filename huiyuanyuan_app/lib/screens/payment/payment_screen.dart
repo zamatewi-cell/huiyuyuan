@@ -16,8 +16,6 @@ import '../../themes/colors.dart';
 import '../../models/order_model.dart' hide PaymentMethod;
 import '../../services/order_service.dart';
 import '../../services/payment_service.dart';
-import '../../services/api_service.dart';
-import '../../config/api_config.dart';
 import '../../widgets/common/error_handler.dart';
 import '../order/order_list_screen.dart';
 
@@ -89,9 +87,9 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
 
   Future<void> _startPayment() async {
     setState(() => _payState = 'processing');
+    _pollTimer?.cancel();
 
     try {
-      // 1. 通过 PaymentService 创建支付订单
       final payMethod = _selectedMethod == 'wechat'
           ? PaymentMethod.wechat
           : _selectedMethod == 'alipay'
@@ -104,18 +102,11 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
         method: payMethod,
       );
 
-      // 2. 通过 ApiService 调用后端 /pay 端点（统一授权，可使用 mock_token）
-      final api = ApiService();
-      try {
-        await api.post<dynamic>(
-          '${ApiConfig.orderDetail(widget.order.id)}/pay',
-          data: {'method': _selectedMethod},
-        );
-      } catch (_) {
-        // 忽略此步，继续轮询
-      }
+      await _paymentService.submitOrderPayment(
+        orderId: widget.order.id,
+        method: payMethod,
+      );
 
-      // 3. 轮询支付状态（每秒一次，最多30秒 = 30次，超时提示用户）
       int pollCount = 0;
       _pollTimer = Timer.periodic(const Duration(seconds: 1), (timer) async {
         pollCount++;
@@ -136,18 +127,14 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
           return;
         }
 
-        // 查询后端支付状态
         try {
-          final result = await api.get<dynamic>(
-            '${ApiConfig.orderDetail(widget.order.id)}/pay-status',
+          final result = await _paymentService.queryOrderPaymentStatus(
+            widget.order.id,
           );
-          if (result.success) {
-            final data = result.data;
-            if (data is Map && data['status'] == 'success') {
-              timer.cancel();
-              _onPaymentSuccess();
-              return;
-            }
+          if (result?.isSuccess ?? false) {
+            timer.cancel();
+            _onPaymentSuccess();
+            return;
           }
         } catch (_) {
           // 继续轮询

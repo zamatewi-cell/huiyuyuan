@@ -1,9 +1,9 @@
-/// 汇玉源 - 后端服务测试
-/// 
-/// 测试内容:
-/// - API请求封装
-/// - 错误处理
-/// - 连接检查
+// 汇玉源 - 后端服务测试
+//
+// 测试内容:
+// - API请求封装
+// - 错误处理
+// - 连接检查
 import 'package:flutter_test/flutter_test.dart';
 import 'package:huiyuanyuan/services/backend_service.dart';
 import 'package:huiyuanyuan/models/user_model.dart';

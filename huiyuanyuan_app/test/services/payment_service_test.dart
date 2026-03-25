@@ -1,10 +1,10 @@
-/// 汇玉源 - 支付服务测试
-/// 
-/// 测试内容:
-/// - 支付订单创建
-/// - 支付状态查询
-/// - 退款申请
-/// - 支付方式枚举
+// 汇玉源 - 支付服务测试
+//
+// 测试内容:
+// - 支付订单创建
+// - 支付状态查询
+// - 退款申请
+// - 支付方式枚举
 import 'package:flutter_test/flutter_test.dart';
 import 'package:huiyuanyuan/services/payment_service.dart';
 
@@ -183,10 +183,10 @@ void main() {
       final params = await paymentService.initiateWechatPay(order);
 
       expect(params, isNotNull);
-      expect(params['appId'], isNotNull);
-      expect(params['partnerId'], isNotNull);
-      expect(params['prepayId'], isNotNull);
-      expect(params['sign'], isNotNull);
+      expect(params.appId, isNotEmpty);
+      expect(params.partnerId, isNotEmpty);
+      expect(params.prepayId, isNotEmpty);
+      expect(params.sign, isNotEmpty);
     });
 
     test('微信支付参数应包含必要字段', () async {
@@ -197,14 +197,15 @@ void main() {
       );
 
       final params = await paymentService.initiateWechatPay(order);
+      final json = params.toJson();
 
-      expect(params.containsKey('appId'), true);
-      expect(params.containsKey('partnerId'), true);
-      expect(params.containsKey('prepayId'), true);
-      expect(params.containsKey('package'), true);
-      expect(params.containsKey('nonceStr'), true);
-      expect(params.containsKey('timeStamp'), true);
-      expect(params.containsKey('sign'), true);
+      expect(json.containsKey('appId'), true);
+      expect(json.containsKey('partnerId'), true);
+      expect(json.containsKey('prepayId'), true);
+      expect(json.containsKey('package'), true);
+      expect(json.containsKey('nonceStr'), true);
+      expect(json.containsKey('timeStamp'), true);
+      expect(json.containsKey('sign'), true);
     });
   });
 
@@ -216,10 +217,9 @@ void main() {
         method: PaymentMethod.alipay,
       );
 
-      final payString = await paymentService.initiateAlipay(order);
+      final payRequest = await paymentService.initiateAlipay(order);
 
-      expect(payString, isNotNull);
-      expect(payString.isNotEmpty, true);
+      expect(payRequest.orderString, isNotEmpty);
     });
 
     test('支付宝支付字符串应包含必要信息', () async {
@@ -229,9 +229,9 @@ void main() {
         method: PaymentMethod.alipay,
       );
 
-      final payString = await paymentService.initiateAlipay(order);
+      final payRequest = await paymentService.initiateAlipay(order);
 
-      expect(payString.contains('alipay'), true);
+      expect(payRequest.orderString.contains('alipay'), true);
     });
   });
 
@@ -289,9 +289,9 @@ void main() {
         reason: '用户申请退款',
       );
 
-      expect(result['success'], true);
-      expect(result['refund_id'], isNotNull);
-      expect(result['message'], isNotNull);
+      expect(result.success, true);
+      expect(result.refundId, isNotEmpty);
+      expect(result.message, isNotEmpty);
     });
 
     test('退款申请应包含退款ID', () async {
@@ -301,16 +301,16 @@ void main() {
         amount: 599.0,
       );
 
-      expect(result['refund_id'], isNotNull);
-      expect(result['refund_id'].toString().contains('REFUND'), true);
+      expect(result.refundId, isNotEmpty);
+      expect(result.refundId.contains('REFUND'), true);
     });
 
     test('查询退款状态应返回结果', () async {
       final result = await paymentService.queryRefundStatus('REFUND-TEST-001');
 
       expect(result, isNotNull);
-      expect(result['refund_id'], 'REFUND-TEST-001');
-      expect(result['status'], isNotNull);
+      expect(result.refundId, 'REFUND-TEST-001');
+      expect(result.status, RefundStatus.processing);
     });
   });
 
@@ -358,7 +358,37 @@ void main() {
         amount: 299.0,
       );
 
-      expect(result['success'], true);
+      expect(result.success, true);
+    });
+  });
+
+  group('支付响应 DTO 测试', () {
+    test('订单支付状态应正确解析', () {
+      final result = OrderPaymentStatusResult.fromJson({
+        'status': 'success',
+        'payment_id': 'PAY-STATUS-001',
+        'message': '支付成功',
+      });
+
+      expect(result.isSuccess, true);
+      expect(result.paymentId, 'PAY-STATUS-001');
+      expect(result.message, '支付成功');
+    });
+
+    test('微信支付参数 toJson 应保留 package 字段', () {
+      const params = WechatPayParams(
+        appId: 'wx-app',
+        partnerId: 'mch-1',
+        prepayId: 'prepay-1',
+        packageValue: 'Sign=WXPay',
+        nonceStr: 'nonce',
+        timeStamp: '123456',
+        sign: 'sign',
+      );
+
+      final json = params.toJson();
+
+      expect(json['package'], 'Sign=WXPay');
     });
   });
 

@@ -2,6 +2,7 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'json_parsing.dart';
 
 // ============ 店铺模型 ============
 
@@ -93,30 +94,40 @@ class ShopModel {
 
   factory ShopModel.fromJson(Map<String, dynamic> json) {
     return ShopModel(
-      id: json['id'] ?? '',
-      name: json['name'] ?? '',
-      platform: json['platform'] ?? '',
-      rating: (json['rating'] ?? 0).toDouble(),
-      conversionRate: (json['conversion_rate'] ?? 0).toDouble(),
-      followers: json['followers'] ?? 0,
-      category: json['category'] ?? '',
-      contactStatus: ContactStatus.values.firstWhere(
-        (s) => s.name == json['contact_status'],
-        orElse: () => ContactStatus.pending,
+      id: jsonAsString(json['id']),
+      name: jsonAsString(json['name']),
+      platform: jsonAsString(json['platform']),
+      rating: jsonAsDouble(json['rating']),
+      conversionRate: jsonAsDouble(json['conversion_rate']),
+      followers: jsonAsInt(json['followers']),
+      category: jsonAsString(json['category']),
+      contactStatus: jsonEnumByName(
+        ContactStatus.values,
+        json['contact_status'],
+        fallback: ContactStatus.pending,
       ),
-      blockchainHash: json['blockchain_hash'],
-      shopUrl: json['shop_url'],
-      monthlySales: json['monthly_sales'],
-      negativeRate: json['negative_rate']?.toDouble(),
-      dsrScore: json['dsr_score']?.toDouble(),
-      isInfluencer: json['is_influencer'] ?? false,
-      liveRoomUrl: json['live_room_url'],
-      audienceMatchRate: json['audience_match_rate']?.toDouble(),
-      operatorId: json['operator_id'],
-      lastContactAt: json['last_contact_at'] != null
-          ? DateTime.parse(json['last_contact_at'])
-          : null,
-      aiPriority: json['ai_priority'],
+      blockchainHash: jsonAsNullableString(json['blockchain_hash']),
+      shopUrl: jsonAsNullableString(json['shop_url']),
+      monthlySales: jsonAsNullableString(json['monthly_sales']) == null
+          ? null
+          : jsonAsInt(json['monthly_sales']),
+      negativeRate: jsonAsNullableString(json['negative_rate']) == null
+          ? null
+          : jsonAsDouble(json['negative_rate']),
+      dsrScore: jsonAsNullableString(json['dsr_score']) == null
+          ? null
+          : jsonAsDouble(json['dsr_score']),
+      isInfluencer: jsonAsBool(json['is_influencer']),
+      liveRoomUrl: jsonAsNullableString(json['live_room_url']),
+      audienceMatchRate: jsonAsNullableString(json['audience_match_rate']) ==
+              null
+          ? null
+          : jsonAsDouble(json['audience_match_rate']),
+      operatorId: jsonAsNullableString(json['operator_id']),
+      lastContactAt: jsonAsNullableDateTime(json['last_contact_at']),
+      aiPriority: jsonAsNullableString(json['ai_priority']) == null
+          ? null
+          : jsonAsInt(json['ai_priority']),
     );
   }
 

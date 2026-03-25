@@ -1,5 +1,19 @@
 import 'package:flutter/material.dart';
 
+class _JewelryPreview {
+  final String name;
+  final Color color;
+  final int price;
+  final String material;
+
+  const _JewelryPreview({
+    required this.name,
+    required this.color,
+    required this.price,
+    required this.material,
+  });
+}
+
 /// AR 虚拟试戴页面
 class ARTryOnScreen extends StatefulWidget {
   const ARTryOnScreen({super.key});
@@ -11,41 +25,42 @@ class ARTryOnScreen extends StatefulWidget {
 class _ARTryOnScreenState extends State<ARTryOnScreen> {
   int _selectedJewelry = 0;
 
-  final List<Map<String, dynamic>> _jewelryList = [
-    {
-      'name': '和田玉福运手链',
-      'color': const Color(0xFFF5F5DC),
-      'price': 299,
-      'material': '和田玉'
-    },
-    {
-      'name': '翡翠平安扣',
-      'color': const Color(0xFF32CD32),
-      'price': 599,
-      'material': '缅甸翡翠'
-    },
-    {
-      'name': '玛瑙转运珠',
-      'color': const Color(0xFFFF6347),
-      'price': 199,
-      'material': '南红玛瑙'
-    },
-    {
-      'name': '紫水晶能量链',
-      'color': const Color(0xFF9370DB),
-      'price': 168,
-      'material': '紫水晶'
-    },
-    {
-      'name': '碧玉如意吊坠',
-      'color': const Color(0xFF228B22),
-      'price': 880,
-      'material': '碧玉'
-    },
+  final List<_JewelryPreview> _jewelryList = const [
+    _JewelryPreview(
+      name: '和田玉福运手链',
+      color: Color(0xFFF5F5DC),
+      price: 299,
+      material: '和田玉',
+    ),
+    _JewelryPreview(
+      name: '翡翠平安扣',
+      color: Color(0xFF32CD32),
+      price: 599,
+      material: '缅甸翡翠',
+    ),
+    _JewelryPreview(
+      name: '玛瑙转运珠',
+      color: Color(0xFFFF6347),
+      price: 199,
+      material: '南红玛瑙',
+    ),
+    _JewelryPreview(
+      name: '紫水晶能量链',
+      color: Color(0xFF9370DB),
+      price: 168,
+      material: '紫水晶',
+    ),
+    _JewelryPreview(
+      name: '碧玉如意吊坠',
+      color: Color(0xFF228B22),
+      price: 880,
+      material: '碧玉',
+    ),
   ];
 
   @override
   Widget build(BuildContext context) {
+    final selectedJewelry = _jewelryList[_selectedJewelry];
     return Scaffold(
       backgroundColor: Colors.grey[900],
       appBar: AppBar(
@@ -83,8 +98,7 @@ class _ARTryOnScreenState extends State<ARTryOnScreen> {
                 borderRadius: BorderRadius.circular(20),
                 boxShadow: [
                   BoxShadow(
-                    color: _jewelryList[_selectedJewelry]['color']
-                        .withOpacity(0.3),
+                    color: selectedJewelry.color.withOpacity(0.3),
                     blurRadius: 30,
                     spreadRadius: 5,
                   ),
@@ -96,7 +110,7 @@ class _ARTryOnScreenState extends State<ARTryOnScreen> {
                   Positioned.fill(
                     child: CustomPaint(
                       painter: _BackgroundPainter(
-                        color: _jewelryList[_selectedJewelry]['color'],
+                        color: selectedJewelry.color,
                       ),
                     ),
                   ),
@@ -114,13 +128,12 @@ class _ARTryOnScreenState extends State<ARTryOnScreen> {
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
                             border: Border.all(
-                              color: _jewelryList[_selectedJewelry]['color'],
+                              color: selectedJewelry.color,
                               width: 25,
                             ),
                             boxShadow: [
                               BoxShadow(
-                                color: _jewelryList[_selectedJewelry]['color']
-                                    .withOpacity(0.5),
+                                color: selectedJewelry.color.withOpacity(0.5),
                                 blurRadius: 50,
                                 spreadRadius: 15,
                               ),
@@ -135,8 +148,8 @@ class _ARTryOnScreenState extends State<ARTryOnScreen> {
                                 shape: BoxShape.circle,
                                 color: Colors.grey[850],
                                 border: Border.all(
-                                  color: _jewelryList[_selectedJewelry]['color']
-                                      .withOpacity(0.3),
+                                  color:
+                                      selectedJewelry.color.withOpacity(0.3),
                                   width: 3,
                                 ),
                               ),
@@ -166,16 +179,16 @@ class _ARTryOnScreenState extends State<ARTryOnScreen> {
                             color: const Color(0xFF2E8B57).withOpacity(0.2),
                             borderRadius: BorderRadius.circular(20),
                           ),
-                          child: Row(
+                          child: const Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Icon(
                                 Icons.view_in_ar,
-                                color: const Color(0xFF2E8B57),
+                                color: Color(0xFF2E8B57),
                                 size: 18,
                               ),
-                              const SizedBox(width: 6),
-                              const Text(
+                              SizedBox(width: 6),
+                              Text(
                                 '360° 旋转查看',
                                 style: TextStyle(
                                   color: Color(0xFF2E8B57),
@@ -196,7 +209,7 @@ class _ARTryOnScreenState extends State<ARTryOnScreen> {
           // 产品信息
           Container(
             padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
+            decoration: const BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.bottomCenter,
                 end: Alignment.topCenter,
@@ -213,7 +226,7 @@ class _ARTryOnScreenState extends State<ARTryOnScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          _jewelryList[_selectedJewelry]['name'],
+                          selectedJewelry.name,
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 22,
@@ -222,7 +235,7 @@ class _ARTryOnScreenState extends State<ARTryOnScreen> {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          _jewelryList[_selectedJewelry]['material'],
+                          selectedJewelry.material,
                           style: TextStyle(
                             color: Colors.grey[400],
                             fontSize: 14,
@@ -238,7 +251,7 @@ class _ARTryOnScreenState extends State<ARTryOnScreen> {
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Text(
-                        '¥${_jewelryList[_selectedJewelry]['price']}',
+                        '¥${selectedJewelry.price}',
                         style: const TextStyle(
                           color: Colors.black87,
                           fontSize: 18,
@@ -265,7 +278,7 @@ class _ARTryOnScreenState extends State<ARTryOnScreen> {
                           width: 70,
                           margin: const EdgeInsets.symmetric(horizontal: 6),
                           decoration: BoxDecoration(
-                            color: _jewelryList[index]['color'],
+                            color: _jewelryList[index].color,
                             borderRadius: BorderRadius.circular(35),
                             border: Border.all(
                               color: isSelected
@@ -276,7 +289,8 @@ class _ARTryOnScreenState extends State<ARTryOnScreen> {
                             boxShadow: isSelected
                                 ? [
                                     BoxShadow(
-                                      color: _jewelryList[index]['color']
+                                      color: _jewelryList[index]
+                                          .color
                                           .withOpacity(0.6),
                                       blurRadius: 15,
                                       spreadRadius: 2,
@@ -349,7 +363,7 @@ class _ARTryOnScreenState extends State<ARTryOnScreen> {
           children: [
             const Icon(Icons.check_circle, color: Colors.white),
             const SizedBox(width: 8),
-            Text('已保存 ${_jewelryList[_selectedJewelry]['name']} 的试戴效果'),
+            Text('已保存 ${_jewelryList[_selectedJewelry].name} 的试戴效果'),
           ],
         ),
         backgroundColor: const Color(0xFF2E8B57),
@@ -423,7 +437,7 @@ class _ARTryOnScreenState extends State<ARTryOnScreen> {
       builder: (context) => AlertDialog(
         title: const Text('推荐给客户'),
         content: Text(
-            '确定将 "${_jewelryList[_selectedJewelry]['name']}" 推荐给当前沟通的客户吗？'),
+            '确定将 "${_jewelryList[_selectedJewelry].name}" 推荐给当前沟通的客户吗？'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -435,7 +449,7 @@ class _ARTryOnScreenState extends State<ARTryOnScreen> {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                   content: Text(
-                      '已将 ${_jewelryList[_selectedJewelry]['name']} 推荐给客户'),
+                      '已将 ${_jewelryList[_selectedJewelry].name} 推荐给客户'),
                   backgroundColor: const Color(0xFF2E8B57),
                 ),
               );

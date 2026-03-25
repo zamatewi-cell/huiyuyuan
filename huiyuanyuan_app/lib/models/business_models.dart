@@ -1,6 +1,8 @@
 /// 汇玉源 - 操作简报模型
 library;
 
+import 'json_parsing.dart';
+
 /// 日报简报模型
 class DailyReportModel {
   final String id;
@@ -31,17 +33,17 @@ class DailyReportModel {
 
   factory DailyReportModel.fromJson(Map<String, dynamic> json) {
     return DailyReportModel(
-      id: json['id'] ?? '',
-      operatorId: json['operator_id'] ?? '',
-      date: DateTime.parse(json['date']),
-      contactedShops: json['contacted_shops'] ?? 0,
-      interestedCount: json['interested_count'] ?? 0,
-      cooperatedCount: json['cooperated_count'] ?? 0,
-      aiUsageCount: json['ai_usage_count'] ?? 0,
-      orderAmount: (json['order_amount'] ?? 0).toDouble(),
-      newCustomers: json['new_customers'] ?? 0,
-      autoAcquiredCount: json['auto_acquired_count'] ?? 0,
-      isReported: json['is_reported'] ?? false,
+      id: jsonAsString(json['id']),
+      operatorId: jsonAsString(json['operator_id']),
+      date: jsonAsDateTime(json['date']),
+      contactedShops: jsonAsInt(json['contacted_shops']),
+      interestedCount: jsonAsInt(json['interested_count']),
+      cooperatedCount: jsonAsInt(json['cooperated_count']),
+      aiUsageCount: jsonAsInt(json['ai_usage_count']),
+      orderAmount: jsonAsDouble(json['order_amount']),
+      newCustomers: jsonAsInt(json['new_customers']),
+      autoAcquiredCount: jsonAsInt(json['auto_acquired_count']),
+      isReported: jsonAsBool(json['is_reported']),
     );
   }
 
@@ -58,51 +60,6 @@ class DailyReportModel {
       'new_customers': newCustomers,
       'auto_acquired_count': autoAcquiredCount,
       'is_reported': isReported,
-    };
-  }
-}
-
-/// 收款账户模型
-class PaymentAccountModel {
-  final String id;
-  final String operatorId;
-  final String accountType;
-  final String accountName;
-  final String accountNumber;
-  final bool isDefault;
-  final DateTime createdAt;
-
-  PaymentAccountModel({
-    required this.id,
-    required this.operatorId,
-    required this.accountType,
-    required this.accountName,
-    required this.accountNumber,
-    this.isDefault = false,
-    required this.createdAt,
-  });
-
-  factory PaymentAccountModel.fromJson(Map<String, dynamic> json) {
-    return PaymentAccountModel(
-      id: json['id'] ?? '',
-      operatorId: json['operator_id'] ?? '',
-      accountType: json['account_type'] ?? 'alipay',
-      accountName: json['account_name'] ?? '',
-      accountNumber: json['account_number'] ?? '',
-      isDefault: json['is_default'] ?? false,
-      createdAt: DateTime.parse(json['created_at']),
-    );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'operator_id': operatorId,
-      'account_type': accountType,
-      'account_name': accountName,
-      'account_number': accountNumber,
-      'is_default': isDefault,
-      'created_at': createdAt.toIso8601String(),
     };
   }
 }
@@ -129,13 +86,13 @@ class ReminderModel {
 
   factory ReminderModel.fromJson(Map<String, dynamic> json) {
     return ReminderModel(
-      id: json['id'] ?? '',
-      title: json['title'] ?? '',
-      content: json['content'] ?? '',
-      type: json['type'] ?? '',
-      remindAt: DateTime.parse(json['remind_at']),
-      customSound: json['custom_sound'],
-      isTriggered: json['is_triggered'] ?? false,
+      id: jsonAsString(json['id']),
+      title: jsonAsString(json['title']),
+      content: jsonAsString(json['content']),
+      type: jsonAsString(json['type']),
+      remindAt: jsonAsDateTime(json['remind_at']),
+      customSound: jsonAsNullableString(json['custom_sound']),
+      isTriggered: jsonAsBool(json['is_triggered']),
     );
   }
 
@@ -178,15 +135,15 @@ class BlockchainCertificate {
 
   factory BlockchainCertificate.fromJson(Map<String, dynamic> json) {
     return BlockchainCertificate(
-      id: json['id'] ?? '',
-      certNo: json['cert_no'] ?? '',
-      materialType: json['material_type'] ?? '',
-      origin: json['origin'] ?? '',
-      certDate: DateTime.parse(json['cert_date']),
-      institution: json['institution'] ?? '',
-      compositionData: json['composition_data'],
-      txHash: json['tx_hash'] ?? '',
-      isVerified: json['is_verified'] ?? true,
+      id: jsonAsString(json['id']),
+      certNo: jsonAsString(json['cert_no']),
+      materialType: jsonAsString(json['material_type']),
+      origin: jsonAsString(json['origin']),
+      certDate: jsonAsDateTime(json['cert_date']),
+      institution: jsonAsString(json['institution']),
+      compositionData: jsonAsNullableMap(json['composition_data']),
+      txHash: jsonAsString(json['tx_hash']),
+      isVerified: jsonAsBool(json['is_verified'], fallback: true),
     );
   }
 

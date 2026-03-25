@@ -1,9 +1,9 @@
-/// 汇玉源 - 地址服务测试
-/// 
-/// 测试内容:
-/// - 地址CRUD操作
-/// - 默认地址管理
-/// - 地址校验
+// 汇玉源 - 地址服务测试
+//
+// 测试内容:
+// - 地址CRUD操作
+// - 默认地址管理
+// - 地址校验
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:huiyuanyuan/services/address_service.dart';

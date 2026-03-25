@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../models/json_parsing.dart';
 import '../../models/order_model.dart';
 import '../../themes/colors.dart';
 import '../../services/api_service.dart';
@@ -43,11 +44,14 @@ class _LogisticsScreenState extends State<LogisticsScreen> {
         if (mounted) {
           setState(() {
             _apiEntries = items
-                .map((j) => LogisticsEntry(
-                      description: j['description'] ?? '',
-                      time: DateTime.tryParse(j['time'] ?? '') ?? DateTime.now(),
-                      location: j['location'],
-                    ))
+                .map((j) {
+                  final entry = jsonAsMap(j);
+                  return LogisticsEntry(
+                    description: jsonAsString(entry['description']),
+                    time: jsonAsDateTime(entry['time']),
+                    location: jsonAsNullableString(entry['location']),
+                  );
+                })
                 .toList();
           });
         }
@@ -95,7 +99,7 @@ class _LogisticsScreenState extends State<LogisticsScreen> {
               children: [
                 Row(
                   children: [
-                    Icon(
+                    const Icon(
                       Icons.local_shipping_outlined,
                       color: JewelryColors.primaryGreen,
                       size: 20,
@@ -144,7 +148,7 @@ class _LogisticsScreenState extends State<LogisticsScreen> {
                             const SnackBar(content: Text('已复制快递单号')),
                           );
                         },
-                        child: Icon(Icons.copy, size: 14, color: JewelryColors.primaryGreen),
+                        child: const Icon(Icons.copy, size: 14, color: JewelryColors.primaryGreen),
                       ),
                     ],
                   ),

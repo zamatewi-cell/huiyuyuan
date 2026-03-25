@@ -8,8 +8,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../config/api_config.dart';
 import '../models/inventory_model.dart';
 import '../models/product_model.dart';
+import 'product_catalog_provider.dart';
 import '../services/api_service.dart';
-import '../services/product_service.dart';
 
 const _kInventoryCacheKey = 'inventory_cache';
 const _kInventoryTxCacheKey = 'inventory_tx_cache';
@@ -31,12 +31,13 @@ List<InventoryItem> _buildInventoryFromProducts(List<ProductModel> products) {
 }
 
 class InventoryNotifier extends StateNotifier<List<InventoryItem>> {
-  InventoryNotifier() : super(const []) {
+  InventoryNotifier(this._ref) : super(const []) {
+    _listenToProductCatalog();
     _loadFromStorage();
   }
 
+  final Ref _ref;
   final _api = ApiService();
-  final _productService = ProductService();
 
   Future<void> _loadFromStorage() async {
     try {
@@ -66,16 +67,7 @@ class InventoryNotifier extends StateNotifier<List<InventoryItem>> {
       }
     } catch (_) {}
 
-    try {
-      final products = await _productService.getProducts(
-        pageSize: 100,
-        forceRefresh: true,
-      );
-      if (products.isNotEmpty) {
-        state = _buildInventoryFromProducts(products);
-        await _saveToLocal();
-      }
-    } catch (_) {}
+    await _loadFromProductCatalog();
   }
 
   Future<void> _saveToLocal() async {
@@ -177,6 +169,75 @@ class InventoryNotifier extends StateNotifier<List<InventoryItem>> {
     await _loadFromStorage();
   }
 
+  void _listenToProductCatalog() {
+    _ref.listen<ProductCatalogState>(
+      productCatalogProvider,
+      (previous, next) {
+        if (next.products.isEmpty) {
+          final hadProducts = previous?.products.isNotEmpty ?? false;
+          if (hadProducts && !next.isLoading && next.errorMessage == null) {
+            _syncWithProductCatalog(const <ProductModel>[]);
+          }
+          return;
+        }
+        _syncWithProductCatalog(next.products);
+      },
+    );
+  }
+
+  Future<void> _loadFromProductCatalog() async {
+    try {
+      var productState = _ref.read(productCatalogProvider);
+      if (productState.products.isEmpty) {
+        await _ref.read(productCatalogProvider.notifier).refresh();
+        productState = _ref.read(productCatalogProvider);
+      }
+
+      if (productState.products.isNotEmpty) {
+        await _syncWithProductCatalog(productState.products);
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _syncWithProductCatalog(List<ProductModel> products) async {
+    final existingByProductId = {
+      for (final item in state) item.productId: item,
+    };
+
+    state = List<InventoryItem>.unmodifiable(
+      products.map((product) {
+        return _mergeInventoryItem(
+          product,
+          existingByProductId[product.id],
+        );
+      }),
+    );
+
+    await _saveToLocal();
+  }
+
+  InventoryItem _mergeInventoryItem(
+    ProductModel product,
+    InventoryItem? existing,
+  ) {
+    final seeded = _buildInventoryFromProducts([product]).single;
+    if (existing == null) {
+      return seeded;
+    }
+
+    return InventoryItem(
+      productId: product.id,
+      productName: product.name,
+      category: product.category,
+      imageUrl: product.images.isNotEmpty ? product.images.first : null,
+      currentStock: existing.currentStock,
+      minStock: existing.minStock,
+      costPrice: existing.costPrice,
+      sellingPrice: product.price.toDouble(),
+      lastUpdated: existing.lastUpdated,
+    );
+  }
+
   InventoryStats get stats {
     return InventoryStats(
       totalSkus: state.length,
@@ -258,7 +319,7 @@ class InventoryTxNotifier extends StateNotifier<List<InventoryTransaction>> {
 
 final inventoryProvider =
     StateNotifierProvider<InventoryNotifier, List<InventoryItem>>(
-  (ref) => InventoryNotifier(),
+  (ref) => InventoryNotifier(ref),
 );
 
 final inventoryTxProvider =

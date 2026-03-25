@@ -1,50 +1,55 @@
-/// 汇玉源 - 认证 Provider 测试
-/// 
-/// 测试内容:
-/// - 管理员登录认证
-/// - 操作员登录认证
-/// - 登录状态管理
-/// - 权限检查
-/// - 退出登录
+// 汇玉源 - 认证 Provider 测试
+//
+// 测试内容:
+// - 管理员登录认证
+// - 操作员登录认证
+// - 登录状态管理
+// - 权限检查
+// - 退出登录
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:huiyuanyuan/config/api_config.dart';
 import 'package:huiyuanyuan/providers/auth_provider.dart';
 import 'package:huiyuanyuan/models/user_model.dart';
+import 'package:huiyuanyuan/services/storage_service.dart';
 
 void main() {
   // flutter_secure_storage 需要 ServicesBinding 初始化
   TestWidgetsFlutterBinding.ensureInitialized();
 
   late ProviderContainer container;
+  late bool originalUseMockApi;
 
   setUp(() async {
+    originalUseMockApi = ApiConfig.useMockApi;
+    ApiConfig.useMockApi = true;
     // Mock flutter_secure_storage MethodChannel（单元测试环境无 platform 实现）
     const MethodChannel secureStorageChannel = MethodChannel(
       'plugins.it_nomads.com/flutter_secure_storage',
     );
-    final Map<String, String> _secureStore = {};
+    final Map<String, String> secureStore = {};
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(secureStorageChannel, (call) async {
       switch (call.method) {
         case 'write':
           final key = call.arguments['key'] as String;
           final value = call.arguments['value'] as String?;
-          if (value != null) _secureStore[key] = value;
+          if (value != null) secureStore[key] = value;
           return null;
         case 'read':
-          return _secureStore[call.arguments['key'] as String];
+          return secureStore[call.arguments['key'] as String];
         case 'delete':
-          _secureStore.remove(call.arguments['key'] as String);
+          secureStore.remove(call.arguments['key'] as String);
           return null;
         case 'deleteAll':
-          _secureStore.clear();
+          secureStore.clear();
           return null;
         case 'readAll':
-          return Map<String, String>.from(_secureStore);
+          return Map<String, String>.from(secureStore);
         case 'containsKey':
-          return _secureStore.containsKey(call.arguments['key'] as String);
+          return secureStore.containsKey(call.arguments['key'] as String);
         default:
           return null;
       }
@@ -52,11 +57,13 @@ void main() {
 
     // 初始化 Mock SharedPreferences
     SharedPreferences.setMockInitialValues({});
+    await StorageService().clearAll();
     container = ProviderContainer();
   });
 
   tearDown(() {
     container.dispose();
+    ApiConfig.useMockApi = originalUseMockApi;
   });
 
   group('管理员登录测试', () {

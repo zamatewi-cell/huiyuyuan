@@ -408,7 +408,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen>
           ],
         ),
         const SizedBox(height: 10),
-        ...items.take(5).map((item) => _buildWarningRow(item)).toList(),
+        ...items.take(5).map((item) => _buildWarningRow(item)),
         if (items.length > 5)
           TextButton(
             onPressed: () => _tabController.animateTo(1),

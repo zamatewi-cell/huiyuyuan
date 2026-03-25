@@ -3,6 +3,7 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'json_parsing.dart';
 
 // ============ 订单模型 ============
 
@@ -48,9 +49,9 @@ class LogisticsEntry {
 
   factory LogisticsEntry.fromJson(Map<String, dynamic> json) {
     return LogisticsEntry(
-      description: json['description'] ?? '',
-      time: DateTime.parse(json['time']),
-      location: json['location'],
+      description: jsonAsString(json['description']),
+      time: jsonAsDateTime(json['time']),
+      location: jsonAsNullableString(json['location']),
     );
   }
 
@@ -213,61 +214,57 @@ class OrderModel {
 
   factory OrderModel.fromJson(Map<String, dynamic> json) {
     return OrderModel(
-      id: json['id'] ?? '',
-      productId: json['product_id'] ?? '',
-      productName: json['product_name'] ?? '',
-      quantity: json['quantity'] ?? 1,
-      amount: (json['amount'] ?? 0).toDouble(),
-      status: OrderStatus.values.firstWhere(
-        (s) => s.name == json['status'],
-        orElse: () => OrderStatus.pending,
+      id: jsonAsString(json['id']),
+      productId: jsonAsString(json['product_id']),
+      productName: jsonAsString(json['product_name']),
+      quantity: jsonAsInt(json['quantity'], fallback: 1),
+      amount: jsonAsDouble(json['amount']),
+      status: jsonEnumByName(
+        OrderStatus.values,
+        json['status'],
+        fallback: OrderStatus.pending,
       ),
-      createdAt: json['created_at'] != null
-          ? DateTime.parse(json['created_at'])
-          : DateTime.now(),
-      txHash: json['tx_hash'],
-      operatorId: json['operator_id'],
-      paymentAccountId: json['payment_account_id'],
-      productImage: json['product_image'],
-      productSpec: json['product_spec'],
-      unitPrice: json['unit_price']?.toDouble(),
-      paymentMethod: json['payment_method'] != null
-          ? PaymentMethod.values.firstWhere(
-              (m) => m.name == json['payment_method'],
-              orElse: () => PaymentMethod.wechat,
-            )
-          : null,
-      paymentId: json['payment_id'],
-      paidAt:
-          json['paid_at'] != null ? DateTime.parse(json['paid_at']) : null,
-      shippedAt: json['shipped_at'] != null
-          ? DateTime.parse(json['shipped_at'])
-          : null,
-      deliveredAt: json['delivered_at'] != null
-          ? DateTime.parse(json['delivered_at'])
-          : null,
-      completedAt: json['completed_at'] != null
-          ? DateTime.parse(json['completed_at'])
-          : null,
-      cancelledAt: json['cancelled_at'] != null
-          ? DateTime.parse(json['cancelled_at'])
-          : null,
-      cancelReason: json['cancel_reason'],
-      logisticsCompany: json['logistics_company'],
-      trackingNumber: json['tracking_number'],
-      logisticsEntries: json['logistics_entries'] != null
-          ? (json['logistics_entries'] as List)
-              .map((e) => LogisticsEntry.fromJson(e))
-              .toList()
-          : null,
-      recipientName: json['recipient_name'],
-      recipientPhone: json['recipient_phone'],
-      shippingAddress: json['shipping_address'],
-      shippingFee: (json['shipping_fee'] ?? 0).toDouble(),
-      discount: (json['discount'] ?? 0).toDouble(),
-      remark: json['remark'],
-      refundReason: json['refund_reason'],
-      refundAmount: json['refund_amount']?.toDouble(),
+      createdAt: jsonAsDateTime(json['created_at']),
+      txHash: jsonAsNullableString(json['tx_hash']),
+      operatorId: jsonAsNullableString(json['operator_id']),
+      paymentAccountId: jsonAsNullableString(json['payment_account_id']),
+      productImage: jsonAsNullableString(json['product_image']),
+      productSpec: jsonAsNullableString(json['product_spec']),
+      unitPrice: jsonAsNullableString(json['unit_price']) == null
+          ? null
+          : jsonAsDouble(json['unit_price']),
+      paymentMethod: jsonAsNullableString(json['payment_method']) == null
+          ? null
+          : jsonEnumByName(
+              PaymentMethod.values,
+              json['payment_method'],
+              fallback: PaymentMethod.wechat,
+            ),
+      paymentId: jsonAsNullableString(json['payment_id']),
+      paidAt: jsonAsNullableDateTime(json['paid_at']),
+      shippedAt: jsonAsNullableDateTime(json['shipped_at']),
+      deliveredAt: jsonAsNullableDateTime(json['delivered_at']),
+      completedAt: jsonAsNullableDateTime(json['completed_at']),
+      cancelledAt: jsonAsNullableDateTime(json['cancelled_at']),
+      cancelReason: jsonAsNullableString(json['cancel_reason']),
+      logisticsCompany: jsonAsNullableString(json['logistics_company']),
+      trackingNumber: jsonAsNullableString(json['tracking_number']),
+      logisticsEntries: json['logistics_entries'] == null
+          ? null
+          : jsonAsList(
+              json['logistics_entries'],
+              (entry) => LogisticsEntry.fromJson(jsonAsMap(entry)),
+            ),
+      recipientName: jsonAsNullableString(json['recipient_name']),
+      recipientPhone: jsonAsNullableString(json['recipient_phone']),
+      shippingAddress: jsonAsNullableString(json['shipping_address']),
+      shippingFee: jsonAsDouble(json['shipping_fee']),
+      discount: jsonAsDouble(json['discount']),
+      remark: jsonAsNullableString(json['remark']),
+      refundReason: jsonAsNullableString(json['refund_reason']),
+      refundAmount: jsonAsNullableString(json['refund_amount']) == null
+          ? null
+          : jsonAsDouble(json['refund_amount']),
     );
   }
 

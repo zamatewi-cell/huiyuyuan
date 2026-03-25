@@ -1,10 +1,10 @@
-/// 汇玉源 - 登录流程集成测试
-/// 
-/// 测试场景:
-/// 1. 管理员完整登录流程
-/// 2. 操作员完整登录流程
-/// 3. 登录状态管理
-/// 4. Provider 状态测试
+// 汇玉源 - 登录流程集成测试
+//
+// 测试场景:
+// 1. 管理员完整登录流程
+// 2. 操作员完整登录流程
+// 3. 登录状态管理
+// 4. Provider 状态测试
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -17,39 +17,49 @@ import 'package:huiyuanyuan/screens/login_screen.dart';
 import 'package:huiyuanyuan/providers/auth_provider.dart';
 import 'package:huiyuanyuan/models/user_model.dart';
 import 'package:huiyuanyuan/config/api_config.dart';
+import 'package:huiyuanyuan/services/storage_service.dart';
 
 void main() {
+  late bool originalUseMockApi;
+
   setUp(() async {
+    originalUseMockApi = ApiConfig.useMockApi;
+    ApiConfig.useMockApi = true;
     SharedPreferences.setMockInitialValues({});
+    await StorageService().clearAll();
     // mock flutter_secure_storage
     const MethodChannel secureStorageChannel = MethodChannel(
       'plugins.it_nomads.com/flutter_secure_storage',
     );
-    final Map<String, String> _store = {};
+    final Map<String, String> store = {};
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(secureStorageChannel, (call) async {
       switch (call.method) {
         case 'write':
           final key = call.arguments['key'] as String;
           final value = call.arguments['value'] as String?;
-          if (value != null) _store[key] = value;
+          if (value != null) store[key] = value;
           return null;
         case 'read':
-          return _store[call.arguments['key'] as String];
+          return store[call.arguments['key'] as String];
         case 'delete':
-          _store.remove(call.arguments['key'] as String);
+          store.remove(call.arguments['key'] as String);
           return null;
         case 'deleteAll':
-          _store.clear();
+          store.clear();
           return null;
         case 'readAll':
-          return Map<String, String>.from(_store);
+          return Map<String, String>.from(store);
         case 'containsKey':
-          return _store.containsKey(call.arguments['key'] as String);
+          return store.containsKey(call.arguments['key'] as String);
         default:
           return null;
       }
-    });
+        });
+  });
+
+  tearDown(() {
+    ApiConfig.useMockApi = originalUseMockApi;
   });
 
   group('登录页面 UI 测试', () {

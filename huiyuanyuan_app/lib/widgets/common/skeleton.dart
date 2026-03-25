@@ -189,10 +189,10 @@ class ListItemSkeleton extends StatelessWidget {
             const SkeletonBox(width: 60, height: 60, borderRadius: 12),
             const SizedBox(width: 12),
           ],
-          Expanded(
+          const Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: const [
+              children: [
                 SkeletonBox(height: 16, width: double.infinity),
                 SizedBox(height: 8),
                 SkeletonBox(height: 12, width: 120),
@@ -229,26 +229,26 @@ class OrderCardSkeleton extends StatelessWidget {
           ),
         ],
       ),
-      child: Column(
+      child: const Column(
         children: [
           // 订单头部
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: const [
+            children: [
               SkeletonBox(height: 14, width: 100),
               SkeletonBox(height: 14, width: 60),
             ],
           ),
-          const Divider(height: 24),
+          Divider(height: 24),
           // 商品信息
           Row(
             children: [
-              const SkeletonBox(width: 80, height: 80, borderRadius: 12),
-              const SizedBox(width: 12),
+              SkeletonBox(width: 80, height: 80, borderRadius: 12),
+              SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  children: const [
+                  children: [
                     SkeletonBox(height: 16, width: double.infinity),
                     SizedBox(height: 8),
                     SkeletonBox(height: 12, width: 80),
@@ -259,11 +259,11 @@ class OrderCardSkeleton extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: 16),
           // 操作按钮
           Row(
             mainAxisAlignment: MainAxisAlignment.end,
-            children: const [
+            children: [
               SkeletonBox(height: 36, width: 80, borderRadius: 18),
               SizedBox(width: 12),
               SkeletonBox(height: 36, width: 80, borderRadius: 18),
@@ -288,29 +288,29 @@ class ShopCardSkeleton extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
       ),
-      child: Column(
+      child: const Column(
         children: [
           Row(
             children: [
-              const SkeletonBox(width: 50, height: 50, isCircle: true),
-              const SizedBox(width: 12),
+              SkeletonBox(width: 50, height: 50, isCircle: true),
+              SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  children: const [
+                  children: [
                     SkeletonBox(height: 16, width: 150),
                     SizedBox(height: 6),
                     SkeletonBox(height: 12, width: 100),
                   ],
                 ),
               ),
-              const SkeletonBox(height: 24, width: 60, borderRadius: 12),
+              SkeletonBox(height: 24, width: 60, borderRadius: 12),
             ],
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: 16),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: const [
+            children: [
               _StatSkeleton(),
               _StatSkeleton(),
               _StatSkeleton(),
@@ -327,8 +327,8 @@ class _StatSkeleton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: const [
+    return const Column(
+      children: [
         SkeletonBox(height: 20, width: 50),
         SizedBox(height: 4),
         SkeletonBox(height: 12, width: 40),
@@ -345,13 +345,13 @@ class ProfileHeaderSkeleton extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(20),
-      child: Row(
+      child: const Row(
         children: [
-          const SkeletonBox(width: 70, height: 70, isCircle: true),
-          const SizedBox(width: 16),
+          SkeletonBox(width: 70, height: 70, isCircle: true),
+          SizedBox(width: 16),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
-            children: const [
+            children: [
               SkeletonBox(height: 20, width: 100),
               SizedBox(height: 8),
               SkeletonBox(height: 14, width: 150),

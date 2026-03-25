@@ -1,42 +1,39 @@
-/// 汇玉源 - 聊天消息模型
 library;
 
 import 'dart:typed_data';
 
-/// 聊天消息模型
+import '../utils/text_sanitizer.dart';
+
 class ChatMessage {
   final String id;
   final String content;
   final bool isUser;
   final DateTime timestamp;
-
-  /// 消息类型（text, image, voice, system, product_card）
   final String type;
-
-  /// 附件URL
   final String? attachmentUrl;
-
-  /// 图片内存字节（用于 Web 兼容，避免 Image.file 崩溃）
   final Uint8List? imageBytes;
-
-  /// AI 推荐的商品 ID 列表（类型为 product_card 时使用）
   final List<String>? productIds;
 
   ChatMessage({
-    required this.id,
-    required this.content,
+    required String id,
+    required String content,
     required this.isUser,
     required this.timestamp,
-    this.type = 'text',
-    this.attachmentUrl,
+    String type = 'text',
+    String? attachmentUrl,
     this.imageBytes,
-    this.productIds,
-  });
+    List<String>? productIds,
+  })  : id = sanitizeUtf16(id),
+        content = sanitizeUtf16(content),
+        type = sanitizeUtf16(type),
+        attachmentUrl =
+            attachmentUrl == null ? null : sanitizeUtf16(attachmentUrl),
+        productIds = productIds?.map(sanitizeUtf16).toList(growable: false);
 
   factory ChatMessage.fromJson(Map<String, dynamic> json) {
     return ChatMessage(
-      id: json['id'] as String,
-      content: json['content'] as String,
+      id: json['id'] as String? ?? '',
+      content: json['content'] as String? ?? '',
       isUser: json['isUser'] as bool,
       timestamp: DateTime.parse(json['timestamp'] as String),
       type: json['type'] as String? ?? 'text',

@@ -1,9 +1,9 @@
-/// 汇玉源 - 购物流程集成测试
-/// 
-/// 测试场景:
-/// 1. 购物车页面 UI
-/// 2. 购物车状态管理
-/// 3. 与存储服务集成
+// 汇玉源 - 购物流程集成测试
+//
+// 测试场景:
+// 1. 购物车页面 UI
+// 2. 购物车状态管理
+// 3. 与存储服务集成
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -17,26 +17,26 @@ void _mockSecureStorage() {
   const MethodChannel ch = MethodChannel(
     'plugins.it_nomads.com/flutter_secure_storage',
   );
-  final Map<String, String> _store = {};
+  final Map<String, String> store = {};
   TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
       .setMockMethodCallHandler(ch, (call) async {
     switch (call.method) {
       case 'write':
         final v = call.arguments['value'] as String?;
-        if (v != null) _store[call.arguments['key'] as String] = v;
+        if (v != null) store[call.arguments['key'] as String] = v;
         return null;
       case 'read':
-        return _store[call.arguments['key'] as String];
+        return store[call.arguments['key'] as String];
       case 'delete':
-        _store.remove(call.arguments['key'] as String);
+        store.remove(call.arguments['key'] as String);
         return null;
       case 'deleteAll':
-        _store.clear();
+        store.clear();
         return null;
       case 'readAll':
-        return Map<String, String>.from(_store);
+        return Map<String, String>.from(store);
       case 'containsKey':
-        return _store.containsKey(call.arguments['key'] as String);
+        return store.containsKey(call.arguments['key'] as String);
       default:
         return null;
     }
@@ -152,8 +152,8 @@ void main() {
       final cart = await storage.getCart();
       
       double total = cart.fold(0.0, (sum, item) {
-        final price = (item['price'] ?? 0).toDouble();
-        final quantity = item['quantity'] ?? 1;
+        final price = (item['price'] as num?)?.toDouble() ?? 0.0;
+        final quantity = (item['quantity'] as num?)?.toInt() ?? 1;
         return sum + price * quantity;
       });
 
@@ -164,8 +164,8 @@ void main() {
       final cart = await storage.getCart();
       
       double total = cart.fold(0.0, (sum, item) {
-        final price = (item['price'] ?? 0).toDouble();
-        final quantity = item['quantity'] ?? 1;
+        final price = (item['price'] as num?)?.toDouble() ?? 0.0;
+        final quantity = (item['quantity'] as num?)?.toInt() ?? 1;
         return sum + price * quantity;
       });
 

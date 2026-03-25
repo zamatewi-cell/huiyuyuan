@@ -8,6 +8,7 @@ library;
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../models/json_parsing.dart';
 import 'api_service.dart';
 
 /// 联系记录模型
@@ -34,14 +35,14 @@ class ContactRecord {
 
   factory ContactRecord.fromJson(Map<String, dynamic> json) {
     return ContactRecord(
-      id: json['id'] ?? '',
-      shopId: json['shop_id'] ?? '',
-      shopName: json['shop_name'] ?? '',
-      date: json['date'] ?? '',
-      action: json['action'] ?? '',
-      result: json['result'] ?? '',
-      note: json['note'],
-      statusColor: json['status_color'],
+      id: jsonAsString(json['id']),
+      shopId: jsonAsString(json['shop_id']),
+      shopName: jsonAsString(json['shop_name']),
+      date: jsonAsString(json['date']),
+      action: jsonAsString(json['action']),
+      result: jsonAsString(json['result']),
+      note: jsonAsNullableString(json['note']),
+      statusColor: jsonAsNullableString(json['status_color']),
     );
   }
 
@@ -81,7 +82,7 @@ class ContactService {
         final data = result.data;
         if (data is List) {
           return data
-              .map((j) => ContactRecord.fromJson(j as Map<String, dynamic>))
+              .map((j) => ContactRecord.fromJson(jsonAsMap(j)))
               .toList();
         }
       }
@@ -106,7 +107,7 @@ class ContactService {
         final data = result.data;
         if (data is List) {
           return data
-              .map((j) => ContactRecord.fromJson(j as Map<String, dynamic>))
+              .map((j) => ContactRecord.fromJson(jsonAsMap(j)))
               .toList();
         }
       }
@@ -147,7 +148,7 @@ class ContactService {
     try {
       final list = jsonDecode(json) as List;
       return list
-          .map((j) => ContactRecord.fromJson(j as Map<String, dynamic>))
+          .map((j) => ContactRecord.fromJson(jsonAsMap(j)))
           .toList();
     } catch (_) {
       return [];

@@ -23,6 +23,13 @@ import '../payment/payment_screen.dart';
 import 'shipping_dialog.dart';
 import 'logistics_screen.dart';
 
+class _OrderTabItem {
+  final String label;
+  final OrderStatus? status;
+
+  const _OrderTabItem({required this.label, this.status});
+}
+
 class OrderListScreen extends ConsumerStatefulWidget {
   final int initialTab;
 
@@ -41,12 +48,12 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen>
   bool _isLoading = true;
   Timer? _loadTimer;
 
-  final List<Map<String, dynamic>> _tabs = [
-    {'label': '全部', 'status': null},
-    {'label': '待付款', 'status': OrderStatus.pending},
-    {'label': '待发货', 'status': OrderStatus.paid},
-    {'label': '待收货', 'status': OrderStatus.shipped},
-    {'label': '已完成', 'status': OrderStatus.completed},
+  final List<_OrderTabItem> _tabs = const [
+    _OrderTabItem(label: '全部'),
+    _OrderTabItem(label: '待付款', status: OrderStatus.pending),
+    _OrderTabItem(label: '待发货', status: OrderStatus.paid),
+    _OrderTabItem(label: '待收货', status: OrderStatus.shipped),
+    _OrderTabItem(label: '已完成', status: OrderStatus.completed),
   ];
 
   @override
@@ -83,7 +90,7 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen>
           : TabBarView(
               controller: _tabController,
               children: _tabs.map((tab) {
-                return _OrderTabContent(status: tab['status']);
+                return _OrderTabContent(status: tab.status);
               }).toList(),
             ),
     );
@@ -142,7 +149,7 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen>
                     labelColor: Colors.white,
                     unselectedLabelColor: Colors.white70,
                     labelStyle: const TextStyle(fontWeight: FontWeight.w600),
-                    tabs: _tabs.map((tab) => Tab(text: tab['label'])).toList(),
+                    tabs: _tabs.map((tab) => Tab(text: tab.label)).toList(),
                   ),
                 ],
               ),

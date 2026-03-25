@@ -9,6 +9,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'dart:ui';
+import '../../models/product_model.dart';
 import '../../themes/colors.dart';
 import '../../themes/jewelry_theme.dart';
 import '../../services/user_data_service.dart';
@@ -20,8 +21,7 @@ final _userDataServiceProvider = Provider<UserDataService>((ref) {
   return UserDataService();
 });
 
-final favoritesProvider =
-    FutureProvider<List<Map<String, dynamic>>>((ref) async {
+final favoritesProvider = FutureProvider<List<ProductModel>>((ref) async {
   final service = ref.watch(_userDataServiceProvider);
   await service.initialize();
   return await service.getFavorites();
@@ -125,7 +125,7 @@ class _FavoriteListScreenState extends ConsumerState<FavoriteListScreen> {
 
   Widget _buildFavoriteList(
     BuildContext context,
-    List<Map<String, dynamic>> favorites,
+    List<ProductModel> favorites,
   ) {
     return ListView.separated(
       padding: const EdgeInsets.all(16),
@@ -134,7 +134,7 @@ class _FavoriteListScreenState extends ConsumerState<FavoriteListScreen> {
       itemBuilder: (context, index) {
         return _FavoriteCard(
           product: favorites[index],
-          onRemove: () => _removeFavorite(favorites[index]['id']),
+          onRemove: () => _removeFavorite(favorites[index].id),
         );
       },
     );
@@ -161,7 +161,7 @@ class _FavoriteListScreenState extends ConsumerState<FavoriteListScreen> {
 }
 
 class _FavoriteCard extends StatelessWidget {
-  final Map<String, dynamic> product;
+  final ProductModel product;
   final VoidCallback onRemove;
 
   const _FavoriteCard({
@@ -172,6 +172,11 @@ class _FavoriteCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final imageUrl = product.images.isEmpty ? null : product.images.first;
+    final name = product.name;
+    final material = product.material;
+    final price = product.price.toStringAsFixed(0);
+    final originalPrice = product.originalPrice?.toStringAsFixed(0);
     return Container(
       decoration: BoxDecoration(
         color: isDark ? JewelryColors.darkCard : Colors.white,
@@ -195,11 +200,11 @@ class _FavoriteCard extends StatelessWidget {
                 color: JewelryColors.primary.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: product['image'] != null
+              child: imageUrl != null
                   ? ClipRRect(
                       borderRadius: BorderRadius.circular(12),
                       child: Image.network(
-                        product['image'] as String,
+                        imageUrl,
                         fit: BoxFit.cover,
                         errorBuilder: (_, __, ___) => Icon(
                           Icons.diamond_outlined,
@@ -221,7 +226,7 @@ class _FavoriteCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    product['name'] ?? '',
+                    name,
                     style: TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w600,
@@ -234,8 +239,8 @@ class _FavoriteCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    product['material'] ?? '',
-                    style: TextStyle(
+                    material,
+                    style: const TextStyle(
                       fontSize: 12,
                       color: JewelryColors.textSecondary,
                     ),
@@ -244,18 +249,18 @@ class _FavoriteCard extends StatelessWidget {
                   Row(
                     children: [
                       Text(
-                        '¥${product['price']}',
-                        style: TextStyle(
+                        '¥$price',
+                        style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
                           color: JewelryColors.price,
                         ),
                       ),
                       const SizedBox(width: 8),
-                      if (product['original_price'] != null)
+                      if (originalPrice != null)
                         Text(
-                          '¥${product['original_price']}',
-                          style: TextStyle(
+                          '¥$originalPrice',
+                          style: const TextStyle(
                             fontSize: 12,
                             color: JewelryColors.textHint,
                             decoration: TextDecoration.lineThrough,

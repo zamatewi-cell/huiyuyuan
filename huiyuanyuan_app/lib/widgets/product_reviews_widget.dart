@@ -1,10 +1,10 @@
-/// 汇玉源 - 商品评价组件
+// 汇玉源 - 商品评价组件
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../models/review_model.dart';
 import '../services/review_service.dart';
 
-/// 评价列表组件（用于商品详情页）
+// 评价列表组件（用于商品详情页）
 class ProductReviewsWidget extends StatefulWidget {
   final String productId;
   final bool showAll; // 是否显示全部，false则只显示前3条

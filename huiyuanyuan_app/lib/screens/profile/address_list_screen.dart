@@ -1,4 +1,4 @@
-/// 汇玉源 - 收货地址管理页面
+// 汇玉源 - 收货地址管理页面
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../models/address_model.dart';
@@ -7,7 +7,7 @@ import '../../themes/colors.dart';
 import '../../widgets/common/region_picker.dart';
 import '../../widgets/common/error_handler.dart';
 
-/// 收货地址列表页面
+// 收货地址列表页面
 class AddressListScreen extends StatefulWidget {
   /// 是否为选择模式（从结算页跳转）
   final bool isSelectMode;
@@ -280,7 +280,7 @@ class _AddressListScreenState extends State<AddressListScreen> {
   }
 }
 
-/// 地址编辑页面
+// 地址编辑页面
 class AddressEditScreen extends StatefulWidget {
   final AddressModel? address;
 

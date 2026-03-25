@@ -1,7 +1,7 @@
-/// Widget Test - CartScreen
-///
-/// 5 cases: empty cart state, cart with items shows count,
-/// clear button visible, item details shown, no overflow
+// Widget Test - CartScreen
+//
+// 5 cases: empty cart state, cart with items shows count,
+// clear button visible, item details shown, no overflow
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -10,7 +10,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:huiyuanyuan/screens/trade/cart_screen.dart';
 import 'package:huiyuanyuan/providers/cart_provider.dart';
 import 'package:huiyuanyuan/models/cart_item_model.dart';
-import 'package:huiyuanyuan/models/product_model.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -45,17 +44,6 @@ void main() {
     });
     SharedPreferences.setMockInitialValues({});
   });
-
-  final sampleProduct = ProductModel(
-    id: 'HYY-TEST',
-    name: 'Test Jade Bracelet',
-    description: 'A beautiful jade bracelet for testing',
-    price: 1999.0,
-    category: 'Bracelet',
-    material: 'Jade',
-    images: ['https://example.com/test.jpg'],
-    stock: 50,
-  );
 
   Widget buildTestWidget({List<CartItemModel>? items}) {
     return ProviderScope(

@@ -2,6 +2,7 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'json_parsing.dart';
 
 // ============ 商品模型 ============
 
@@ -96,24 +97,29 @@ class ProductModel {
 
   factory ProductModel.fromJson(Map<String, dynamic> json) {
     return ProductModel(
-      id: json['id'] ?? '',
-      name: json['name'] ?? '',
-      description: json['description'] ?? '',
-      price: (json['price'] ?? 0).toDouble(),
-      originalPrice: json['original_price']?.toDouble(),
-      category: json['category'] ?? '',
-      material: json['material'] ?? '',
-      images: List<String>.from(json['images'] ?? []),
-      stock: json['stock'] ?? 0,
-      rating: (json['rating'] ?? 5.0).toDouble(),
-      salesCount: json['sales_count'] ?? 0,
-      isHot: json['is_hot'] ?? false,
-      isNew: json['is_new'] ?? false,
-      origin: json['origin'],
-      certificate: json['certificate'],
-      blockchainHash: json['blockchain_hash'],
-      isWelfare: json['is_welfare'] ?? false,
-      materialVerify: json['material_verify'] ?? '天然A货',
+      id: jsonAsString(json['id']),
+      name: jsonAsString(json['name']),
+      description: jsonAsString(json['description']),
+      price: jsonAsDouble(json['price']),
+      originalPrice: jsonAsNullableString(json['original_price']) == null
+          ? null
+          : jsonAsDouble(json['original_price']),
+      category: jsonAsString(json['category']),
+      material: jsonAsString(json['material']),
+      images: jsonAsStringList(json['images']),
+      stock: jsonAsInt(json['stock']),
+      rating: jsonAsDouble(json['rating'], fallback: 5.0),
+      salesCount: jsonAsInt(json['sales_count']),
+      isHot: jsonAsBool(json['is_hot']),
+      isNew: jsonAsBool(json['is_new']),
+      origin: jsonAsNullableString(json['origin']),
+      certificate: jsonAsNullableString(json['certificate']),
+      blockchainHash: jsonAsNullableString(json['blockchain_hash']),
+      isWelfare: jsonAsBool(json['is_welfare']),
+      materialVerify: jsonAsString(
+        json['material_verify'],
+        fallback: '天然A货',
+      ),
     );
   }
 

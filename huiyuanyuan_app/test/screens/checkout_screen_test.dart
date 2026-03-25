@@ -1,7 +1,7 @@
-/// Widget Test - CheckoutScreen
-///
-/// 5 cases: renders with items, shows address section, shows payment method,
-/// submit button exists, no overflow on various sizes
+// Widget Test - CheckoutScreen
+//
+// 5 cases: renders with items, shows address section, shows payment method,
+// submit button exists, no overflow on various sizes
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';

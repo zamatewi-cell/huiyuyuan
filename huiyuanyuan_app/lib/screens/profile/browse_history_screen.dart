@@ -9,6 +9,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'dart:ui';
+import '../../models/user_data_models.dart';
 import '../../themes/colors.dart';
 import '../../themes/jewelry_theme.dart';
 import '../../services/user_data_service.dart';
@@ -20,7 +21,7 @@ final _userDataServiceProvider = Provider<UserDataService>((ref) {
   return UserDataService();
 });
 
-final browseHistoryProvider = FutureProvider<List<Map<String, dynamic>>>((ref) async {
+final browseHistoryProvider = FutureProvider<List<BrowseHistoryItem>>((ref) async {
   final service = ref.watch(_userDataServiceProvider);
   await service.initialize();
   return await service.getBrowseHistoryWithDetails();
@@ -124,13 +125,13 @@ class _BrowseHistoryScreenState extends ConsumerState<BrowseHistoryScreen> {
 
   Widget _buildHistoryList(
     BuildContext context,
-    List<Map<String, dynamic>> history,
+    List<BrowseHistoryItem> history,
   ) {
     return ListView.builder(
       padding: const EdgeInsets.all(16),
       itemCount: history.length,
       itemBuilder: (context, index) {
-        return _HistoryCard(product: history[index]);
+        return _HistoryCard(item: history[index]);
       },
     );
   }
@@ -173,14 +174,15 @@ class _BrowseHistoryScreenState extends ConsumerState<BrowseHistoryScreen> {
 }
 
 class _HistoryCard extends StatelessWidget {
-  final Map<String, dynamic> product;
+  final BrowseHistoryItem item;
 
-  const _HistoryCard({required this.product});
+  const _HistoryCard({required this.item});
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final imageUrl = product['image'] as String?;
+    final product = item.product;
+    final imageUrl = product.images.isEmpty ? null : product.images.first;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -230,7 +232,7 @@ class _HistoryCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  product['name'] as String? ?? '未知商品',
+                  product.name.isEmpty ? '未知商品' : product.name,
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
@@ -242,19 +244,19 @@ class _HistoryCard extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 4),
-                if ((product['material'] as String?)?.isNotEmpty == true)
+                if (product.material.isNotEmpty)
                   Text(
-                    product['material'] as String,
-                    style: TextStyle(
+                    product.material,
+                    style: const TextStyle(
                       fontSize: 12,
                       color: JewelryColors.textSecondary,
                     ),
                   ),
-                if ((product['price'] as num?) != null) ...[
+                if (product.price > 0) ...[
                   const SizedBox(height: 4),
                   Text(
-                    '¥${(product['price'] as num).toDouble().toStringAsFixed(0)}',
-                    style: TextStyle(
+                    '¥${product.price.toStringAsFixed(0)}',
+                    style: const TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.bold,
                       color: JewelryColors.price,

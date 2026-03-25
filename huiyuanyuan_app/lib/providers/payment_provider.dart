@@ -1,16 +1,19 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../config/api_config.dart';
+
 import '../models/payment_account.dart';
+import '../repositories/payment_account_repository.dart';
 import '../services/api_service.dart';
 
 enum PaymentLoadingState { initial, loading, loaded, error }
+
+const Object _paymentErrorUnchanged = Object();
 
 class PaymentAccountsState {
   final List<PaymentAccount> accounts;
   final PaymentLoadingState state;
   final String? errorMessage;
 
-  PaymentAccountsState({
+  const PaymentAccountsState({
     this.accounts = const [],
     this.state = PaymentLoadingState.initial,
     this.errorMessage,
@@ -19,104 +22,177 @@ class PaymentAccountsState {
   PaymentAccountsState copyWith({
     List<PaymentAccount>? accounts,
     PaymentLoadingState? state,
-    String? errorMessage,
+    Object? errorMessage = _paymentErrorUnchanged,
   }) {
     return PaymentAccountsState(
       accounts: accounts ?? this.accounts,
       state: state ?? this.state,
-      errorMessage: errorMessage ?? this.errorMessage,
+      errorMessage: identical(errorMessage, _paymentErrorUnchanged)
+          ? this.errorMessage
+          : errorMessage as String?,
     );
   }
 }
 
 class PaymentAccountNotifier extends StateNotifier<PaymentAccountsState> {
-  final ApiService _apiService;
+  final PaymentAccountRepository _repository;
 
-  PaymentAccountNotifier(this._apiService)
-      : super(PaymentAccountsState()) {
+  PaymentAccountNotifier(ApiService apiService)
+      : this.withRepository(PaymentAccountRepository(apiService: apiService));
+
+  PaymentAccountNotifier.withRepository(this._repository)
+      : super(const PaymentAccountsState()) {
     loadAccounts();
   }
 
   Future<void> loadAccounts() async {
-    state = state.copyWith(state: PaymentLoadingState.loading);
-
-    final result = await _apiService.get<List<dynamic>>(
-      ApiConfig.paymentAccounts,
+    state = state.copyWith(
+      state: PaymentLoadingState.loading,
+      errorMessage: null,
     );
 
-    if (result.success && result.data != null) {
-      final accounts = result.data!
-          .map((json) => PaymentAccount.fromMap(json as Map<String, dynamic>))
-          .toList();
-      state = state.copyWith(
-        accounts: accounts,
-        state: PaymentLoadingState.loaded,
-      );
-    } else {
+    final result = await _repository.fetchAccounts();
+    if (!result.success || result.data == null) {
       state = state.copyWith(
         state: PaymentLoadingState.error,
-        errorMessage: result.message ?? '加载失败',
+        errorMessage: result.message ?? '加载支付账户失败',
       );
+      return;
     }
+
+    _setAccounts(result.data!);
   }
 
   Future<bool> addAccount(PaymentAccount account) async {
-    final result = await _apiService.post<Map<String, dynamic>>(
-      ApiConfig.paymentAccounts,
-      data: account.toCreateMap(),
-    );
+    state = state.copyWith(errorMessage: null);
 
+    final result = await _repository.createAccount(account);
     if (result.success && result.data != null) {
-      final newAccount = PaymentAccount.fromMap(result.data!);
-      state = state.copyWith(
-        accounts: [...state.accounts, newAccount],
-      );
+      _setAccounts(_upsertAccount(result.data!));
       return true;
     }
+
+    _setMutationError(result.message ?? '创建支付账户失败');
     return false;
   }
 
   Future<bool> updateAccount(PaymentAccount account) async {
-    final result = await _apiService.put<Map<String, dynamic>>(
-      ApiConfig.paymentAccountDetail(account.id),
-      data: account.toCreateMap(),
-    );
+    state = state.copyWith(errorMessage: null);
 
+    final result = await _repository.updateAccount(account);
     if (result.success && result.data != null) {
-      final updatedAccount = PaymentAccount.fromMap(result.data!);
-      state = state.copyWith(
-        accounts: [
-          for (final existing in state.accounts)
-            if (existing.id == account.id) updatedAccount else existing,
-        ],
-      );
+      _setAccounts(_upsertAccount(result.data!));
       return true;
     }
+
+    _setMutationError(result.message ?? '更新支付账户失败');
     return false;
   }
 
   Future<bool> deleteAccount(String id) async {
-    final result = await _apiService.delete<Map<String, dynamic>>(
-      ApiConfig.paymentAccountDetail(id),
-    );
+    state = state.copyWith(errorMessage: null);
 
+    final result = await _repository.deleteAccount(id);
     if (result.success) {
-      state = state.copyWith(
-        accounts: state.accounts.where((a) => a.id != id).toList(),
+      _setAccounts(
+        state.accounts.where((account) => account.id != id).toList(),
       );
       return true;
     }
+
+    _setMutationError(result.message ?? '删除支付账户失败');
     return false;
   }
 
   Future<bool> toggleActive(String id) async {
-    final account = state.accounts.firstWhere(
-      (a) => a.id == id,
-      orElse: () => throw Exception('Account not found'),
-    );
+    final account = _findAccount(id);
+    if (account == null) {
+      _setMutationError('未找到支付账户');
+      return false;
+    }
 
     final updated = account.copyWith(isActive: !account.isActive);
     return updateAccount(updated);
+  }
+
+  PaymentAccount? _findAccount(String id) {
+    for (final account in state.accounts) {
+      if (account.id == id) {
+        return account;
+      }
+    }
+    return null;
+  }
+
+  List<PaymentAccount> _upsertAccount(PaymentAccount incoming) {
+    var replaced = false;
+    final updatedAccounts = <PaymentAccount>[];
+
+    for (final account in state.accounts) {
+      if (account.id == incoming.id) {
+        updatedAccounts.add(incoming);
+        replaced = true;
+      } else if (incoming.isDefault && account.isDefault) {
+        updatedAccounts.add(account.copyWith(isDefault: false));
+      } else {
+        updatedAccounts.add(account);
+      }
+    }
+
+    if (!replaced) {
+      if (incoming.isDefault) {
+        for (var index = 0; index < updatedAccounts.length; index++) {
+          final account = updatedAccounts[index];
+          if (account.isDefault) {
+            updatedAccounts[index] = account.copyWith(isDefault: false);
+          }
+        }
+      }
+      updatedAccounts.add(incoming);
+    }
+
+    return updatedAccounts;
+  }
+
+  void _setAccounts(List<PaymentAccount> accounts) {
+    state = state.copyWith(
+      accounts: _sortAccounts(accounts),
+      state: PaymentLoadingState.loaded,
+      errorMessage: null,
+    );
+  }
+
+  void _setMutationError(String message) {
+    state = state.copyWith(
+      state:
+          state.accounts.isEmpty && state.state == PaymentLoadingState.initial
+              ? PaymentLoadingState.initial
+              : PaymentLoadingState.loaded,
+      errorMessage: message,
+    );
+  }
+
+  List<PaymentAccount> _sortAccounts(List<PaymentAccount> accounts) {
+    final sorted = List<PaymentAccount>.from(accounts);
+    sorted.sort((left, right) {
+      if (left.isDefault != right.isDefault) {
+        return left.isDefault ? -1 : 1;
+      }
+
+      final rightUpdated = right.updatedAt ?? right.createdAt;
+      final leftUpdated = left.updatedAt ?? left.createdAt;
+      if (leftUpdated != null && rightUpdated != null) {
+        return rightUpdated.compareTo(leftUpdated);
+      }
+      if (leftUpdated != null) {
+        return -1;
+      }
+      if (rightUpdated != null) {
+        return 1;
+      }
+      return left.name.compareTo(right.name);
+    });
+    return sorted;
   }
 }
 
@@ -124,10 +200,13 @@ final apiServiceProvider = Provider<ApiService>((ref) {
   return ApiService();
 });
 
+final paymentAccountRepositoryProvider = Provider<PaymentAccountRepository>((ref) {
+  final apiService = ref.watch(apiServiceProvider);
+  return PaymentAccountRepository(apiService: apiService);
+});
+
 final paymentAccountsProvider =
-    StateNotifierProvider<PaymentAccountNotifier, PaymentAccountsState>(
-  (ref) {
-    final apiService = ref.watch(apiServiceProvider);
-    return PaymentAccountNotifier(apiService);
-  },
-);
+    StateNotifierProvider<PaymentAccountNotifier, PaymentAccountsState>((ref) {
+  final repository = ref.watch(paymentAccountRepositoryProvider);
+  return PaymentAccountNotifier.withRepository(repository);
+});

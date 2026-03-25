@@ -219,8 +219,8 @@ class _OperatorHomeState extends ConsumerState<OperatorHome> {
       children: [
         Row(
           children: [
-            Icon(Icons.bar_chart, color: JewelryColors.gold, size: 20),
-            SizedBox(width: 8),
+            const Icon(Icons.bar_chart, color: JewelryColors.gold, size: 20),
+            const SizedBox(width: 8),
             Text(
               ref.tr('work_today_stats'),
               style: const TextStyle(
@@ -530,8 +530,8 @@ class _OperatorHomeState extends ConsumerState<OperatorHome> {
       children: [
         Row(
           children: [
-            Icon(Icons.apps, color: JewelryColors.gold, size: 20),
-            SizedBox(width: 8),
+            const Icon(Icons.apps, color: JewelryColors.gold, size: 20),
+            const SizedBox(width: 8),
             Text(
               ref.tr('work_quick_features'),
               style: const TextStyle(

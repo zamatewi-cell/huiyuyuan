@@ -1,50 +1,49 @@
+import 'package:flutter/services.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:huiyuanyuan/services/storage_service.dart';
+
 /// 汇玉源 - 本地存储服务测试
-/// 
+///
 /// 测试内容:
 /// - 用户数据存储和读取
 /// - 购物车操作
 /// - 收藏管理
 /// - 浏览记录
 /// - 搜索历史
-import 'package:flutter/services.dart';
-import 'package:flutter_test/flutter_test.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:huiyuanyuan/services/storage_service.dart';
 
 void main() {
   late StorageService storage;
 
   setUp(() async {
-    // TestWidgetsFlutterBinding + mock flutter_secure_storage channel
     TestWidgetsFlutterBinding.ensureInitialized();
     const MethodChannel secureStorageChannel = MethodChannel(
       'plugins.it_nomads.com/flutter_secure_storage',
     );
-    // 模拟内存存储，让 flutter_secure_storage 在单元测试中正常工作
-    final Map<String, String> _secureStore = {};
+    final Map<String, String> secureStore = {};
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(secureStorageChannel, (call) async {
       switch (call.method) {
         case 'write':
           final key = call.arguments['key'] as String;
           final value = call.arguments['value'] as String?;
-          if (value != null) _secureStore[key] = value;
+          if (value != null) secureStore[key] = value;
           return null;
         case 'read':
           final key = call.arguments['key'] as String;
-          return _secureStore[key];
+          return secureStore[key];
         case 'delete':
           final key = call.arguments['key'] as String;
-          _secureStore.remove(key);
+          secureStore.remove(key);
           return null;
         case 'deleteAll':
-          _secureStore.clear();
+          secureStore.clear();
           return null;
         case 'readAll':
-          return Map<String, String>.from(_secureStore);
+          return Map<String, String>.from(secureStore);
         case 'containsKey':
           final key = call.arguments['key'] as String;
-          return _secureStore.containsKey(key);
+          return secureStore.containsKey(key);
         default:
           return null;
       }
@@ -290,52 +289,6 @@ void main() {
       // 检查是否有默认值
       expect(defaults.containsKey('followUpEnabled'), true);
       expect(defaults.containsKey('liveScheduleEnabled'), true);
-    });
-  });
-
-  group('收款账户测试', () {
-    test('初始收款账户应为空', () async {
-      final accounts = await storage.getPaymentAccounts();
-      expect(accounts, isEmpty);
-    });
-
-    test('应正确添加收款账户', () async {
-      await storage.addPaymentAccount({
-        'id': 'acc_001',
-        'name': '工商银行',
-        'type': 0, // 银行卡
-        'accountNumber': '6222***1234',
-        'isActive': true,
-      });
-
-      final accounts = await storage.getPaymentAccounts();
-      expect(accounts.length, 1);
-      expect(accounts.first['name'], '工商银行');
-    });
-
-    test('应正确删除收款账户', () async {
-      await storage.addPaymentAccount({'id': 'acc_001', 'name': '账户1'});
-      await storage.addPaymentAccount({'id': 'acc_002', 'name': '账户2'});
-
-      await storage.removePaymentAccount('acc_001');
-      final accounts = await storage.getPaymentAccounts();
-
-      expect(accounts.length, 1);
-      expect(accounts.first['id'], 'acc_002');
-    });
-
-    test('应正确设置默认账户', () async {
-      await storage.addPaymentAccount({'id': 'acc_001', 'name': '账户1', 'isDefault': false});
-      await storage.addPaymentAccount({'id': 'acc_002', 'name': '账户2', 'isDefault': false});
-
-      await storage.setDefaultPaymentAccount('acc_002');
-      final accounts = await storage.getPaymentAccounts();
-
-      final acc1 = accounts.firstWhere((a) => a['id'] == 'acc_001');
-      final acc2 = accounts.firstWhere((a) => a['id'] == 'acc_002');
-
-      expect(acc1['isDefault'], false);
-      expect(acc2['isDefault'], true);
     });
   });
 

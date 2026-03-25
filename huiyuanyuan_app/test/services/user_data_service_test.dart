@@ -1,72 +1,84 @@
 library;
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:huiyuanyuan/models/user_model.dart';
+import 'package:huiyuanyuan/models/product_model.dart';
+import 'package:huiyuanyuan/models/user_data_models.dart';
 
 void main() {
-  group('favorite payloads', () {
-    test('favorite item contains required fields', () {
-      final favorite = {
-        'id': 'prod_001',
-        'name': 'Hetian bracelet',
-        'price': 9999,
-        'original_price': 12999,
-        'material': 'Hetian jade',
-        'image': 'https://example.com/image.jpg',
-      };
+  group('favorite parsing', () {
+    test('favorite item normalizes legacy image field', () {
+      final favorites = parseProductSummaries([
+        {
+          'id': 'prod_001',
+          'name': 'Hetian bracelet',
+          'price': 9999,
+          'original_price': 12999,
+          'material': 'Hetian jade',
+          'image': 'https://example.com/image.jpg',
+        },
+      ]);
 
-      expect(favorite['id'], 'prod_001');
-      expect(favorite['name'], 'Hetian bracelet');
-      expect(favorite['price'], 9999);
-      expect(favorite['original_price'], 12999);
-      expect(favorite['material'], 'Hetian jade');
-      expect(favorite['image'], isNotNull);
+      expect(favorites.length, 1);
+      expect(favorites.first.id, 'prod_001');
+      expect(favorites.first.name, 'Hetian bracelet');
+      expect(favorites.first.price, 9999);
+      expect(favorites.first.originalPrice, 12999);
+      expect(favorites.first.material, 'Hetian jade');
+      expect(favorites.first.images, ['https://example.com/image.jpg']);
     });
 
-    test('favorite list preserves payload order', () {
-      final favorites = [
-        {'id': 'prod_001', 'name': 'Item 1', 'price': 100},
-        {'id': 'prod_002', 'name': 'Item 2', 'price': 200},
-      ];
+    test('favorite list preserves payload order from envelope', () {
+      final favorites = parseProductSummaries({
+        'items': [
+          {'id': 'prod_001', 'name': 'Item 1', 'price': 100},
+          {'id': 'prod_002', 'name': 'Item 2', 'price': 200},
+        ],
+      });
 
       expect(favorites.length, 2);
-      expect(favorites.first['id'], 'prod_001');
-      expect(favorites.last['price'], 200);
+      expect(favorites.first.id, 'prod_001');
+      expect(favorites.last.price, 200);
     });
   });
 
-  group('browse history payloads', () {
-    test('history item contains product details', () {
-      final historyItem = {
+  group('browse history parsing', () {
+    test('history item contains typed product details', () {
+      final historyItem = BrowseHistoryItem.fromJson({
         'id': 'prod_001',
         'name': 'Jade pendant',
         'price': 5999,
         'material': 'Jadeite',
         'image': 'https://example.com/image.jpg',
         'viewed_at': '2024-01-01T10:00:00Z',
-      };
+      });
 
-      expect(historyItem['id'], 'prod_001');
-      expect(historyItem['name'], 'Jade pendant');
-      expect(historyItem['price'], 5999);
-      expect(historyItem['material'], 'Jadeite');
-      expect(historyItem['viewed_at'], '2024-01-01T10:00:00Z');
+      expect(historyItem.id, 'prod_001');
+      expect(historyItem.product.name, 'Jade pendant');
+      expect(historyItem.product.price, 5999);
+      expect(historyItem.product.material, 'Jadeite');
+      expect(
+        historyItem.viewedAt?.toUtc().toIso8601String(),
+        '2024-01-01T10:00:00.000Z',
+      );
     });
 
-    test('history can be sorted by viewed_at descending', () {
-      final history = [
-        {'id': 'prod_001', 'viewed_at': '2024-01-01T10:00:00Z'},
-        {'id': 'prod_002', 'viewed_at': '2024-01-01T11:00:00Z'},
-        {'id': 'prod_003', 'viewed_at': '2024-01-01T12:00:00Z'},
-      ];
+    test('history can be sorted by viewedAt descending', () {
+      final history = parseBrowseHistoryItems({
+        'data': [
+          {'id': 'prod_001', 'viewed_at': '2024-01-01T10:00:00Z'},
+          {'id': 'prod_002', 'viewed_at': '2024-01-01T11:00:00Z'},
+          {'id': 'prod_003', 'viewed_at': '2024-01-01T12:00:00Z'},
+        ],
+      });
 
       history.sort(
-        (a, b) =>
-            (b['viewed_at'] as String).compareTo(a['viewed_at'] as String),
+        (a, b) => (b.viewedAt ?? DateTime(1970)).compareTo(
+          a.viewedAt ?? DateTime(1970),
+        ),
       );
 
-      expect(history.first['id'], 'prod_003');
-      expect(history.last['id'], 'prod_001');
+      expect(history.first.id, 'prod_003');
+      expect(history.last.id, 'prod_001');
     });
   });
 
@@ -205,10 +217,10 @@ void main() {
   });
 
   group('api payload shapes', () {
-    test('favorites response shape is valid', () {
-      final response = {
+    test('favorites response shape can be parsed from items envelope', () {
+      final products = parseProductSummaries({
         'success': true,
-        'data': [
+        'items': [
           {
             'id': 'prod_001',
             'name': 'Hetian bracelet',
@@ -218,15 +230,15 @@ void main() {
             'image': 'https://example.com/image.jpg',
           },
         ],
-      };
+      });
 
-      expect(response['success'], true);
-      expect((response['data'] as List).length, 1);
-      expect((response['data'] as List).first['id'], 'prod_001');
+      expect(products.length, 1);
+      expect(products.first.id, 'prod_001');
+      expect(products.first.images.first, 'https://example.com/image.jpg');
     });
 
-    test('browse history response shape is valid', () {
-      final response = {
+    test('browse history response shape can be parsed from data envelope', () {
+      final history = parseBrowseHistoryItems({
         'success': true,
         'data': [
           {
@@ -237,12 +249,10 @@ void main() {
             'image': 'https://example.com/image.jpg',
           },
         ],
-      };
+      });
 
-      expect(response['success'], true);
-      final data = response['data'] as List;
-      expect(data.length, 1);
-      expect(data.first['name'], 'Jade pendant');
+      expect(history.length, 1);
+      expect(history.first.product.name, 'Jade pendant');
     });
 
     test('search history response shape is valid', () {
@@ -259,7 +269,7 @@ void main() {
     });
 
     test('product search response can be parsed into ProductModel', () {
-      final response = {
+      final products = parseProductSummaries({
         'success': true,
         'data': [
           {
@@ -276,16 +286,12 @@ void main() {
             'rating': 4.8,
           },
         ],
-      };
+      });
 
-      expect(response['success'], true);
-      final data = response['data'] as List;
-      final product = ProductModel.fromJson(data.first as Map<String, dynamic>);
-
-      expect(product.id, 'prod_001');
-      expect(product.name, 'Hetian bracelet');
-      expect(product.salesCount, 100);
-      expect(product.rating, 4.8);
+      expect(products.length, 1);
+      expect(products.first.id, 'prod_001');
+      expect(products.first.salesCount, 100);
+      expect(products.first.rating, 4.8);
     });
   });
 }

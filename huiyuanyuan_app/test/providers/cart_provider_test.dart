@@ -1,9 +1,9 @@
-/// 汇玉源 - 购物车 Provider 测试
-/// 
-/// 测试内容:
-/// - 购物车存储操作
-/// - 金额计算
-/// - 商品数量管理
+// 汇玉源 - 购物车 Provider 测试
+//
+// 测试内容:
+// - 购物车存储操作
+// - 金额计算
+// - 商品数量管理
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:huiyuanyuan/services/storage_service.dart';
@@ -124,8 +124,8 @@ void main() {
       
       // 手动计算总金额 (模拟 CartNotifier.totalAmount)
       double total = cart.fold(0.0, (sum, item) {
-        final price = (item['price'] ?? 0).toDouble();
-        final quantity = item['quantity'] ?? 1;
+        final price = (item['price'] as num?)?.toDouble() ?? 0.0;
+        final quantity = (item['quantity'] as num?)?.toInt() ?? 1;
         return sum + price * quantity;
       });
 
@@ -136,8 +136,8 @@ void main() {
       final cart = await storage.getCart();
       
       double total = cart.fold(0.0, (sum, item) {
-        final price = (item['price'] ?? 0).toDouble();
-        final quantity = item['quantity'] ?? 1;
+        final price = (item['price'] as num?)?.toDouble() ?? 0.0;
+        final quantity = (item['quantity'] as num?)?.toInt() ?? 1;
         return sum + price * quantity;
       });
 
@@ -150,8 +150,8 @@ void main() {
 
       final cart = await storage.getCart();
       double total = cart.fold(0.0, (sum, item) {
-        final price = (item['price'] ?? 0).toDouble();
-        final quantity = item['quantity'] ?? 1;
+        final price = (item['price'] as num?)?.toDouble() ?? 0.0;
+        final quantity = (item['quantity'] as num?)?.toInt() ?? 1;
         return sum + price * quantity;
       });
 

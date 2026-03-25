@@ -6,8 +6,8 @@ analyzer:
     deprecated_member_use: ignore
     deprecated_member_use_from_same_package: ignore
   language:
-    strict-casts: false
-    strict-raw-types: false
+    strict-casts: true
+    strict-raw-types: true
 
 linter:
   rules:

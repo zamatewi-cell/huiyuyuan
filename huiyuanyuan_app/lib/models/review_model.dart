@@ -7,6 +7,8 @@
 /// - 追评支持
 library;
 
+import 'json_parsing.dart';
+
 /// 评价模型
 class ReviewModel {
   final String id;
@@ -97,29 +99,24 @@ class ReviewModel {
   /// 从 JSON 创建
   factory ReviewModel.fromJson(Map<String, dynamic> json) {
     return ReviewModel(
-      id: json['id'] ?? '',
-      productId: json['product_id'] ?? '',
-      userId: json['user_id'] ?? '',
-      userName: json['user_name'] ?? '',
-      userAvatar: json['user_avatar'],
-      rating: json['rating'] ?? 5,
-      content: json['content'] ?? '',
-      images: List<String>.from(json['images'] ?? []),
-      videoUrl: json['video_url'],
-      isAnonymous: json['is_anonymous'] ?? false,
-      specInfo: json['spec_info'],
-      createdAt: json['created_at'] != null
-          ? DateTime.parse(json['created_at'])
-          : DateTime.now(),
-      replyContent: json['reply_content'],
-      replyAt:
-          json['reply_at'] != null ? DateTime.parse(json['reply_at']) : null,
-      additionalContent: json['additional_content'],
-      additionalAt: json['additional_at'] != null
-          ? DateTime.parse(json['additional_at'])
-          : null,
-      likeCount: json['like_count'] ?? 0,
-      isVerified: json['is_verified'] ?? true,
+      id: jsonAsString(json['id']),
+      productId: jsonAsString(json['product_id']),
+      userId: jsonAsString(json['user_id']),
+      userName: jsonAsString(json['user_name']),
+      userAvatar: jsonAsNullableString(json['user_avatar']),
+      rating: jsonAsInt(json['rating'], fallback: 5),
+      content: jsonAsString(json['content']),
+      images: jsonAsStringList(json['images']),
+      videoUrl: jsonAsNullableString(json['video_url']),
+      isAnonymous: jsonAsBool(json['is_anonymous']),
+      specInfo: jsonAsNullableString(json['spec_info']),
+      createdAt: jsonAsDateTime(json['created_at']),
+      replyContent: jsonAsNullableString(json['reply_content']),
+      replyAt: jsonAsNullableDateTime(json['reply_at']),
+      additionalContent: jsonAsNullableString(json['additional_content']),
+      additionalAt: jsonAsNullableDateTime(json['additional_at']),
+      likeCount: jsonAsInt(json['like_count']),
+      isVerified: jsonAsBool(json['is_verified'], fallback: true),
     );
   }
 
@@ -198,18 +195,18 @@ class ReviewStats {
 
   factory ReviewStats.fromJson(Map<String, dynamic> json) {
     return ReviewStats(
-      productId: json['product_id'] ?? '',
-      totalCount: json['total_count'] ?? 0,
-      averageRating: (json['average_rating'] ?? 5.0).toDouble(),
-      fiveStarCount: json['five_star_count'] ?? 0,
-      fourStarCount: json['four_star_count'] ?? 0,
-      threeStarCount: json['three_star_count'] ?? 0,
-      twoStarCount: json['two_star_count'] ?? 0,
-      oneStarCount: json['one_star_count'] ?? 0,
-      withImagesCount: json['with_images_count'] ?? 0,
-      withVideoCount: json['with_video_count'] ?? 0,
-      additionalCount: json['additional_count'] ?? 0,
-      hotTags: List<String>.from(json['hot_tags'] ?? []),
+      productId: jsonAsString(json['product_id']),
+      totalCount: jsonAsInt(json['total_count']),
+      averageRating: jsonAsDouble(json['average_rating'], fallback: 5.0),
+      fiveStarCount: jsonAsInt(json['five_star_count']),
+      fourStarCount: jsonAsInt(json['four_star_count']),
+      threeStarCount: jsonAsInt(json['three_star_count']),
+      twoStarCount: jsonAsInt(json['two_star_count']),
+      oneStarCount: jsonAsInt(json['one_star_count']),
+      withImagesCount: jsonAsInt(json['with_images_count']),
+      withVideoCount: jsonAsInt(json['with_video_count']),
+      additionalCount: jsonAsInt(json['additional_count']),
+      hotTags: jsonAsStringList(json['hot_tags']),
     );
   }
 }

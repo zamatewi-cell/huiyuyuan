@@ -383,7 +383,7 @@ class _RegionPickerState extends State<RegionPicker>
                   ),
                 ),
                 if (isSelected)
-                  Icon(
+                  const Icon(
                     Icons.check,
                     color: JewelryColors.primaryGreen,
                     size: 18,

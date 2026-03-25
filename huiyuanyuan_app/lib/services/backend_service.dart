@@ -9,6 +9,7 @@ library;
 import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../models/user_model.dart';
+import '../models/json_parsing.dart';
 import '../config/api_config.dart';
 
 /// 后端服务类
@@ -65,7 +66,7 @@ class BackendService {
 
       if (response.statusCode == 200) {
         final data = response.data as List;
-        return data.map((item) => ProductModel.fromJson(item)).toList();
+        return data.map((item) => ProductModel.fromJson(jsonAsMap(item))).toList();
       }
       return [];
     } catch (e) {
@@ -81,7 +82,7 @@ class BackendService {
       final response = await _dio.get('/api/products/$productId');
 
       if (response.statusCode == 200) {
-        return ProductModel.fromJson(response.data);
+        return ProductModel.fromJson(jsonAsMap(response.data));
       }
       return null;
     } catch (e) {

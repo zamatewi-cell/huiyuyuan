@@ -1,22 +1,37 @@
-/// 汇玉源 - AI 服务测试
-/// 
-/// 测试内容:
-/// - 智能对话离线回复
-/// - 商务话术生成（离线）
-/// - 产品描述生成（离线）
-/// - 聊天内容分析
-/// - 敏感词过滤
-/// - 店铺评估
-/// 
-/// 注意: 这些测试主要验证离线逻辑，不依赖实际 API 调用
+// 汇玉源 - AI 服务测试
+//
+// 测试内容:
+// - 智能对话离线回复
+// - 商务话术生成（离线）
+// - 产品描述生成（离线）
+// - 聊天内容分析
+// - 敏感词过滤
+// - 店铺评估
+//
+// 注意: 这些测试主要验证离线逻辑，不依赖实际 API 调用
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:huiyuanyuan/config/api_config.dart';
 import 'package:huiyuanyuan/services/ai_service.dart';
+import 'package:huiyuanyuan/services/storage_service.dart';
 
 void main() {
-  late AIService aiService;
+  TestWidgetsFlutterBinding.ensureInitialized();
 
-  setUp(() {
+  late AIService aiService;
+  late bool originalUseMockApi;
+
+  setUp(() async {
+    originalUseMockApi = ApiConfig.useMockApi;
+    ApiConfig.useMockApi = true;
+    SharedPreferences.setMockInitialValues({});
+    await StorageService().init();
+    await StorageService().clearAll();
     aiService = AIService();
+  });
+
+  tearDown(() {
+    ApiConfig.useMockApi = originalUseMockApi;
   });
 
   group('AI 服务初始化测试', () {
@@ -361,6 +376,7 @@ void main() {
       
       expect(response, isNotNull);
       expect(response.isNotEmpty, true);
+      expect(aiService.lastProductContextFailure, isNull);
     });
 
     test('空历史对话应正常工作', () async {

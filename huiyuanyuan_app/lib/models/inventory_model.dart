@@ -1,6 +1,8 @@
 /// 汇玉源 - 内部库存模型
 library;
 
+import 'json_parsing.dart';
+
 /// 库存操作类型
 enum InventoryTxType {
   stockIn, // 入库
@@ -96,17 +98,15 @@ class InventoryItem {
       };
 
   factory InventoryItem.fromJson(Map<String, dynamic> json) => InventoryItem(
-        productId: json['product_id'],
-        productName: json['product_name'],
-        category: json['category'],
-        imageUrl: json['image_url'],
-        currentStock: json['current_stock'],
-        minStock: json['min_stock'] ?? 10,
-        costPrice: (json['cost_price'] as num).toDouble(),
-        sellingPrice: (json['selling_price'] as num).toDouble(),
-        lastUpdated: json['last_updated'] != null
-            ? DateTime.parse(json['last_updated'])
-            : DateTime.now(),
+        productId: jsonAsString(json['product_id']),
+        productName: jsonAsString(json['product_name']),
+        category: jsonAsString(json['category']),
+        imageUrl: jsonAsNullableString(json['image_url']),
+        currentStock: jsonAsInt(json['current_stock']),
+        minStock: jsonAsInt(json['min_stock'], fallback: 10),
+        costPrice: jsonAsDouble(json['cost_price']),
+        sellingPrice: jsonAsDouble(json['selling_price']),
+        lastUpdated: jsonAsDateTime(json['last_updated']),
       );
 }
 
@@ -153,18 +153,20 @@ class InventoryTransaction {
 
   factory InventoryTransaction.fromJson(Map<String, dynamic> json) =>
       InventoryTransaction(
-        id: json['id'],
-        productId: json['product_id'],
-        productName: json['product_name'],
-        type: InventoryTxType.values
-            .firstWhere((e) => e.name == json['type'],
-                orElse: () => InventoryTxType.stockIn),
-        quantity: json['quantity'],
-        stockBefore: json['stock_before'],
-        stockAfter: json['stock_after'],
-        note: json['note'],
-        operatorName: json['operator_name'],
-        createdAt: DateTime.parse(json['created_at']),
+        id: jsonAsString(json['id']),
+        productId: jsonAsString(json['product_id']),
+        productName: jsonAsString(json['product_name']),
+        type: jsonEnumByName(
+          InventoryTxType.values,
+          json['type'],
+          fallback: InventoryTxType.stockIn,
+        ),
+        quantity: jsonAsInt(json['quantity']),
+        stockBefore: jsonAsInt(json['stock_before']),
+        stockAfter: jsonAsInt(json['stock_after']),
+        note: jsonAsNullableString(json['note']),
+        operatorName: jsonAsNullableString(json['operator_name']),
+        createdAt: jsonAsDateTime(json['created_at']),
       );
 }
 

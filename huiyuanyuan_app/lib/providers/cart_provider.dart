@@ -43,13 +43,16 @@ class CartNotifier extends StateNotifier<List<CartItemModel>> {
   Future<void> _loadCart() async {
     try {
       final cartData = await _storage.getCart();
+      // 防止 dispose 后异步回调写入 state（测试容器提前销毁时会触发 Bad state）
+      if (!mounted) return;
       state = cartData.map((map) => CartItemModel.fromJson(map)).toList();
     } catch (_) {
+      if (!mounted) return;
       state = [];
     }
   }
 
-  /// 保存购物车到本地存储
+  /// [私有] 保存时自动触发云端同步
   Future<void> _saveCart() async {
     final data = state.map((item) => item.toJson()).toList();
     await _storage.saveCart(data);
@@ -58,7 +61,12 @@ class CartNotifier extends StateNotifier<List<CartItemModel>> {
     _syncToServer();
   }
 
-  /// 同步到服务端（非阻塞）
+  /// 同步购物车到服务端（非阻塞，可供外部调用）
+  void syncToServer() {
+    _syncToServer();
+  }
+
+  /// 实际执行同步的私有方法
   Future<void> _syncToServer() async {
     try {
       // 后端API同步
@@ -76,6 +84,7 @@ class CartNotifier extends StateNotifier<List<CartItemModel>> {
       // 同步失败不影响本地操作
     }
   }
+
 
   /// 刷新购物车
   Future<void> refresh() async {

@@ -11,6 +11,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'dart:ui';
 import '../../themes/colors.dart';
+import '../../models/json_parsing.dart';
 import '../../models/user_model.dart';
 import '../../services/ai_service.dart';
 import '../../services/contact_service.dart';
@@ -32,7 +33,7 @@ class _ShopDetailScreenState extends ConsumerState<ShopDetailScreen>
   String? _generatedDialogue;
   bool _isGenerating = false;
 
-  List<Map<String, dynamic>> _contactRecords = [];
+  List<Map<String, String>> _contactRecords = [];
   bool _isLoadingContacts = true;
   final ContactService _contactService = ContactService();
 
@@ -249,7 +250,7 @@ class _ShopDetailScreenState extends ConsumerState<ShopDetailScreen>
                     const SizedBox(height: 8),
                     Row(
                       children: [
-                        Icon(Icons.star, color: JewelryColors.gold, size: 16),
+                        const Icon(Icons.star, color: JewelryColors.gold, size: 16),
                         const SizedBox(width: 4),
                         Text(
                           widget.shop.rating.toStringAsFixed(1),
@@ -390,11 +391,11 @@ class _ShopDetailScreenState extends ConsumerState<ShopDetailScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
+          const Row(
             children: [
               Icon(Icons.psychology, color: JewelryColors.gold),
-              const SizedBox(width: 8),
-              const Text(
+              SizedBox(width: 8),
+              Text(
                 'AI 评估报告',
                 style: TextStyle(
                   color: Colors.white,
@@ -433,7 +434,7 @@ class _ShopDetailScreenState extends ConsumerState<ShopDetailScreen>
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        _evaluation!['decision'] ?? '',
+                        jsonAsString(_evaluation!['decision']),
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 18,
@@ -442,7 +443,7 @@ class _ShopDetailScreenState extends ConsumerState<ShopDetailScreen>
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        _evaluation!['suggestedAction'] ?? '',
+                        jsonAsString(_evaluation!['suggestedAction']),
                         style: TextStyle(
                           color: Colors.white.withOpacity(0.6),
                           fontSize: 12,
@@ -563,7 +564,7 @@ class _ShopDetailScreenState extends ConsumerState<ShopDetailScreen>
     );
   }
 
-  Widget _buildContactRecordCard(Map<String, dynamic> record) {
+  Widget _buildContactRecordCard(Map<String, String> record) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
@@ -578,14 +579,14 @@ class _ShopDetailScreenState extends ConsumerState<ShopDetailScreen>
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                record['action'],
+                record['action'] ?? '',
                 style: const TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.bold,
                 ),
               ),
               Text(
-                record['date'],
+                record['date'] ?? '',
                 style: TextStyle(
                   color: Colors.white.withOpacity(0.5),
                   fontSize: 12,
@@ -601,7 +602,7 @@ class _ShopDetailScreenState extends ConsumerState<ShopDetailScreen>
               borderRadius: BorderRadius.circular(8),
             ),
             child: Text(
-              record['result'],
+              record['result'] ?? '',
               style: const TextStyle(
                 color: JewelryColors.primary,
                 fontSize: 12,
@@ -610,7 +611,7 @@ class _ShopDetailScreenState extends ConsumerState<ShopDetailScreen>
           ),
           const SizedBox(height: 8),
           Text(
-            record['note'],
+            record['note'] ?? '',
             style: TextStyle(
               color: Colors.white.withOpacity(0.7),
               fontSize: 13,

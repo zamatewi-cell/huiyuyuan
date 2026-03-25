@@ -1,22 +1,37 @@
-/// 汇玉源 - 商品服务测试
-/// 
-/// 测试内容:
-/// - 商品列表获取
-/// - 商品详情获取
-/// - 商品筛选
-/// - 商品搜索
-/// - 缓存管理
+// 汇玉源 - 商品服务测试
+//
+// 测试内容:
+// - 商品列表获取
+// - 商品详情获取
+// - 商品筛选
+// - 商品搜索
+// - 缓存管理
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:huiyuanyuan/config/api_config.dart';
+import 'package:huiyuanyuan/data/product_runtime_catalog.dart';
+import 'package:huiyuanyuan/models/product_upsert_request.dart';
+import 'package:huiyuanyuan/repositories/product_catalog_repository.dart';
+import 'package:huiyuanyuan/services/api_service.dart';
 import 'package:huiyuanyuan/services/product_service.dart';
+import 'package:huiyuanyuan/services/storage_service.dart';
 import 'package:huiyuanyuan/models/user_model.dart';
 
 void main() {
   late ProductService productService;
+  late bool originalUseMockApi;
 
   setUp(() async {
+    originalUseMockApi = ApiConfig.useMockApi;
+    ApiConfig.useMockApi = true;
     SharedPreferences.setMockInitialValues({});
+    await StorageService().init();
+    await StorageService().clearAll();
     productService = ProductService();
+  });
+
+  tearDown(() {
+    ApiConfig.useMockApi = originalUseMockApi;
   });
 
   group('ProductModel 测试', () {
@@ -424,4 +439,462 @@ void main() {
       }
     });
   });
+
+  group('ProductService DTO 写接口测试', () {
+    test('createProduct 应直接使用 ProductUpsertRequest 序列化结果', () async {
+      ApiConfig.useMockApi = false;
+      final api = _FakeApiService();
+      final service = ProductService.forTesting(api);
+      const request = ProductUpsertRequest(
+        name: '测试商品',
+        description: '测试描述',
+        price: 299,
+        originalPrice: 399,
+        category: '手链',
+        material: '和田玉',
+        images: ['https://example.com/p1.jpg'],
+        stock: 12,
+        isHot: true,
+        isNew: true,
+        origin: '新疆和田',
+        isWelfare: false,
+        certificate: 'CERT-001',
+      );
+
+      final result = await service.createProduct(request);
+
+      expect(result, isNotNull);
+      expect(api.lastPostPath, ApiConfig.products);
+      expect(api.lastPostData, request.toJson());
+    });
+
+    test('updateProduct 应直接使用 ProductUpsertRequest 序列化结果', () async {
+      ApiConfig.useMockApi = false;
+      final api = _FakeApiService();
+      final service = ProductService.forTesting(api);
+      const request = ProductUpsertRequest(
+        name: '更新商品',
+        description: '更新描述',
+        price: 499,
+        category: '吊坠',
+        material: '翡翠',
+        stock: 8,
+        isHot: false,
+      );
+
+      final result = await service.updateProduct('PROD-123', request);
+
+      expect(result, isNotNull);
+      expect(api.lastPutPath, ApiConfig.productDetail('PROD-123'));
+      expect(api.lastPutData, request.toJson());
+    });
+
+    test('mock createProduct should write through runtime catalog repository',
+        () async {
+      final runtimeCatalog = ProductRuntimeCatalog(
+        seedProducts: [_buildSeedProduct(id: 'SEED-001')],
+      );
+      final repository = ProductCatalogRepository(
+        runtimeCatalog: runtimeCatalog,
+        localProductIdBuilder: () => 'LOCAL-TEST-001',
+      );
+      final service = ProductService.forTesting(
+        _UnexpectedApiService(),
+        catalogRepository: repository,
+      );
+      const request = ProductUpsertRequest(
+        name: 'local-created',
+        description: 'runtime product',
+        price: 288,
+        category: '手链',
+        material: '和田玉',
+        images: ['https://example.com/runtime.jpg'],
+        stock: 9,
+        isNew: true,
+      );
+
+      final created = await service.createProduct(request);
+
+      expect(created, isNotNull);
+      expect(created!.id, 'LOCAL-TEST-001');
+      expect(repository.getRuntimeOnlyProducts(), hasLength(1));
+      expect(repository.getRuntimeOnlyProducts().single.name, 'local-created');
+      expect(repository.listAllProducts(), hasLength(2));
+    });
+
+    test('mock updateProduct should overlay existing seed products', () async {
+      final seedProduct = _buildSeedProduct(id: 'SEED-UPDATE-001');
+      final repository = ProductCatalogRepository(
+        runtimeCatalog: ProductRuntimeCatalog(seedProducts: [seedProduct]),
+      );
+      final service = ProductService.forTesting(
+        _UnexpectedApiService(),
+        catalogRepository: repository,
+      );
+      const request = ProductUpsertRequest(
+        name: 'updated-local-name',
+        description: 'updated description',
+        price: 688,
+        category: '手链',
+        material: '和田玉',
+        stock: 3,
+        isHot: true,
+      );
+
+      final updated = await service.updateProduct(seedProduct.id, request);
+
+      expect(updated, isNotNull);
+      expect(updated!.id, seedProduct.id);
+      expect(updated.name, 'updated-local-name');
+      expect(updated.price, 688);
+      expect(repository.getProductDetail(seedProduct.id)?.name,
+          'updated-local-name');
+      expect(repository.getSeedProducts().single.name, seedProduct.name);
+    });
+
+    test('mock deleteProduct should remove products from runtime view',
+        () async {
+      final seedProduct = _buildSeedProduct(id: 'SEED-DELETE-001');
+      final repository = ProductCatalogRepository(
+        runtimeCatalog: ProductRuntimeCatalog(seedProducts: [seedProduct]),
+      );
+      final service = ProductService.forTesting(
+        _UnexpectedApiService(),
+        catalogRepository: repository,
+      );
+
+      final deleted = await service.deleteProduct(seedProduct.id);
+
+      expect(deleted, isTrue);
+      expect(repository.getProductDetail(seedProduct.id), isNull);
+      expect(repository.listAllProducts(), isEmpty);
+      expect(repository.hasRuntimeOverrides, isTrue);
+    });
+
+    test('mock createProduct should persist runtime overlay to storage',
+        () async {
+      final storage = StorageService();
+      final repository = ProductCatalogRepository(
+        runtimeCatalog: ProductRuntimeCatalog(
+          seedProducts: [_buildSeedProduct(id: 'SEED-PERSIST-001')],
+        ),
+        storageService: storage,
+        runtimePersistenceKey: 'product-service-create-persist',
+        localProductIdBuilder: () => 'LOCAL-PERSIST-001',
+      );
+      final service = ProductService.forTesting(
+        _UnexpectedApiService(),
+        catalogRepository: repository,
+      );
+      const request = ProductUpsertRequest(
+        name: 'persisted-local-product',
+        description: 'persist runtime overlay',
+        price: 466,
+        category: 'test-category',
+        material: 'test-material',
+        stock: 2,
+      );
+      /*
+      const request = ProductUpsertRequest(
+        name: 'persisted-local-product',
+        description: 'persist runtime overlay',
+        price: 466,
+        category: '鎵嬮摼',
+        material: '鍜岀敯鐜?,
+        stock: 2,
+      );
+
+      */
+      final created = await service.createProduct(request);
+      final overlay = await storage.getProductRuntimeOverlay(
+        'product-service-create-persist',
+      );
+
+      expect(created, isNotNull);
+      expect(overlay, isNotNull);
+      final overrideProducts = overlay!['override_products'] as List<dynamic>;
+      expect(overrideProducts, hasLength(1));
+      expect(
+        (overrideProducts.single as Map<String, dynamic>)['id'],
+        'LOCAL-PERSIST-001',
+      );
+      expect(overlay['removed_seed_product_ids'], isEmpty);
+    });
+
+    test('initialize should restore persisted runtime overlays', () async {
+      final storage = StorageService();
+      final seedProduct = _buildSeedProduct(id: 'SEED-RESTORE-001');
+      final firstRepository = ProductCatalogRepository(
+        runtimeCatalog: ProductRuntimeCatalog(seedProducts: [seedProduct]),
+        storageService: storage,
+        runtimePersistenceKey: 'product-service-restore',
+        localProductIdBuilder: () => 'LOCAL-RESTORE-001',
+      );
+      final firstService = ProductService.forTesting(
+        _UnexpectedApiService(),
+        catalogRepository: firstRepository,
+      );
+      const request = ProductUpsertRequest(
+        name: 'restored-local-product',
+        description: 'restored from storage',
+        price: 588,
+        category: 'test-category',
+        material: 'test-material',
+        stock: 4,
+      );
+      /*
+      const request = ProductUpsertRequest(
+        name: 'restored-local-product',
+        description: 'restored from storage',
+        price: 588,
+        category: '鎵嬮摼',
+        material: '鍜岀敯鐜?,
+        stock: 4,
+      );
+
+      */
+      await firstService.createProduct(request);
+      await firstService.deleteProduct(seedProduct.id);
+
+      final restoredRepository = ProductCatalogRepository(
+        runtimeCatalog: ProductRuntimeCatalog(seedProducts: [seedProduct]),
+        storageService: storage,
+        runtimePersistenceKey: 'product-service-restore',
+      );
+      final restoredService = ProductService.forTesting(
+        _UnexpectedApiService(),
+        catalogRepository: restoredRepository,
+      );
+
+      await restoredService.initialize();
+
+      expect(restoredRepository.getProductDetail(seedProduct.id), isNull);
+      expect(restoredRepository.getRuntimeOnlyProducts(), hasLength(1));
+      expect(
+        restoredRepository.getRuntimeOnlyProducts().single.id,
+        'LOCAL-RESTORE-001',
+      );
+      expect(
+        restoredRepository.listAllProducts().map((product) => product.id),
+        ['LOCAL-RESTORE-001'],
+      );
+    });
+
+    test('persistRuntimeOverrides should clear storage after reset', () async {
+      final storage = StorageService();
+      final repository = ProductCatalogRepository(
+        runtimeCatalog: ProductRuntimeCatalog(
+          seedProducts: [_buildSeedProduct(id: 'SEED-CLEAR-001')],
+        ),
+        storageService: storage,
+        runtimePersistenceKey: 'product-service-clear-persist',
+      );
+
+      repository.saveRuntimeProduct(_buildSeedProduct(id: 'LOCAL-CLEAR-001'));
+      await repository.persistRuntimeOverrides();
+      expect(
+        await storage.getProductRuntimeOverlay('product-service-clear-persist'),
+        isNotNull,
+      );
+
+      repository.resetRuntimeOverrides();
+      await repository.persistRuntimeOverrides();
+
+      expect(
+        await storage.getProductRuntimeOverlay('product-service-clear-persist'),
+        isNull,
+      );
+    });
+  });
+  group('ProductCatalogRepository local catalog tests', () {
+    test('getCategories should dedupe categories and keep all option first',
+        () {
+      final repository = ProductCatalogRepository(
+        productLoader: () => [
+          ProductModel(
+            id: '1',
+            name: 'bracelet-a',
+            description: 'desc',
+            price: 100,
+            category: '手链',
+            material: '和田玉',
+            images: const [],
+            stock: 1,
+          ),
+          ProductModel(
+            id: '2',
+            name: 'pendant-b',
+            description: 'desc',
+            price: 200,
+            category: '吊坠',
+            material: '翡翠',
+            images: const [],
+            stock: 1,
+          ),
+          ProductModel(
+            id: '3',
+            name: 'bracelet-c',
+            description: 'desc',
+            price: 300,
+            category: '手链',
+            material: '翡翠',
+            images: const [],
+            stock: 1,
+          ),
+        ],
+      );
+
+      expect(repository.getCategories(), ['全部', '手链', '吊坠']);
+    });
+
+    test('getMaterials should dedupe materials by first appearance', () {
+      final repository = ProductCatalogRepository(
+        productLoader: () => [
+          ProductModel(
+            id: '1',
+            name: 'bracelet-a',
+            description: 'desc',
+            price: 100,
+            category: '手链',
+            material: '和田玉',
+            images: const [],
+            stock: 1,
+          ),
+          ProductModel(
+            id: '2',
+            name: 'pendant-b',
+            description: 'desc',
+            price: 200,
+            category: '吊坠',
+            material: '翡翠',
+            images: const [],
+            stock: 1,
+          ),
+          ProductModel(
+            id: '3',
+            name: 'bracelet-c',
+            description: 'desc',
+            price: 300,
+            category: '手链',
+            material: '和田玉',
+            images: const [],
+            stock: 1,
+          ),
+        ],
+      );
+
+      expect(repository.getMaterials(), ['和田玉', '翡翠']);
+    });
+  });
+}
+
+class _FakeApiService extends ApiService {
+  _FakeApiService() : super.forTesting();
+
+  String? lastPostPath;
+  dynamic lastPostData;
+  String? lastPutPath;
+  dynamic lastPutData;
+
+  @override
+  Future<ApiResult<T>> post<T>(
+    String path, {
+    data,
+    Map<String, dynamic>? params,
+    T Function(dynamic data)? fromJson,
+  }) async {
+    lastPostPath = path;
+    lastPostData = data;
+    final payload = _buildResponse(
+      id: 'PROD-CREATE-001',
+      data: data as Map<String, dynamic>,
+    );
+    return ApiResult.success(payload as T);
+  }
+
+  @override
+  Future<ApiResult<T>> put<T>(
+    String path, {
+    data,
+    Map<String, dynamic>? params,
+    T Function(dynamic data)? fromJson,
+  }) async {
+    lastPutPath = path;
+    lastPutData = data;
+    final payload = _buildResponse(
+      id: 'PROD-UPDATE-001',
+      data: data as Map<String, dynamic>,
+    );
+    return ApiResult.success(payload as T);
+  }
+
+  Map<String, dynamic> _buildResponse({
+    required String id,
+    required Map<String, dynamic> data,
+  }) {
+    return {
+      'id': id,
+      'name': data['name'],
+      'description': data['description'],
+      'price': data['price'],
+      'original_price': data['original_price'],
+      'category': data['category'],
+      'material': data['material'],
+      'images': data['images'] ?? const <String>[],
+      'stock': data['stock'],
+      'is_hot': data['is_hot'] ?? false,
+      'is_new': data['is_new'] ?? false,
+      'origin': data['origin'],
+      'certificate': data['certificate'],
+      'is_welfare': data['is_welfare'] ?? false,
+    };
+  }
+}
+
+class _UnexpectedApiService extends ApiService {
+  _UnexpectedApiService() : super.forTesting();
+
+  @override
+  Future<ApiResult<T>> post<T>(
+    String path, {
+    data,
+    Map<String, dynamic>? params,
+    T Function(dynamic data)? fromJson,
+  }) {
+    throw StateError('mock write paths should not hit ApiService.post');
+  }
+
+  @override
+  Future<ApiResult<T>> put<T>(
+    String path, {
+    data,
+    Map<String, dynamic>? params,
+    T Function(dynamic data)? fromJson,
+  }) {
+    throw StateError('mock write paths should not hit ApiService.put');
+  }
+
+  @override
+  Future<ApiResult<T>> delete<T>(
+    String path, {
+    data,
+    Map<String, dynamic>? params,
+    T Function(dynamic data)? fromJson,
+  }) {
+    throw StateError('mock write paths should not hit ApiService.delete');
+  }
+}
+
+ProductModel _buildSeedProduct({required String id}) {
+  return ProductModel(
+    id: id,
+    name: 'seed-$id',
+    description: 'seed product',
+    price: 399,
+    category: '手链',
+    material: '和田玉',
+    images: const ['https://example.com/seed.jpg'],
+    stock: 6,
+    salesCount: 11,
+  );
 }

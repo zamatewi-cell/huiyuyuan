@@ -13,6 +13,7 @@ export 'business_models.dart';
 
 import 'dart:typed_data'; // ignore: unused_import
 import '../config/app_config.dart';
+import 'json_parsing.dart';
 
 // ============ 用户模型 ============
 
@@ -68,20 +69,16 @@ class UserModel {
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
     return UserModel(
-      id: json['id'] ?? '',
-      username: json['username'] ?? '',
-      phone: json['phone'],
-      userType: _parseUserType(json['user_type']),
-      isActive: json['is_active'] ?? true,
-      token: json['token'],
-      createdAt: json['created_at'] != null
-          ? DateTime.parse(json['created_at'])
-          : null,
-      lastLoginAt: json['last_login_at'] != null
-          ? DateTime.parse(json['last_login_at'])
-          : null,
-      paymentAccountId: json['payment_account_id'],
-      operatorNumber: json['operator_number'],
+      id: jsonAsString(json['id']),
+      username: jsonAsString(json['username']),
+      phone: jsonAsNullableString(json['phone']),
+      userType: _parseUserType(jsonAsNullableString(json['user_type'])),
+      isActive: jsonAsBool(json['is_active'], fallback: true),
+      token: jsonAsNullableString(json['token']),
+      createdAt: jsonAsNullableDateTime(json['created_at']),
+      lastLoginAt: jsonAsNullableDateTime(json['last_login_at']),
+      paymentAccountId: jsonAsNullableString(json['payment_account_id']),
+      operatorNumber: jsonAsNullableInt(json['operator_number']),
     );
   }
 
@@ -101,8 +98,8 @@ class UserModel {
   }
 
   static UserType _parseUserType(String? typeStr) {
-    if (typeStr == 'admin') return UserType.admin;
-    if (typeStr == 'operator') return UserType.operator;
+    if (typeStr == UserType.admin.name) return UserType.admin;
+    if (typeStr == UserType.operator.name) return UserType.operator;
     return UserType.customer;
   }
 }

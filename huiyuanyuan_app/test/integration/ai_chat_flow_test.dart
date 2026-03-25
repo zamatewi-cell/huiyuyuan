@@ -1,10 +1,10 @@
-/// 汇玉源 - AI 对话流程集成测试
-/// 
-/// 测试场景:
-/// 1. AI 助手页面加载
-/// 2. AI 服务功能
-/// 3. ChatMessage 模型
-/// 4. 内容分析功能
+// 汇玉源 - AI 对话流程集成测试
+//
+// 测试场景:
+// 1. AI 助手页面加载
+// 2. AI 服务功能
+// 3. ChatMessage 模型
+// 4. 内容分析功能
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -19,26 +19,26 @@ void _mockSecureStorage() {
   const MethodChannel ch = MethodChannel(
     'plugins.it_nomads.com/flutter_secure_storage',
   );
-  final Map<String, String> _store = {};
+  final Map<String, String> store = {};
   TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
       .setMockMethodCallHandler(ch, (call) async {
     switch (call.method) {
       case 'write':
         final v = call.arguments['value'] as String?;
-        if (v != null) _store[call.arguments['key'] as String] = v;
+        if (v != null) store[call.arguments['key'] as String] = v;
         return null;
       case 'read':
-        return _store[call.arguments['key'] as String];
+        return store[call.arguments['key'] as String];
       case 'delete':
-        _store.remove(call.arguments['key'] as String);
+        store.remove(call.arguments['key'] as String);
         return null;
       case 'deleteAll':
-        _store.clear();
+        store.clear();
         return null;
       case 'readAll':
-        return Map<String, String>.from(_store);
+        return Map<String, String>.from(store);
       case 'containsKey':
-        return _store.containsKey(call.arguments['key'] as String);
+        return store.containsKey(call.arguments['key'] as String);
       default:
         return null;
     }

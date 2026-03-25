@@ -11,6 +11,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../models/json_parsing.dart';
 import 'storage_service.dart';
 import 'api_service.dart';
 import '../config/api_config.dart';
@@ -72,15 +73,15 @@ class PushNotification {
 
   factory PushNotification.fromJson(Map<String, dynamic> json) {
     return PushNotification(
-      id: json['id'] ?? '',
-      title: json['title'] ?? '',
-      body: json['body'] ?? '',
-      type: NotificationType.fromString(json['type'] ?? 'system'),
-      data: json['data'] as Map<String, dynamic>?,
-      receivedAt: json['received_at'] != null
-          ? DateTime.parse(json['received_at'])
-          : DateTime.now(),
-      isRead: json['is_read'] ?? false,
+      id: jsonAsString(json['id']),
+      title: jsonAsString(json['title']),
+      body: jsonAsString(json['body']),
+      type: NotificationType.fromString(
+        jsonAsString(json['type'], fallback: NotificationType.system.value),
+      ),
+      data: jsonAsNullableMap(json['data']),
+      receivedAt: jsonAsDateTime(json['received_at']),
+      isRead: jsonAsBool(json['is_read']),
     );
   }
 
@@ -137,16 +138,16 @@ class NotificationSettings {
 
   factory NotificationSettings.fromJson(Map<String, dynamic> json) {
     return NotificationSettings(
-      enabled: json['enabled'] ?? true,
-      orderEnabled: json['order_enabled'] ?? true,
-      promotionEnabled: json['promotion_enabled'] ?? true,
-      liveEnabled: json['live_enabled'] ?? true,
-      logisticsEnabled: json['logistics_enabled'] ?? true,
-      chatEnabled: json['chat_enabled'] ?? true,
-      soundEnabled: json['sound_enabled'] ?? true,
-      vibrationEnabled: json['vibration_enabled'] ?? true,
-      silentStartTime: json['silent_start_time'],
-      silentEndTime: json['silent_end_time'],
+      enabled: jsonAsBool(json['enabled'], fallback: true),
+      orderEnabled: jsonAsBool(json['order_enabled'], fallback: true),
+      promotionEnabled: jsonAsBool(json['promotion_enabled'], fallback: true),
+      liveEnabled: jsonAsBool(json['live_enabled'], fallback: true),
+      logisticsEnabled: jsonAsBool(json['logistics_enabled'], fallback: true),
+      chatEnabled: jsonAsBool(json['chat_enabled'], fallback: true),
+      soundEnabled: jsonAsBool(json['sound_enabled'], fallback: true),
+      vibrationEnabled: jsonAsBool(json['vibration_enabled'], fallback: true),
+      silentStartTime: jsonAsNullableString(json['silent_start_time']),
+      silentEndTime: jsonAsNullableString(json['silent_end_time']),
     );
   }
 
@@ -335,8 +336,7 @@ class PushService {
       final res = await _api.get(ApiConfig.notifications);
       if (res.success && res.data is List) {
         final serverNotifs = (res.data as List)
-            .map((e) =>
-                PushNotification.fromJson(e as Map<String, dynamic>))
+            .map((e) => PushNotification.fromJson(jsonAsMap(e)))
             .toList();
 
         // 只添加本地没有的新通知
@@ -519,7 +519,7 @@ class PushService {
       final cached = prefs.getString(_kNotificationsCacheKey);
       if (cached != null) {
         final list = (jsonDecode(cached) as List)
-            .map((e) => PushNotification.fromJson(e as Map<String, dynamic>))
+            .map((e) => PushNotification.fromJson(jsonAsMap(e)))
             .toList();
         _notifications.addAll(list);
       }

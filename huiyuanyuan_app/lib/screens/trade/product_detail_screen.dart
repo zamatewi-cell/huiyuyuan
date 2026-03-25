@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../models/user_model.dart';
-import '../../models/cart_item_model.dart';
 import '../../services/storage_service.dart';
 import '../../services/ai_service.dart';
 import '../../providers/cart_provider.dart';
@@ -522,13 +521,13 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
                     style: OutlinedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       side:
-                          BorderSide(color: JewelryColors.primary, width: 1.5),
+                          const BorderSide(color: JewelryColors.primary, width: 1.5),
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(16)),
                       elevation: 0,
                     ),
                     onPressed: _addToCart,
-                    child: Text('加入购物车',
+                    child: const Text('加入购物车',
                         style: TextStyle(
                             color: JewelryColors.primary,
                             fontWeight: FontWeight.w600)),
@@ -671,6 +670,8 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
 
   Future<void> _toggleFavorite() async {
     await _storage.toggleFavorite(widget.product.id);
+    // await 后必须检查 mounted，防止 Widget 已销毁时操作 Context 导致崩溃
+    if (!mounted) return;
     setState(() => _isFavorite = !_isFavorite);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(

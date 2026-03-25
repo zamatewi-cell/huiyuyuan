@@ -1,7 +1,7 @@
-/// Widget Test - LoginScreen
-///
-/// 5 cases: renders 3 tabs, admin tab fields, operator tab fields,
-/// user tab shows phone+code, password visibility toggle
+// Widget Test - LoginScreen
+//
+// 5 cases: renders 3 tabs, admin tab fields, operator tab fields,
+// user tab shows phone+code, password visibility toggle
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';

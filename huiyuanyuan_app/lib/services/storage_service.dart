@@ -360,46 +360,6 @@ class StorageService {
     await saveReminderSettings(settings);
   }
 
-  // ============ 收款账户 ============
-
-  /// 保存收款账户列表
-  Future<void> savePaymentAccounts(List<Map<String, dynamic>> accounts) async {
-    final prefs = await _storage;
-    await prefs.setString('payment_accounts', jsonEncode(accounts));
-  }
-
-  /// 获取收款账户列表
-  Future<List<Map<String, dynamic>>> getPaymentAccounts() async {
-    final prefs = await _storage;
-    final data = prefs.getString('payment_accounts');
-    if (data == null) return [];
-    final list = jsonDecode(data) as List;
-    return list.cast<Map<String, dynamic>>();
-  }
-
-  /// 添加收款账户
-  Future<void> addPaymentAccount(Map<String, dynamic> account) async {
-    final accounts = await getPaymentAccounts();
-    accounts.add(account);
-    await savePaymentAccounts(accounts);
-  }
-
-  /// 删除收款账户
-  Future<void> removePaymentAccount(String accountId) async {
-    final accounts = await getPaymentAccounts();
-    accounts.removeWhere((a) => a['id'] == accountId);
-    await savePaymentAccounts(accounts);
-  }
-
-  /// 设置默认收款账户
-  Future<void> setDefaultPaymentAccount(String accountId) async {
-    final accounts = await getPaymentAccounts();
-    for (var account in accounts) {
-      account['isDefault'] = account['id'] == accountId;
-    }
-    await savePaymentAccounts(accounts);
-  }
-
   // ============ 搜索历史 ============
 
   /// 添加搜索历史
@@ -448,6 +408,29 @@ class StorageService {
   // ============ 通用方法 ============
 
   /// 清除所有数据
+  Future<void> saveProductRuntimeOverlay(
+    String key,
+    Map<String, dynamic> payload,
+  ) async {
+    final prefs = await _storage;
+    await prefs.setString(
+        _getProductRuntimeOverlayKey(key), jsonEncode(payload));
+  }
+
+  Future<Map<String, dynamic>?> getProductRuntimeOverlay(String key) async {
+    final prefs = await _storage;
+    final data = prefs.getString(_getProductRuntimeOverlayKey(key));
+    if (data == null) {
+      return null;
+    }
+    return jsonDecode(data) as Map<String, dynamic>;
+  }
+
+  Future<void> clearProductRuntimeOverlay(String key) async {
+    final prefs = await _storage;
+    await prefs.remove(_getProductRuntimeOverlayKey(key));
+  }
+
   Future<void> clearAll() async {
     final prefs = await _storage;
     await prefs.clear();
@@ -472,7 +455,12 @@ class StorageService {
   // ============ 聊天历史 ============
 
   /// 保存聊天历史（每个用户独立 key）
-  Future<void> saveChatHistory(String userId, List<ChatMessage> messages) async {
+  String _getProductRuntimeOverlayKey(String key) {
+    return 'product_runtime_overlay_$key';
+  }
+
+  Future<void> saveChatHistory(
+      String userId, List<ChatMessage> messages) async {
     final prefs = await _storage;
     final list = messages
         .where((m) => m.id != 'welcome') // 不保存欢迎消息
@@ -491,10 +479,19 @@ class StorageService {
     final list = prefs.getStringList('chat_history_$userId');
     if (list == null || list.isEmpty) return [];
     try {
-      return list
-          .map((s) => ChatMessage.fromJson(jsonDecode(s) as Map<String, dynamic>))
+      final messages = list
+          .map((s) =>
+              ChatMessage.fromJson(jsonDecode(s) as Map<String, dynamic>))
           .toList();
+      final normalized = messages
+          .map((message) => jsonEncode(message.toJson()))
+          .toList(growable: false);
+      if (!_sameStringList(list, normalized)) {
+        await prefs.setStringList('chat_history_$userId', normalized);
+      }
+      return messages;
     } catch (_) {
+      await prefs.remove('chat_history_$userId');
       return [];
     }
   }
@@ -513,5 +510,17 @@ class StorageService {
         .where((k) => k.startsWith('chat_history_'))
         .map((k) => k.replaceFirst('chat_history_', ''))
         .toList();
+  }
+
+  bool _sameStringList(List<String> left, List<String> right) {
+    if (left.length != right.length) {
+      return false;
+    }
+    for (var index = 0; index < left.length; index++) {
+      if (left[index] != right[index]) {
+        return false;
+      }
+    }
+    return true;
   }
 }

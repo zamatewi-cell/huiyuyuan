@@ -123,7 +123,7 @@ class OrderDetailScreen extends ConsumerWidget {
           const SizedBox(height: 8),
           Text(
             _getStatusDescription(),
-            style: TextStyle(
+            style: const TextStyle(
               color: JewelryColors.textSecondary,
               fontSize: 13,
             ),

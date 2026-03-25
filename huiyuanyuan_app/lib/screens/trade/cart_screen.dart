@@ -21,7 +21,7 @@ class CartScreen extends ConsumerStatefulWidget {
 }
 
 class _CartScreenState extends ConsumerState<CartScreen> {
-  bool _isProcessingApi = false;
+  final bool _isProcessingApi = false;
 
   @override
   void initState() {

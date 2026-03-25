@@ -11,6 +11,7 @@ import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:uuid/uuid.dart';
 import '../config/api_config.dart';
+import '../models/json_parsing.dart';
 import 'api_service.dart';
 
 /// OSS上传结果
@@ -59,10 +60,10 @@ class StsCredential {
 
   factory StsCredential.fromJson(Map<String, dynamic> json) {
     return StsCredential(
-      accessKeyId: json['access_key_id'] ?? '',
-      accessKeySecret: json['access_key_secret'] ?? '',
-      securityToken: json['security_token'] ?? '',
-      expiration: json['expiration'] ?? '',
+      accessKeyId: jsonAsString(json['access_key_id']),
+      accessKeySecret: jsonAsString(json['access_key_secret']),
+      securityToken: jsonAsString(json['security_token']),
+      expiration: jsonAsString(json['expiration']),
     );
   }
 
@@ -199,8 +200,8 @@ class OssService {
 
     if (result.success && result.data != null) {
       return OssUploadResult.success(
-        result.data!['url'] ?? '',
-        result.data!['object_key'] ?? '',
+        jsonAsString(result.data!['url']),
+        jsonAsString(result.data!['object_key']),
       );
     }
 

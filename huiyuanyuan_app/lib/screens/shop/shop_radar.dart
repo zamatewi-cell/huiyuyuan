@@ -245,7 +245,7 @@ class _ShopRadarState extends State<ShopRadar>
                   child: Container(
                     width: 50,
                     height: 2,
-                    decoration: BoxDecoration(
+                    decoration: const BoxDecoration(
                       gradient: LinearGradient(
                         colors: [
                           Colors.transparent,

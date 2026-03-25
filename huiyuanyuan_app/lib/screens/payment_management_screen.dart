@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../models/payment_account.dart';
 import '../providers/payment_provider.dart';
 import '../widgets/common/glassmorphic_card.dart';
@@ -10,7 +11,6 @@ class PaymentManagementScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final paymentState = ref.watch(paymentAccountsProvider);
-    final accounts = paymentState.accounts;
     final isLoading = paymentState.state == PaymentLoadingState.loading;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
@@ -63,35 +63,34 @@ class PaymentManagementScreen extends ConsumerWidget {
                   ],
                 ),
               ),
-        child: _buildContent(context, ref, accounts, paymentState),
+        child: _buildContent(context, paymentState),
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _showEditDialog(context, ref, null),
+        onPressed: () => _showEditDialog(context, null),
         label: const Text('新增账户'),
         icon: const Icon(Icons.add),
       ),
     );
   }
 
-  Widget _buildContent(
-    BuildContext context,
-    WidgetRef ref,
-    List<PaymentAccount> accounts,
-    PaymentAccountsState state,
-  ) {
-    if (state.state == PaymentLoadingState.error) {
-      return _buildErrorState(context, ref, state.errorMessage ?? '加载失败');
+  Widget _buildContent(BuildContext context, PaymentAccountsState state) {
+    if (state.state == PaymentLoadingState.loading && state.accounts.isEmpty) {
+      return const Center(child: CircularProgressIndicator());
     }
 
-    if (accounts.isEmpty) {
-      return _buildEmptyState(context, ref);
+    if (state.state == PaymentLoadingState.error && state.accounts.isEmpty) {
+      return _buildErrorState(context, state.errorMessage ?? '加载支付账户失败');
+    }
+
+    if (state.accounts.isEmpty) {
+      return _buildEmptyState(context);
     }
 
     return ListView.builder(
       padding: const EdgeInsets.fromLTRB(16, 100, 16, 80),
-      itemCount: accounts.length,
+      itemCount: state.accounts.length,
       itemBuilder: (context, index) {
-        final account = accounts[index];
+        final account = state.accounts[index];
         return Padding(
           padding: const EdgeInsets.only(bottom: 16),
           child: _PaymentAccountCard(account: account),
@@ -100,15 +99,14 @@ class PaymentManagementScreen extends ConsumerWidget {
     );
   }
 
-  void _showEditDialog(
-      BuildContext context, WidgetRef ref, PaymentAccount? account) {
-    showDialog(
+  void _showEditDialog(BuildContext context, PaymentAccount? account) {
+    showDialog<void>(
       context: context,
       builder: (context) => _PaymentAccountDialog(account: account),
     );
   }
 
-  Widget _buildEmptyState(BuildContext context, WidgetRef ref) {
+  Widget _buildEmptyState(BuildContext context) {
     final theme = Theme.of(context);
 
     return Center(
@@ -132,14 +130,14 @@ class PaymentManagementScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 20),
             Text(
-              'No payment accounts yet',
+              '还没有收款账户',
               style: theme.textTheme.titleLarge?.copyWith(
                 fontWeight: FontWeight.w700,
               ),
             ),
             const SizedBox(height: 8),
             Text(
-              'Add a real bank, Alipay, or WeChat account before collecting payments.',
+              '请先添加真实的银行卡、支付宝或微信收款账户，再开始收款。',
               textAlign: TextAlign.center,
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: theme.textTheme.bodyMedium?.color?.withOpacity(0.7),
@@ -148,9 +146,9 @@ class PaymentManagementScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 20),
             FilledButton.icon(
-              onPressed: () => _showEditDialog(context, ref, null),
+              onPressed: () => _showEditDialog(context, null),
               icon: const Icon(Icons.add),
-              label: const Text('Add account'),
+              label: const Text('新增账户'),
             ),
           ],
         ),
@@ -158,7 +156,7 @@ class PaymentManagementScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildErrorState(BuildContext context, WidgetRef ref, String message) {
+  Widget _buildErrorState(BuildContext context, String message) {
     final theme = Theme.of(context);
 
     return Center(
@@ -197,12 +195,16 @@ class PaymentManagementScreen extends ConsumerWidget {
               ),
             ),
             const SizedBox(height: 20),
-            FilledButton.icon(
-              onPressed: () {
-                ref.read(paymentAccountsProvider.notifier).loadAccounts();
+            Consumer(
+              builder: (context, ref, _) {
+                return FilledButton.icon(
+                  onPressed: () {
+                    ref.read(paymentAccountsProvider.notifier).loadAccounts();
+                  },
+                  icon: const Icon(Icons.refresh),
+                  label: const Text('重试'),
+                );
               },
-              icon: const Icon(Icons.refresh),
-              label: const Text('重试'),
             ),
           ],
         ),
@@ -230,6 +232,7 @@ class _PaymentAccountCard extends ConsumerWidget {
         child: Column(
           children: [
             Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Container(
                   padding: const EdgeInsets.all(10),
@@ -248,10 +251,44 @@ class _PaymentAccountCard extends ConsumerWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
+                          Text(
+                            account.name,
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          if (account.isDefault)
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color:
+                                    theme.colorScheme.primary.withOpacity(0.12),
+                                borderRadius: BorderRadius.circular(999),
+                              ),
+                              child: Text(
+                                '默认账户',
+                                style: theme.textTheme.labelSmall?.copyWith(
+                                  color: theme.colorScheme.primary,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
                       Text(
-                        account.name,
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
+                        account.typeName,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.textTheme.bodySmall?.color
+                              ?.withOpacity(0.7),
                         ),
                       ),
                       if (account.accountNumber != null) ...[
@@ -260,7 +297,7 @@ class _PaymentAccountCard extends ConsumerWidget {
                           account.accountNumber!,
                           style: theme.textTheme.bodyMedium?.copyWith(
                             color: theme.textTheme.bodyMedium?.color
-                                ?.withOpacity(0.7),
+                                ?.withOpacity(0.75),
                             fontFamily: 'Monospace',
                           ),
                         ),
@@ -280,10 +317,17 @@ class _PaymentAccountCard extends ConsumerWidget {
                 ),
                 Switch(
                   value: account.isActive,
-                  onChanged: (value) {
-                    ref
+                  onChanged: (_) async {
+                    final success = await ref
                         .read(paymentAccountsProvider.notifier)
                         .toggleActive(account.id);
+                    if (!success && context.mounted) {
+                      _showErrorSnackBar(
+                        context,
+                        ref.read(paymentAccountsProvider).errorMessage ??
+                            '更新账户状态失败',
+                      );
+                    }
                   },
                 ),
               ],
@@ -292,9 +336,26 @@ class _PaymentAccountCard extends ConsumerWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
+                if (!account.isDefault)
+                  TextButton.icon(
+                    onPressed: () async {
+                      final success = await ref
+                          .read(paymentAccountsProvider.notifier)
+                          .updateAccount(account.copyWith(isDefault: true));
+                      if (!success && context.mounted) {
+                        _showErrorSnackBar(
+                          context,
+                          ref.read(paymentAccountsProvider).errorMessage ??
+                              '设置默认账户失败',
+                        );
+                      }
+                    },
+                    icon: const Icon(Icons.check_circle_outline, size: 16),
+                    label: const Text('设为默认'),
+                  ),
                 TextButton.icon(
                   onPressed: () {
-                    showDialog(
+                    showDialog<void>(
                       context: context,
                       builder: (context) =>
                           _PaymentAccountDialog(account: account),
@@ -304,14 +365,14 @@ class _PaymentAccountCard extends ConsumerWidget {
                   label: const Text('编辑'),
                 ),
                 TextButton.icon(
+                  style: TextButton.styleFrom(
+                    foregroundColor: theme.colorScheme.error,
+                  ),
                   onPressed: () {
                     _confirmDelete(context, ref, account);
                   },
                   icon: const Icon(Icons.delete, size: 16),
                   label: const Text('删除'),
-                  style: TextButton.styleFrom(
-                    foregroundColor: theme.colorScheme.error,
-                  ),
                 ),
               ],
             ),
@@ -326,9 +387,9 @@ class _PaymentAccountCard extends ConsumerWidget {
       case PaymentType.bank:
         return Icons.account_balance;
       case PaymentType.alipay:
-        return Icons.payment; // Replace with custom icon if available
+        return Icons.payment;
       case PaymentType.wechat:
-        return Icons.qr_code; // Replace with custom icon if available
+        return Icons.qr_code;
       case PaymentType.cash:
         return Icons.money;
       case PaymentType.other:
@@ -338,28 +399,40 @@ class _PaymentAccountCard extends ConsumerWidget {
 
   void _confirmDelete(
       BuildContext context, WidgetRef ref, PaymentAccount account) {
-    showDialog(
+    showDialog<void>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('确认删除'),
-        content: Text('确定要删除 "${account.name}" 吗？'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('取消'),
-          ),
-          TextButton(
-            onPressed: () {
-              ref
-                  .read(paymentAccountsProvider.notifier)
-                  .deleteAccount(account.id);
-              Navigator.pop(context);
-            },
-            child: const Text('删除'),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-          ),
-        ],
-      ),
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('确认删除'),
+          content: Text('确定要删除“${account.name}”吗？'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('取消'),
+            ),
+            TextButton(
+              style: TextButton.styleFrom(foregroundColor: Colors.red),
+              onPressed: () async {
+                final success = await ref
+                    .read(paymentAccountsProvider.notifier)
+                    .deleteAccount(account.id);
+                if (!dialogContext.mounted) {
+                  return;
+                }
+                if (success) {
+                  Navigator.pop(dialogContext);
+                  return;
+                }
+                _showErrorSnackBar(
+                  dialogContext,
+                  ref.read(paymentAccountsProvider).errorMessage ?? '删除支付账户失败',
+                );
+              },
+              child: const Text('删除'),
+            ),
+          ],
+        );
+      },
     );
   }
 }
@@ -376,10 +449,12 @@ class _PaymentAccountDialog extends ConsumerStatefulWidget {
 
 class _PaymentAccountDialogState extends ConsumerState<_PaymentAccountDialog> {
   final _formKey = GlobalKey<FormState>();
-  late TextEditingController _nameController;
-  late TextEditingController _accountNumberController;
-  late TextEditingController _bankNameController;
+  late final TextEditingController _nameController;
+  late final TextEditingController _accountNumberController;
+  late final TextEditingController _bankNameController;
   late PaymentType _selectedType;
+  late bool _isDefault;
+  bool _isSaving = false;
 
   @override
   void initState() {
@@ -390,6 +465,8 @@ class _PaymentAccountDialogState extends ConsumerState<_PaymentAccountDialog> {
     _bankNameController =
         TextEditingController(text: widget.account?.bankName ?? '');
     _selectedType = widget.account?.type ?? PaymentType.bank;
+    _isDefault = widget.account?.isDefault ??
+        ref.read(paymentAccountsProvider).accounts.isEmpty;
   }
 
   @override
@@ -406,7 +483,7 @@ class _PaymentAccountDialogState extends ConsumerState<_PaymentAccountDialog> {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 500),
-        child: Padding(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
           child: Form(
             key: _formKey,
@@ -430,16 +507,24 @@ class _PaymentAccountDialogState extends ConsumerState<_PaymentAccountDialog> {
                     );
                   }).toList(),
                   onChanged: (value) {
-                    if (value != null) setState(() => _selectedType = value);
+                    if (value != null) {
+                      setState(() => _selectedType = value);
+                    }
                   },
                 ),
                 const SizedBox(height: 16),
                 TextFormField(
                   controller: _nameController,
-                  decoration:
-                      const InputDecoration(labelText: '账户名称 (如: 公司主账户)'),
-                  validator: (value) =>
-                      value == null || value.isEmpty ? '请输入账户名称' : null,
+                  decoration: const InputDecoration(
+                    labelText: '账户名称',
+                    hintText: '例如：公司主账户',
+                  ),
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return '请输入账户名称';
+                    }
+                    return null;
+                  },
                 ),
                 const SizedBox(height: 16),
                 if (_selectedType == PaymentType.bank) ...[
@@ -451,20 +536,31 @@ class _PaymentAccountDialogState extends ConsumerState<_PaymentAccountDialog> {
                 ],
                 TextFormField(
                   controller: _accountNumberController,
-                  decoration: const InputDecoration(labelText: '账号 / 收款码链接'),
+                  decoration: InputDecoration(labelText: _accountNumberLabel),
                 ),
-                const SizedBox(height: 32),
+                const SizedBox(height: 12),
+                SwitchListTile.adaptive(
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('设为默认账户'),
+                  subtitle: const Text('订单和个人资料将优先使用这个收款账户。'),
+                  value: _isDefault,
+                  onChanged: (value) {
+                    setState(() => _isDefault = value);
+                  },
+                ),
+                const SizedBox(height: 24),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
                     TextButton(
-                      onPressed: () => Navigator.pop(context),
+                      onPressed:
+                          _isSaving ? null : () => Navigator.pop(context),
                       child: const Text('取消'),
                     ),
                     const SizedBox(width: 16),
                     ElevatedButton(
-                      onPressed: _save,
-                      child: const Text('保存'),
+                      onPressed: _isSaving ? null : _save,
+                      child: Text(_isSaving ? '保存中...' : '保存'),
                     ),
                   ],
                 ),
@@ -476,41 +572,72 @@ class _PaymentAccountDialogState extends ConsumerState<_PaymentAccountDialog> {
     );
   }
 
-  void _save() async {
-    if (_formKey.currentState!.validate()) {
-      final notifier = ref.read(paymentAccountsProvider.notifier);
-      bool success;
-
-      if (widget.account == null) {
-        final account = PaymentAccount.create(
-          name: _nameController.text,
-          type: _selectedType,
-          accountNumber: _accountNumberController.text.isNotEmpty
-              ? _accountNumberController.text
-              : null,
-          bankName: _bankNameController.text.isNotEmpty
-              ? _bankNameController.text
-              : null,
-        );
-        success = await notifier.addAccount(account);
-      } else {
-        final account = widget.account!.copyWith(
-          name: _nameController.text,
-          type: _selectedType,
-          accountNumber: _accountNumberController.text.isNotEmpty
-              ? _accountNumberController.text
-              : null,
-          bankName: _bankNameController.text.isNotEmpty
-              ? _bankNameController.text
-              : null,
-        );
-        success = await notifier.updateAccount(account);
-      }
-
-      if (success && mounted) {
-        Navigator.pop(context);
-      }
+  String get _accountNumberLabel {
+    switch (_selectedType) {
+      case PaymentType.bank:
+        return '银行卡号';
+      case PaymentType.alipay:
+        return '支付宝账号';
+      case PaymentType.wechat:
+        return '微信号或收款码链接';
+      case PaymentType.cash:
+        return '备注';
+      case PaymentType.other:
+        return '账号或说明';
     }
+  }
+
+  Future<void> _save() async {
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+
+    setState(() => _isSaving = true);
+
+    final notifier = ref.read(paymentAccountsProvider.notifier);
+    final accountNumber = _accountNumberController.text.trim();
+    final bankName = _bankNameController.text.trim();
+    late final bool success;
+
+    if (widget.account == null) {
+      final account = PaymentAccount.create(
+        name: _nameController.text.trim(),
+        type: _selectedType,
+        accountNumber: accountNumber.isNotEmpty ? accountNumber : null,
+        bankName: _selectedType == PaymentType.bank && bankName.isNotEmpty
+            ? bankName
+            : null,
+        isDefault: _isDefault,
+      );
+      success = await notifier.addAccount(account);
+    } else {
+      final account = widget.account!.copyWith(
+        name: _nameController.text.trim(),
+        type: _selectedType,
+        accountNumber: accountNumber.isNotEmpty ? accountNumber : null,
+        bankName: _selectedType == PaymentType.bank && bankName.isNotEmpty
+            ? bankName
+            : null,
+        isDefault: _isDefault,
+      );
+      success = await notifier.updateAccount(account);
+    }
+
+    if (!mounted) {
+      return;
+    }
+
+    setState(() => _isSaving = false);
+
+    if (success) {
+      Navigator.pop(context);
+      return;
+    }
+
+    _showErrorSnackBar(
+      context,
+      ref.read(paymentAccountsProvider).errorMessage ?? '保存支付账户失败',
+    );
   }
 
   String _getTypeName(PaymentType type) {
@@ -527,4 +654,11 @@ class _PaymentAccountDialogState extends ConsumerState<_PaymentAccountDialog> {
         return '其他';
     }
   }
+}
+
+void _showErrorSnackBar(BuildContext context, String message) {
+  final messenger = ScaffoldMessenger.of(context);
+  messenger
+    ..clearSnackBars()
+    ..showSnackBar(SnackBar(content: Text(message)));
 }
