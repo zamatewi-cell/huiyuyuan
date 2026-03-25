@@ -50,6 +50,12 @@ builds/migration/
 # Agent-generated local directories
 .agent/
 CLAUDE.md
+huiyuanyuan_app/.vscode/
+
+# Local test outputs
+issue_stats.txt
+login_test_result.txt
+test_output.txt
 
 # Python virtual environments
 .venv/

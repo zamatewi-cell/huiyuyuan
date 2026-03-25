@@ -2,6 +2,51 @@
 
 This file is the handoff contract for parallel work between Codex and Trae.
 
+## Status Snapshot
+
+Archived on 2026-03-18 after the payment-account API migration work was completed.
+
+Completed in this round:
+
+- Backend `payment_accounts` API, Alembic `0003`, and backend regression tests were finished by Codex.
+- Flutter payment-account flow is now API-driven and no longer uses local `SharedPreferences` storage in the active UI path.
+- Default-account selection and mutation failure feedback were added to the payment-management UI.
+- Legacy payment-account helpers were removed from `storage_service.dart`, and the old storage-based payment-account test group was removed from `storage_service_test.dart`.
+- `ApiService.forTesting()` was added as the test seam for fake notifier/API mutation coverage.
+- Trae completed the push-service scope note in `docs/guides/push_service_implementation_guide.md`.
+- Focused frontend coverage now includes:
+  - `test/models/payment_account_test.dart`
+  - `test/providers/payment_provider_test.dart`
+  - `test/screens/payment_management_screen_test.dart`
+
+Verification snapshot:
+
+- Use `.\scripts\run_flutter_test_no_proxy.ps1 test\...` on this machine because local proxy env vars break plain `flutter test`.
+- Current Flutter analyze result for the full app is down to info-level suggestions only for this slice; no payment-account warnings or errors remain.
+
+Remaining optional follow-up work:
+
+- Broader garbled-text cleanup outside the payment-account flow.
+- Push-service implementation remains explicitly out of scope for this round; only the scope/design note is done.
+
+## Recommended Next Trae Scope
+
+Do not reopen the payment-account core flow unless a new regression is found.
+
+No blocking parallel task remains in the payment-account slice.
+
+If Trae continues in a new round, prefer non-overlapping follow-up work:
+
+1. Push pre-implementation planning only:
+   - keep `docs/guides/push_service_implementation_guide.md` as the source note
+   - refine dependency/version choices and app-entry hook points without shipping Firebase code yet
+2. Broader frontend hygiene outside the payment flow:
+   - analyze remaining app-wide info-level suggestions
+   - clean stale comments or local-only helper code that is no longer used
+3. Commit-prep support:
+   - help review which new docs/tests/scripts are intended to be committed
+   - avoid touching Codex-owned backend files unless a new issue is found
+
 ## Goal
 
 Replace the remaining local-only payment-account flow with a real API-driven flow, while avoiding overlap between backend and frontend changes.
@@ -139,34 +184,34 @@ Now includes optional `payment_account_id`:
 
 ## Trae Task Breakdown
 
-### P0. Payment accounts API integration
+### P0. Payment accounts API integration [Done]
 
 Replace local `SharedPreferences`-only behavior with API-driven behavior.
 
 Required work:
 
-- Add API endpoint constants for payment accounts.
-- Change `payment_provider.dart` from local storage to `ApiService`.
-- Parse backend `type` strings: `bank`, `alipay`, `wechat`, `cash`, `other`.
-- Support list, create, update, delete.
-- Keep empty/loading/error states correct.
-- Do not recreate default fake accounts locally.
-- Preserve current add/edit/delete/toggle-active UX.
+- Added API endpoint constants for payment accounts.
+- Replaced local storage behavior in `payment_provider.dart` with `ApiService`.
+- Backend `type` strings now map to `bank`, `alipay`, `wechat`, `cash`, `other`.
+- List/create/update/delete are wired to `/api/users/payment-accounts`.
+- Empty/loading/error/default-account flows are handled in the payment-management UI.
+- Default fake accounts are no longer recreated locally.
+- Existing add/edit/delete/toggle-active UX remains, now with explicit mutation error feedback.
 
 Acceptance:
 
 - Opening payment-management page loads data from `/api/users/payment-accounts`.
 - Empty account list shows empty state, not mock accounts.
-- Add/edit/delete round-trip against backend successfully.
-- No direct `SharedPreferences` dependency remains in the payment-account flow.
+- Add/edit/delete/default-account flows round-trip against backend.
+- No direct `SharedPreferences` dependency remains in the active payment-account flow.
 
-### P1. Frontend test coverage
+### P1. Frontend test coverage [Done]
 
 Add or update focused tests for:
 
-- Payment-account model parsing.
-- Payment provider success/error states.
-- Payment-management empty state.
+- Payment-account model parsing and nullable-field behavior.
+- Payment provider state transitions and error-message behavior.
+- Payment-management error state, default-action failure, and delete-failure snackbar behavior.
 
 Use this command on this machine because `HTTP_PROXY` breaks plain `flutter test`:
 
@@ -174,27 +219,34 @@ Use this command on this machine because `HTTP_PROXY` breaks plain `flutter test
 .\scripts\run_flutter_test_no_proxy.ps1 test\...
 ```
 
-### P2. Text/encoding cleanup
+### P2. Text/encoding cleanup [Done]
 
-After P0 is merged, clean obvious garbled UI copy in:
+Trae audited the planned frontend surfaces in this slice and reported the current Chinese copy as clean in:
 
 - `admin_dashboard.dart`
 - `search_screen.dart`
 - `favorite_list_screen.dart`
 - `browse_history_screen.dart`
-- `payment_management_screen.dart`
+- `profile_screen.dart`
 
-This is lower priority than payment API integration.
+No further text cleanup is required for the payment-account handoff in this round.
 
-### P3. Push-service scoping only
+### P3. Push-service scoping only [Done]
 
 Do not implement full push in this round unless explicitly requested.
 
-Allowed scope:
+Completed scope:
 
 - Audit `push_service.dart`
 - List missing dependencies and app-entry hooks
-- Produce a short implementation note
+- Produce a short implementation note in `docs/guides/push_service_implementation_guide.md`
+
+### P4. Test hardening follow-up [Done]
+
+Additional test work completed after the initial handoff:
+
+- `payment_provider_test.dart` now includes fake-`ApiService` mutation coverage for load/add/update/delete/toggle-active success and failure paths.
+- `ApiService.forTesting()` is the supported seam for these notifier-level tests.
 
 ## Notes For Trae
 
