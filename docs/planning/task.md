@@ -105,7 +105,7 @@
 | 🔧 操作员开关修复 | `operator_home.dart` 提醒开关闭包 bug（`isOn` 每次 rebuild 被重置）已修复 |
 | 👤 个人中心优化 | `profile_screen.dart` 编辑资料弹窗、提醒设置 SharedPreferences 持久化 |
 | ⚡ 性能优化 | `main.dart` 错误页“重试”按钮实现实际重载、`SystemChrome` 移至 postFrameCallback 避免每帧冗余调用 |
-| 🚀 部署上线 | `flutter build web` 构建成功，scp 部署到 47.98.188.141，nginx reload，后端 health check 通过 |
+| 🚀 部署上线 | `flutter build web` 构建成功，scp 部署到 xn--lsws2cdzg.top（原 47.98.188.141），nginx reload，后端 health check 通过 |
 | 🤖 自动化部署系统 | 新增 `scripts/deploy.ps1` 一键部署脚本（支持 -Target all/web/backend、-SkipAnalyze、-SkipBuild、-DryRun），含 SSH 连通检查、静态分析、Web 构建、SCP 上传、服务重启、健康检查完整流水线 |
 | ⌨️ VSCode 任务集成 | `.vscode/tasks.json` 新增 8 个任务（全量部署/快速部署/前端部署/后端部署/仅构建/静态分析/测试/健康检查），Ctrl+Shift+B 触发默认部署 |
 | 🔄 CI/CD 增强 | `ci.yml` 新增 Job 3: Web 前端自动部署（flutter build web → SCP → nginx reload），后端路径统一为 `/srv/huiyuanyuan` |
@@ -136,7 +136,7 @@
 | ⚡ DeepSeek+Gemini 融合 | `ai_service.dart` 实现三级降级：DeepSeek → Gemini → 离线 |
 | 🌊 Gemini 流式输出 | 新增 `_chatStreamWithGemini()`，完整实现 Gemini SSE |
 | 📦 零编译错误 | 全量 `get_errors` 通过，0 error / 0 warning |
-| 🚀 服务器部署完成 | ECS 47.98.188.141 / Gunicorn / PostgreSQL 14 / Redis / Nginx 全部运行，`/api/health` 返回 `healthy` |
+| 🚀 服务器部署完成 | xn--lsws2cdzg.top（原 ECS 47.98.188.141）/ Gunicorn / PostgreSQL 14 / Redis / Nginx 全部运行，`/api/health` 返回 `healthy` |
 | 🔐 任务C：前端登录改造 | `flutter_secure_storage`、60s倒计时、`sendSmsCode()`、加密Token，0 errors |
 | 📋 任务B：数据库建表 | 9张表（users/products/orders/order_items/payments/cart_items/addresses/sms_logs/reviews）+ 触发器 + 索引全部创建成功 |
 | 📱 任务A：SMS 路由 | `/api/auth/send-sms`（Redis限流：60s冷却/日10次/5次错误锁定）+ `/api/auth/verify-sms`（JWT+PostgreSQL自动注册），含降级，6个测试用例全通过 |
@@ -169,12 +169,12 @@
 ### 🔴 P0 高优先级 — 阻塞上线（必须完成，目标 2026-03-08 前）
 
 #### 后端部署
-- [x] 购置阿里云 ECS（2核4GB，Ubuntu 22.04，华东，IP: 47.98.188.141）
+- [x] 购置阿里云 ECS（2核4GB，Ubuntu 22.04，华东，IP: 47.98.188.141 → 域名 xn--lsws2cdzg.top）
 - [x] 安装 Python 3.11 / PostgreSQL 14 / Redis 6.0 / Nginx 1.18
 - [x] 部署 FastAPI 后端（Gunicorn + uvicorn worker，systemd 开机自启）
 - [x] 配置 Nginx 反向代理（80→8000，含 limit_req_zone 限流）
 - [ ] 配置 HTTPS 证书（Let's Encrypt / Certbot）— 需先配置域名
-- [ ] 配置域名 `api.huiyuanyuan.com` 解析到 47.98.188.141
+- [x] 配置生产域名 `xn--lsws2cdzg.top`（已启用 HTTPS，原 IP: 47.98.188.141）
 - [x] 数据库建表（9张表 + 触发器 + 索引，init_db_utf8.sql 已执行）
 
 #### 登录系统重构（阿里云 SMS）

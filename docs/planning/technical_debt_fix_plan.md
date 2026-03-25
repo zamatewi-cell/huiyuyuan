@@ -212,10 +212,10 @@ if _origins_raw and _origins_raw != "*":
 else:
     if APP_ENV == "production":
         ALLOWED_ORIGINS = [
-            "http://47.98.188.141",
-            "https://47.98.188.141",
+            "https://xn--lsws2cdzg.top",
+            "https://www.xn--lsws2cdzg.top",
         ]
-        logger.warning("ALLOWED_ORIGINS 未配置，默认仅允许服务器 IP")
+        logger.warning("ALLOWED_ORIGINS 未配置，默认仅允许生产域名")
     else:
         ALLOWED_ORIGINS = ["*"]
 ```
@@ -290,7 +290,7 @@ class AppConfig {
   // static const String testAdminPassword = 'admin123';
   
   // 保留配置项
-  static const String apiBaseUrl = 'http://47.98.188.141';
+  static const String apiBaseUrl = 'https://xn--lsws2cdzg.top';
   static const bool useMockApi = false; // 生产环境设为false
 }
 ```

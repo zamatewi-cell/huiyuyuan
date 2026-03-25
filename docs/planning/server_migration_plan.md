@@ -1,7 +1,7 @@
 # 汇玉源服务器迁移计划
 
 > 迁移日期: 2026-03-17
-> 当前服务器: 47.98.188.141 (Ubuntu 22.04)
+> 当前服务器: xn--lsws2cdzg.top（原 IP: 47.98.188.141，Ubuntu 22.04）
 > 目标: 完整迁移至新云服务器，确保数据完整性和服务连续性
 
 ---
@@ -36,7 +36,7 @@
 ### 2.1 服务器配置
 | 项目 | 当前值 | 备注 |
 |------|--------|------|
-| IP地址 | 47.98.188.141 | 阿里云ECS |
+| 域名/IP | xn--lsws2cdzg.top（47.98.188.141）| 阿里云ECS |
 | 操作系统 | Ubuntu 22.04 LTS | |
 | CPU | 2核 | |
 | 内存 | 4GB | |
@@ -44,7 +44,7 @@
 | 存储 | 40GB SSD | |
 
 ### 2.2 已部署服务
-1. **FastAPI后端**：`/srv/huiyuanyuan/` (Gunicorn + Uvicorn)
+1. **FastAPI后端**：`/srv/huiyuanyuan/backend/` (Gunicorn + Uvicorn)
 2. **Flutter Web前端**：`/var/www/huiyuanyuan/`
 3. **PostgreSQL 15**：数据库服务
 4. **Redis**：缓存服务
@@ -80,8 +80,8 @@ tar -czf /opt/huiyuanyuan/backups/app_backup_$(date +%Y%m%d).tar.gz /srv/huiyuan
 tar -czf /opt/huiyuanyuan/backups/web_backup_$(date +%Y%m%d).tar.gz /var/www/huiyuanyuan/
 
 # 4. 配置文件备份
-cp /etc/nginx/sites-enabled/huiyuanyuan /opt/huiyuanyuan/backups/nginx_backup_$(date +%Y%m%d).conf
-cp /etc/systemd/system/huiyuanyuan.service /opt/huiyuanyuan/backups/systemd_backup_$(date +%Y%m%d).service
+cp /etc/nginx/conf.d/huiyuanyuan.conf /opt/huiyuanyuan/backups/nginx_backup_$(date +%Y%m%d).conf
+cp /etc/systemd/system/huiyuanyuan-backend.service /opt/huiyuanyuan/backups/systemd_backup_$(date +%Y%m%d).service
 ```
 
 #### 3.1.3 迁移脚本准备
@@ -166,12 +166,13 @@ apt install -y python3.11 python3.11-venv python3-pip
 
 # 2. 创建应用目录
 mkdir -p /srv/huiyuanyuan
+mkdir -p /srv/huiyuanyuan/backend
 mkdir -p /var/log/huiyuanyuan
 mkdir -p /opt/huiyuanyuan/backups
 mkdir -p /var/www/huiyuanyuan
 
 # 3. 创建虚拟环境
-cd /srv/huiyuanyuan
+cd /srv/huiyuanyuan/backend
 python3.11 -m venv venv
 source venv/bin/activate
 pip install --upgrade pip
@@ -182,10 +183,10 @@ pip install --upgrade pip
 #### 3.3.1 后端应用迁移
 ```bash
 # 1. 传输应用文件
-scp -r /srv/huiyuanyuan/* root@NEW_SERVER_IP:/srv/huiyuanyuan/
+scp -r /srv/huiyuanyuan/backend/* root@NEW_SERVER_IP:/srv/huiyuanyuan/backend/
 
 # 2. 安装依赖
-cd /srv/huiyuanyuan
+cd /srv/huiyuanyuan/backend
 source venv/bin/activate
 pip install -r requirements.txt
 
@@ -206,7 +207,7 @@ JWT_REFRESH_EXPIRE_DAYS=7
 # 应用配置
 APP_ENV=production
 DEBUG=false
-ALLOWED_ORIGINS=http://NEW_SERVER_IP
+ALLOWED_ORIGINS=https://xn--lsws2cdzg.top,https://www.xn--lsws2cdzg.top
 LOG_LEVEL=INFO
 EOF
 
@@ -222,7 +223,7 @@ scp /opt/huiyuanyuan/backups/db_backup_*.sql root@NEW_SERVER_IP:/tmp/
 sudo -u postgres psql -d huiyuanyuan -f /tmp/db_backup_*.sql
 
 # 3. 运行数据库迁移
-cd /srv/huiyuanyuan
+cd /srv/huiyuanyuan/backend
 source venv/bin/activate
 alembic upgrade head
 ```
@@ -241,7 +242,7 @@ scp -r build/web/* root@NEW_SERVER_IP:/var/www/huiyuanyuan/
 
 #### 3.4.1 systemd服务配置
 ```bash
-cat > /etc/systemd/system/huiyuanyuan.service << 'EOF'
+cat > /etc/systemd/system/huiyuanyuan-backend.service << 'EOF'
 [Unit]
 Description=汇玉源 FastAPI 后端服务 v4.0
 After=network.target postgresql.service redis-server.service
@@ -252,11 +253,11 @@ Wants=redis-server.service
 Type=notify
 User=root
 Group=root
-WorkingDirectory=/srv/huiyuanyuan
-Environment="PATH=/srv/huiyuanyuan/venv/bin:/usr/local/bin:/usr/bin"
+WorkingDirectory=/srv/huiyuanyuan/backend
+Environment="PATH=/srv/huiyuanyuan/backend/venv/bin:/usr/local/bin:/usr/bin"
 EnvironmentFile=/srv/huiyuanyuan/.env
 
-ExecStart=/srv/huiyuanyuan/venv/bin/gunicorn main:app \
+ExecStart=/srv/huiyuanyuan/backend/venv/bin/gunicorn main:app \
     -w 2 \
     -k uvicorn.workers.UvicornWorker \
     --bind 127.0.0.1:8000 \
@@ -278,7 +279,7 @@ StartLimitBurst=5
 StartLimitIntervalSec=60
 
 ProtectSystem=strict
-ReadWritePaths=/srv/huiyuanyuan /var/log/huiyuanyuan
+ReadWritePaths=/srv/huiyuanyuan /srv/huiyuanyuan/backend /var/log/huiyuanyuan
 PrivateTmp=true
 NoNewPrivileges=true
 
@@ -287,20 +288,19 @@ WantedBy=multi-user.target
 EOF
 
 systemctl daemon-reload
-systemctl enable huiyuanyuan
+systemctl enable huiyuanyuan-backend
 ```
 
 #### 3.4.2 Nginx配置
 ```bash
 # 复制Nginx配置文件
-cp /srv/huiyuanyuan/nginx_production.conf /etc/nginx/sites-available/huiyuanyuan
+cp /srv/huiyuanyuan/backend/nginx_production.conf /etc/nginx/conf.d/huiyuanyuan.conf
 
-# 修改server_name为新服务器IP
-sed -i 's/server_name 47.112.98.191;/server_name NEW_SERVER_IP;/' /etc/nginx/sites-available/huiyuanyuan
+# 修改server_name为生产域名
+sed -i 's/server_name .*;/server_name xn--lsws2cdzg.top www.xn--lsws2cdzg.top;/' /etc/nginx/conf.d/huiyuanyuan.conf
 
-# 启用站点
-ln -s /etc/nginx/sites-available/huiyuanyuan /etc/nginx/sites-enabled/
-rm -f /etc/nginx/sites-enabled/default
+# conf.d 目录直接加载 huiyuanyuan.conf，无需额外创建软链接
+rm -f /etc/nginx/sites-enabled/default /etc/nginx/conf.d/default.conf 2>/dev/null || true
 
 # 测试并重启Nginx
 nginx -t && systemctl restart nginx
@@ -320,7 +320,7 @@ ufw --force enable
 #### 3.5.1 运行安全加固脚本
 ```bash
 # 复制安全加固脚本
-scp /srv/huiyuanyuan/scripts/security_harden.sh root@NEW_SERVER_IP:/opt/huiyuanyuan/
+scp /srv/huiyuanyuan/backend/scripts/security_harden.sh root@NEW_SERVER_IP:/opt/huiyuanyuan/
 
 # 执行安全加固
 bash /opt/huiyuanyuan/security_harden.sh
@@ -347,7 +347,7 @@ bash /opt/huiyuanyuan/security_harden.sh
 #### 3.6.1 功能验证
 ```bash
 # 1. 后端健康检查
-curl http://NEW_SERVER_IP/api/health
+curl http://127.0.0.1:8000/api/health
 
 # 2. 数据库连接验证
 psql -U huyy_user -d huiyuanyuan -c "SELECT COUNT(*) FROM users;"
@@ -356,13 +356,13 @@ psql -U huyy_user -d huiyuanyuan -c "SELECT COUNT(*) FROM users;"
 redis-cli -a NEW_REDIS_PASSWORD ping
 
 # 4. 前端访问验证
-curl -I http://NEW_SERVER_IP/
+curl -I https://xn--lsws2cdzg.top/
 ```
 
 #### 3.6.2 性能测试
 ```bash
 # 使用ab进行压力测试
-ab -n 1000 -c 10 http://NEW_SERVER_IP/api/products
+ab -n 1000 -c 10 http://127.0.0.1:8000/api/products
 ```
 
 #### 3.6.3 DNS切换
@@ -384,7 +384,7 @@ ab -n 1000 -c 10 http://NEW_SERVER_IP/api/products
 1. **立即回滚DNS**：将DNS记录改回旧服务器IP
 2. **恢复旧服务器服务**：
    ```bash
-   systemctl start huiyuanyuan
+   systemctl start huiyuanyuan-backend
    systemctl start postgresql
    systemctl start redis-server
    ```
