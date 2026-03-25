@@ -50,3 +50,31 @@ def test_explicit_cors_origins_are_normalized(monkeypatch: pytest.MonkeyPatch):
         "https://app.example.com",
         "https://admin.example.com",
     ]
+
+
+def test_dashscope_key_rejects_openrouter_style_key(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    monkeypatch.setenv("APP_ENV", "development")
+    monkeypatch.setenv("JWT_SECRET_KEY", "test-secret")
+    monkeypatch.setenv("ALLOWED_ORIGINS", "https://app.example.com")
+    monkeypatch.setenv("DASHSCOPE_API_KEY", "")
+    monkeypatch.setenv("OPENROUTER_API_KEY", "sk-or-legacy-key")
+
+    module = _load_config_module()
+    assert module.DASHSCOPE_API_KEY == ""
+    assert "OpenRouter key" in module.DASHSCOPE_API_KEY_ISSUE
+
+
+def test_dashscope_key_accepts_legacy_env_name_with_dashscope_value(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    monkeypatch.setenv("APP_ENV", "development")
+    monkeypatch.setenv("JWT_SECRET_KEY", "test-secret")
+    monkeypatch.setenv("ALLOWED_ORIGINS", "https://app.example.com")
+    monkeypatch.setenv("DASHSCOPE_API_KEY", "")
+    monkeypatch.setenv("OPENROUTER_API_KEY", "sk-dashscope-legacy-alias")
+
+    module = _load_config_module()
+    assert module.DASHSCOPE_API_KEY == "sk-dashscope-legacy-alias"
+    assert module.DASHSCOPE_API_KEY_ISSUE is None

@@ -1,10 +1,7 @@
-"""
-汇玉源后端配置 — 所有配置从环境变量读取
-生产环境强制必填项 (JWT_SECRET_KEY)
-"""
+"""Backend configuration loaded from environment variables."""
 
-import os
 import logging
+import os
 import secrets
 from pathlib import Path
 
@@ -20,18 +17,18 @@ except ImportError:
 
 logger = logging.getLogger(__name__)
 
-# ============ 应用 ============
+# Application
 APP_ENV = os.getenv("APP_ENV", "development").strip().lower()
 DEBUG = os.getenv("DEBUG", "true").lower() in ("true", "1", "yes")
 IS_PRODUCTION = APP_ENV == "production"
 
-# ============ 数据库 ============
+# Database
 DATABASE_URL = os.getenv("DATABASE_URL", "")
 
-# ============ Redis ============
+# Redis
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
 
-# ============ JWT ============
+
 def _load_jwt_secret() -> str:
     secret = os.getenv("JWT_SECRET_KEY", "").strip()
     if secret:
@@ -39,12 +36,14 @@ def _load_jwt_secret() -> str:
 
     if IS_PRODUCTION:
         raise RuntimeError(
-            "JWT_SECRET_KEY 未设置。生产环境必须显式配置。\n"
-            "生成方式: python -c \"import secrets; print(secrets.token_hex(32))\""
+            "JWT_SECRET_KEY is required in production. "
+            "Generate one with: python -c \"import secrets; print(secrets.token_hex(32))\""
         )
 
     fallback = "dev_only_" + secrets.token_hex(16)
-    logger.warning("JWT_SECRET_KEY 未配置，使用临时开发密钥；服务重启后会失效。")
+    logger.warning(
+        "JWT_SECRET_KEY is not configured; using a temporary development secret."
+    )
     return fallback
 
 
@@ -53,24 +52,24 @@ JWT_ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
 JWT_ACCESS_EXPIRE_SECONDS = int(os.getenv("JWT_ACCESS_EXPIRE_MINUTES", "120")) * 60
 JWT_REFRESH_EXPIRE_DAYS = int(os.getenv("JWT_REFRESH_EXPIRE_DAYS", "7"))
 
-# ============ CORS ============
+
 def _load_allowed_origins() -> list[str]:
     raw_value = os.getenv("ALLOWED_ORIGINS", "").strip()
     if not raw_value:
         if IS_PRODUCTION:
-            raise RuntimeError("ALLOWED_ORIGINS 未设置。生产环境必须显式配置白名单。")
-        logger.warning("ALLOWED_ORIGINS 未配置，开发环境放宽为 *。")
+            raise RuntimeError("ALLOWED_ORIGINS must be configured in production.")
+        logger.warning("ALLOWED_ORIGINS is not configured; allowing all origins in dev.")
         return ["*"]
 
     origins = [origin.strip() for origin in raw_value.split(",") if origin.strip()]
     if not origins:
         if IS_PRODUCTION:
-            raise RuntimeError("ALLOWED_ORIGINS 未设置有效来源。")
+            raise RuntimeError("ALLOWED_ORIGINS did not contain any valid origins.")
         return ["*"]
 
     if "*" in origins:
         if IS_PRODUCTION:
-            raise RuntimeError("ALLOWED_ORIGINS 不能在生产环境使用通配符 *。")
+            raise RuntimeError("ALLOWED_ORIGINS cannot contain * in production.")
         return ["*"]
 
     normalized: list[str] = []
@@ -82,14 +81,14 @@ def _load_allowed_origins() -> list[str]:
 
 ALLOWED_ORIGINS = _load_allowed_origins()
 
-# ============ 阿里云短信 ============
+# Aliyun SMS
 ALIYUN_AK_ID = os.getenv("ALIYUN_ACCESS_KEY_ID", "")
 ALIYUN_AK_SECRET = os.getenv("ALIYUN_ACCESS_KEY_SECRET", "")
 SMS_SIGN_NAME = os.getenv("SMS_SIGN_NAME", "汇玉源")
 SMS_TEMPLATE_CODE = os.getenv("SMS_TEMPLATE_CODE", "")
 SMS_REAL_MODE = bool(ALIYUN_AK_ID and ALIYUN_AK_SECRET and SMS_TEMPLATE_CODE)
 
-# ============ 阿里云 OSS ============
+# Aliyun OSS
 OSS_AK_ID = os.getenv("OSS_ACCESS_KEY_ID", "")
 OSS_AK_SECRET = os.getenv("OSS_ACCESS_KEY_SECRET", "")
 OSS_BUCKET = os.getenv("OSS_BUCKET", "huiyuanyuan-images")
@@ -97,14 +96,40 @@ OSS_ENDPOINT = os.getenv("OSS_ENDPOINT", "oss-cn-hangzhou.aliyuncs.com")
 OSS_REGION = os.getenv("OSS_REGION", "cn-hangzhou")
 OSS_AVAILABLE = bool(OSS_AK_ID and OSS_AK_SECRET)
 
-# ============ AI ============
-OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
-OPENROUTER_MODEL = os.getenv(
-    "OPENROUTER_MODEL",
-    "nvidia/nemotron-nano-12b-v2-vl:free",
-)
-OPENROUTER_SITE_URL = os.getenv("OPENROUTER_SITE_URL", "https://huiyuanyuan.local")
-OPENROUTER_APP_NAME = os.getenv("OPENROUTER_APP_NAME", "汇玉源")
+# AI
+def _load_dashscope_api_key() -> tuple[str, str | None]:
+    primary = os.getenv("DASHSCOPE_API_KEY", "").strip()
+    legacy = os.getenv("OPENROUTER_API_KEY", "").strip()
+    key = primary or legacy
 
-# ============ 上传目录 ============
+    if not key:
+        return "", None
+
+    if key.startswith("sk-or-"):
+        issue = (
+            "DASHSCOPE_API_KEY appears to be an OpenRouter key. "
+            "Provide a DashScope key that starts with sk-."
+        )
+        logger.warning(issue)
+        return "", issue
+
+    if not key.startswith("sk-"):
+        issue = "DASHSCOPE_API_KEY must start with sk-."
+        logger.warning(issue)
+        return "", issue
+
+    return key, None
+
+
+DASHSCOPE_API_KEY, DASHSCOPE_API_KEY_ISSUE = _load_dashscope_api_key()
+DASHSCOPE_BASE_URL = os.getenv(
+    "DASHSCOPE_BASE_URL",
+    "https://dashscope.aliyuncs.com/compatible-mode/v1",
+).strip()
+DASHSCOPE_VISION_MODEL = os.getenv(
+    "DASHSCOPE_VISION_MODEL",
+    "qwen-vl-plus-latest",
+).strip()
+
+# Uploads
 UPLOAD_DIR = os.getenv("UPLOAD_DIR", "uploads")
