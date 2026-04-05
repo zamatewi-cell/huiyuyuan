@@ -1,0 +1,15 @@
+﻿[Unit]
+Description=HuiYuYuan FastAPI Backend
+After=network.target postgresql.service redis.service
+Requires=postgresql.service redis.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/srv/huiyuyuan/backend
+ExecStart=/srv/huiyuyuan/backend/venv/bin/gunicorn -k uvicorn.workers.UvicornWorker -w 2 -b 127.0.0.1:8000 main:app --access-logfile - --error-logfile -
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

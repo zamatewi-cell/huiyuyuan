@@ -1,0 +1,51 @@
+1:/// 汇玉源 - 管理员仪表盘
+3:/// 功能:
+4:/// - 全局数据概览
+5:/// - 商品管理（添加/编辑/删除）
+6:/// - 操作员管理
+7:/// - 审计日志查看
+8:/// - 系统设置
+23:/// 管理员仪表盘
+96:            // 顶部固定区域
+101:            // Tab栏
+103:            // Tab内容
+186:    String greeting = '早上好';
+188:      greeting = '下午好';
+190:      greeting = '晚上好';
+194:    final displayName = user?.username ?? '管理员';
+196:    final roleLabel = user?.isSuperAdmin == true ? ref.tr('role_admin') : '管理员';
+268:  // ═══════════════════════════ 数据看板 Tab (Image-2 风格) ═══════════════════════════
+292:  // ─── 门店信息卡片 ───
+321:                Text('汇玉源珠宝总店',
+328:                  '商品 ${_stats?.totalProducts ?? catalogProductCount} 件 · 运营正常',
+361:  // ─── 2x2 玻璃态统计卡片 ───
+390:          subtitle: '共 $totalOrders 单',
+395:          title: '商品总数',
+397:          subtitle: '全部上架中',
+404:          subtitle: '已发货 $shippedCount 单',
+409:          title: '商品种类',
+411:          subtitle: '珠宝首饰',
+488:  // ─── 智能补货建议 ───
+503:              '智能补货建议',
+517:                '${_restockSuggestions.length}件待补',
+529:        // 补货卡片列表
+543:                '查看全部 ${_restockSuggestions.length} 件 →',
+565:        urgencyLabel = '断货';
+570:        urgencyLabel = '紧急';
+575:        urgencyLabel = '建议';
+637:                      '库存: ${suggestion.currentStock}',
+652:                '建议补 ${suggestion.suggestedQuantity}',
+674:  // ─── 实时动态（新闻流） ───
+687:            Text('实时动态',
+698:              child: Text('每30分钟自动更新',
+709:            children: [ref.tr('order_all'), '订单', ref.tr('product_stock'), '系统', 'AI'].map((tag) {
+854:  // ─── 快捷操作（卡片式） ───
+895:                label: '库存管理',
+969:  // ─── 系统状态面板 ───
+1000:                  'API 服务', '正常运行', '32ms',Color(0xFF10B981), true),
+1003:                  'AI 引擎', 'DashScope 在线', '可用',Color(0xFF10B981), true),
+1006:                  '区块链节点', '已连接', '同步中',Color(0xFF10B981), true),
+1009:                  '数据备份', '3小时前', '2.3GB',Color(0xFF06B6D4), true),
+1027:                      '等保三级认证 · 数据加密传输 · 可用率 99.9%',
+1091:  // ============ 商品管理 Tab ============
+1096:  // ============ 操作员管理 Tab ============

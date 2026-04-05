@@ -1,0 +1,26 @@
+  error - The argument type 'String' can't be assigned to the parameter type 'WidgetRef'.  - lib\screens\profile\profile_screen.dart:47:39 - argument_type_not_assignable
+  error - The argument type 'bool' can't be assigned to the parameter type 'String'.  - lib\screens\profile\profile_screen.dart:47:63 - argument_type_not_assignable
+  error - 4 positional arguments expected by '_buildUserCard', but 3 found - lib\screens\profile\profile_screen.dart:47:70 - not_enough_positional_arguments
+  error - 2 positional arguments expected by '_buildMenuItem', but 1 found - lib\screens\profile\profile_screen.dart:62:39 - not_enough_positional_arguments
+  error - 2 positional arguments expected by '_buildMenuItem', but 1 found - lib\screens\profile\profile_screen.dart:75:39 - not_enough_positional_arguments
+  error - 2 positional arguments expected by '_buildMenuItem', but 1 found - lib\screens\profile\profile_screen.dart:88:39 - not_enough_positional_arguments
+  error - 2 positional arguments expected by '_buildMenuItem', but 1 found - lib\screens\profile\profile_screen.dart:101:39 - not_enough_positional_arguments
+  error - 2 positional arguments expected by '_buildMenuItem', but 1 found - lib\screens\profile\profile_screen.dart:115:39 - not_enough_positional_arguments
+  error - 2 positional arguments expected by '_buildMenuItem', but 1 found - lib\screens\profile\profile_screen.dart:125:39 - not_enough_positional_arguments
+  error - 2 positional arguments expected by '_buildMenuItem', but 1 found - lib\screens\profile\profile_screen.dart:132:39 - not_enough_positional_arguments
+  error - 2 positional arguments expected by '_buildMenuItem', but 1 found - lib\screens\profile\profile_screen.dart:139:39 - not_enough_positional_arguments
+  error - 2 positional arguments expected by '_buildMenuItem', but 1 found - lib\screens\profile\profile_screen.dart:150:39 - not_enough_positional_arguments
+  error - 2 positional arguments expected by '_buildMenuItem', but 1 found - lib\screens\profile\profile_screen.dart:155:39 - not_enough_positional_arguments
+  error - 2 positional arguments expected by '_buildMenuItem', but 1 found - lib\screens\profile\profile_screen.dart:160:39 - not_enough_positional_arguments
+  error - Undefined name 'ref' - lib\screens\profile\profile_screen.dart:377:29 - undefined_identifier
+  error - The name 'ref' is already defined - lib\screens\profile\profile_screen.dart:594:40 - duplicate_definition
+  error - Undefined name 'ref' - lib\screens\profile\profile_screen.dart:1059:17 - undefined_identifier
+  error - Undefined name 'ref' - lib\screens\profile\profile_screen.dart:1084:23 - undefined_identifier
+  error - Undefined name 'ref' - lib\screens\profile\profile_screen.dart:1092:23 - undefined_identifier
+  error - Undefined name 'ref' - lib\screens\profile\profile_screen.dart:1102:41 - undefined_identifier
+  error - Undefined name 'ref' - lib\screens\profile\profile_screen.dart:1103:41 - undefined_identifier
+  error - Undefined name 'ref' - lib\screens\profile\profile_screen.dart:1104:41 - undefined_identifier
+  error - Undefined name 'ref' - lib\screens\profile\profile_screen.dart:1112:17 - undefined_identifier
+  error - Undefined name 'ref' - lib\screens\profile\profile_screen.dart:1123:27 - undefined_identifier
+  error - 1 positional argument expected by '_getConfig', but 0 found - lib\widgets\common\empty_state.dart:48:31 - not_enough_positional_arguments
+  error - Undefined name 'ref' - lib\widgets\promotional_banner.dart:46:10 - undefined_identifier

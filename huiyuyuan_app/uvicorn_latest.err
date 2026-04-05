@@ -1,0 +1,7 @@
+JWT_SECRET_KEY is not configured; using a temporary development secret.
+ALLOWED_ORIGINS is not configured; allowing all origins in dev.
+??  Redis ≤ªø…”√: No module named 'redis'
+INFO:     Started server process [9340]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)

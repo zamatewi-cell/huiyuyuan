@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <!--
+    If you are serving your web app in a path other than the root, change the
+    href value below to reflect the base path you are serving from.
+
+    The path provided below has to start and end with a slash "/" in order for
+    it to work correctly.
+
+    For more details:
+    * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
+
+    This is a placeholder for base href that will be replaced by the value of
+    the `--base-href` argument provided to `flutter build`.
+  -->
+  <base href="$FLUTTER_BASE_HREF">
+
+  <meta charset="UTF-8">
+  <meta content="IE=Edge" http-equiv="X-UA-Compatible">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="汇玉源 - 珠宝智能交易平台，和田玉、翡翠、南红等天然珠宝在线选购">
+
+  <!-- iOS meta tags & icons -->
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="汇玉源">
+  <link rel="apple-touch-icon" href="icons/Icon-192.png">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="favicon.png"/>
+
+  <!-- 预加载中文字体 - 使用国内可用的 CDN 镜像 -->
+  <link rel="preconnect" href="https://fonts.loli.net" crossorigin>
+  <link href="https://fonts.loli.net/css2?family=Noto+Sans+SC:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- 后备方案：内联 @font-face 确保中文字体可用 -->
+  <style>
+    /* 确保 CanvasKit 渲染器能找到中文字体 */
+    body {
+      font-family: 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', 'Hiragino Sans GB', sans-serif;
+    }
+    /* Flutter 加载提示 */
+    .loading {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      font-family: 'Noto Sans SC', sans-serif;
+      background: #121218;
+      color: #4CAF50;
+      font-size: 16px;
+    }
+  </style>
+
+  <title>汇玉源 - 珠宝智能交易平台</title>
+  <link rel="manifest" href="manifest.json">
+</head>
+<body>
+  <div class="loading" id="loading">正在加载...</div>
+  <script>
+    // ── 版本控制：每次部署更新此版本号 ──
+    var APP_VERSION = '3.0.4-20260326';
+
+    // 检查版本变化，清除旧 Service Worker 缓存
+    (function() {
+      var storedVersion = localStorage.getItem('app_version');
+      if (storedVersion !== APP_VERSION) {
+        console.log('[版本更新] ' + (storedVersion || '首次') + ' → ' + APP_VERSION);
+        localStorage.setItem('app_version', APP_VERSION);
+
+        // 清除所有 SW 缓存
+        if ('caches' in window) {
+          caches.keys().then(function(names) {
+            names.forEach(function(name) {
+              caches.delete(name);
+              console.log('[缓存清除] ' + name);
+            });
+          });
+        }
+
+        // 注销所有 Service Worker
+        if ('serviceWorker' in navigator) {
+          navigator.serviceWorker.getRegistrations().then(function(registrations) {
+            registrations.forEach(function(reg) {
+              reg.unregister();
+              console.log('[SW注销] ' + reg.scope);
+            });
+          });
+        }
+
+        // 如果不是首次加载，强制刷新
+        if (storedVersion) {
+          setTimeout(function() { location.reload(true); }, 500);
+        }
+      }
+    })();
+  </script>
+  <script src="flutter_bootstrap.js" async></script>
+  <script>
+    // Flutter 加载完成后移除加载提示
+    window.addEventListener('flutter-first-frame', function() {
+      var loading = document.getElementById('loading');
+      if (loading) loading.remove();
+    });
+  </script>
+</body>
+</html>

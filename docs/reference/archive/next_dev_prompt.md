@@ -1,4 +1,4 @@
-# 汇玉源 - 下次开发完整提示词
+﻿# 汇玉源 - 下次开发完整提示词
 
 > 复制以下内容，在新对话中发送给 AI 即可继续开发。
 
@@ -10,9 +10,9 @@
 你好！请继续开发「汇玉源珠宝智能交易平台」Flutter 应用。
 
 ## 📍 项目位置
-- 工作区：d:\huiyuanyuan_project
-- Flutter 应用：d:\huiyuanyuan_project\huiyuanyuan_app
-- 文档中心：d:\huiyuanyuan_project\docs
+- 工作区：d:\huiyuyuan_project
+- Flutter 应用：d:\huiyuyuan_project\huiyuyuan_app
+- 文档中心：d:\huiyuyuan_project\docs
 
 ## 📋 上次完成的工作 (2026-02-25)
 1. ✅ 搜索功能完全重写（search_screen.dart）— 真实商品搜索，支持名称/材质/分类/编号/产地多维搜索，实时联想、分类过滤、排序、关键词高亮
@@ -26,10 +26,10 @@
 ## 🎯 下次开发目标（按优先级）
 
 ### 第一优先级 — 上线阻塞项
-1. **HTTPS 配置**：域名 `api.huiyuanyuan.com` 解析 + Let's Encrypt 证书配置
+1. **HTTPS 配置**：域名 `api.huiyuyuan.com` 解析 + Let's Encrypt 证书配置
 2. **阿里云 SMS 正式接入**：填入真实 AccessKey/Secret/模板 Code，替换测试模式
 3. **数据云端化**：购物车/收藏/订单列表从 API 拉取（替换本地 Mock）
-4. **Android 签名密钥生成**：`huiyuanyuan.jks` + Release 签名配置
+4. **Android 签名密钥生成**：`huiyuyuan.jks` + Release 签名配置
 
 ### 第二优先级 — 首发版本
 5. **支付系统**：微信支付/支付宝支付接口对接（资质就绪后）
@@ -45,7 +45,7 @@
 - 前端 Mock 开关：lib/config/api_config.dart（useMockApi=true，登录正常）
 - 主题系统：lib/themes/jewelry_theme.dart + lib/themes/colors.dart
 - 国际化：lib/l10n/app_strings.dart + lib/l10n/l10n_provider.dart
-- 后端服务：huiyuanyuan_app/backend/（FastAPI + main.py）
+- 后端服务：huiyuyuan_app/backend/（FastAPI + main.py）
 
 ## ⚙️ 技术栈
 - Flutter 3.x + Dart

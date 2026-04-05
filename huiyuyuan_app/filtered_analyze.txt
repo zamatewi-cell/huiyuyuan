@@ -1,0 +1,57 @@
+  error - The getter 'characters' isn't defined for the type 'String' - lib\l10n\product_translator.dart:318:29 - undefined_getter
+  error - The instance member 'ref' can't be accessed in an initializer - lib\screens\admin\admin_dashboard.dart:42:28 - implicit_this_reference_in_initializer
+  error - The instance member 'ref' can't be accessed in an initializer - lib\screens\admin\inventory_screen.dart:33:28 - implicit_this_reference_in_initializer
+  error - Instance members can't be accessed from a static method - lib\screens\notification\notification_screen.dart:81:34 - instance_member_access_from_static
+  error - The element type 'String' can't be assigned to the list type 'Tab' - lib\screens\notification\notification_screen.dart:81:34 - list_element_type_not_assignable
+  error - The element type 'String' can't be assigned to the list type 'Tab' - lib\screens\notification\notification_screen.dart:81:55 - list_element_type_not_assignable
+  error - The element type 'String' can't be assigned to the list type 'Tab' - lib\screens\notification\notification_screen.dart:81:61 - list_element_type_not_assignable
+  error - The element type 'String' can't be assigned to the list type 'Tab' - lib\screens\notification\notification_screen.dart:81:67 - list_element_type_not_assignable
+  error - The argument type 'Tab' can't be assigned to the parameter type 'String'.  - lib\screens\notification\notification_screen.dart:151:43 - argument_type_not_assignable
+  error - Undefined name 'ref' - lib\screens\order\order_detail_screen.dart:72:23 - undefined_identifier
+  error - Undefined name 'ref' - lib\screens\order\order_detail_screen.dart:256:34 - undefined_identifier
+  error - Methods can't be invoked in constant expressions - lib\screens\order\order_detail_screen.dart:644:39 - const_eval_method_invocation
+  error - The instance member 'ref' can't be accessed in an initializer - lib\screens\order\order_list_screen.dart:53:26 - implicit_this_reference_in_initializer
+  error - The instance member 'ref' can't be accessed in an initializer - lib\screens\order\order_list_screen.dart:54:26 - implicit_this_reference_in_initializer
+  error - The instance member 'ref' can't be accessed in an initializer - lib\screens\order\order_list_screen.dart:55:26 - implicit_this_reference_in_initializer
+  error - The instance member 'ref' can't be accessed in an initializer - lib\screens\order\order_list_screen.dart:56:26 - implicit_this_reference_in_initializer
+  error - The instance member 'ref' can't be accessed in an initializer - lib\screens\order\order_list_screen.dart:57:26 - implicit_this_reference_in_initializer
+  error - Methods can't be invoked in constant expressions - lib\screens\order\order_list_screen.dart:560:27 - const_eval_method_invocation
+  error - Methods can't be invoked in constant expressions - lib\screens\product\search_screen.dart:162:35 - const_eval_method_invocation
+  error - Undefined name 'ref' - lib\screens\profile\profile_screen.dart:287:31 - undefined_identifier
+  error - Undefined name 'ref' - lib\screens\profile\profile_screen.dart:287:54 - undefined_identifier
+  error - Undefined name 'ref' - lib\screens\profile\profile_screen.dart:377:29 - undefined_identifier
+  error - Undefined name 'ref' - lib\screens\profile\profile_screen.dart:487:17 - undefined_identifier
+  error - Undefined name 'ref' - lib\screens\profile\profile_screen.dart:528:55 - undefined_identifier
+  error - Undefined name 'ref' - lib\screens\profile\profile_screen.dart:529:71 - undefined_identifier
+  error - Undefined name 'ref' - lib\screens\profile\profile_screen.dart:530:68 - undefined_identifier
+  error - Undefined name 'ref' - lib\screens\profile\profile_screen.dart:531:68 - undefined_identifier
+  error - Undefined name 'ref' - lib\screens\profile\profile_screen.dart:1059:17 - undefined_identifier
+  error - Undefined name 'ref' - lib\screens\profile\profile_screen.dart:1084:23 - undefined_identifier
+  error - Undefined name 'ref' - lib\screens\profile\profile_screen.dart:1092:23 - undefined_identifier
+  error - Undefined name 'ref' - lib\screens\profile\profile_screen.dart:1102:41 - undefined_identifier
+  error - Undefined name 'ref' - lib\screens\profile\profile_screen.dart:1103:41 - undefined_identifier
+  error - Undefined name 'ref' - lib\screens\profile\profile_screen.dart:1104:41 - undefined_identifier
+  error - Undefined name 'ref' - lib\screens\profile\profile_screen.dart:1112:17 - undefined_identifier
+  error - Undefined name 'ref' - lib\screens\profile\profile_screen.dart:1123:27 - undefined_identifier
+  error - The instance member 'ref' can't be accessed in an initializer - lib\screens\shop\shop_radar.dart:34:30 - implicit_this_reference_in_initializer
+  error - Const variables must be initialized with a constant value - lib\widgets\admin\admin_product_management_tab.dart:16:3 - const_initialized_with_non_constant_value
+  error - The values in a const list literal must be constants - lib\widgets\admin\admin_product_management_tab.dart:16:3 - non_constant_list_element
+  error - Undefined name 'ref' - lib\widgets\admin\admin_product_management_tab.dart:16:3 - undefined_identifier
+  error - The values in a const list literal must be constants - lib\widgets\admin\admin_product_management_tab.dart:17:3 - non_constant_list_element
+  error - Undefined name 'ref' - lib\widgets\admin\admin_product_management_tab.dart:17:3 - undefined_identifier
+  error - The values in a const list literal must be constants - lib\widgets\admin\admin_product_management_tab.dart:18:3 - non_constant_list_element
+  error - Undefined name 'ref' - lib\widgets\admin\admin_product_management_tab.dart:18:3 - undefined_identifier
+  error - The values in a const list literal must be constants - lib\widgets\admin\admin_product_management_tab.dart:19:3 - non_constant_list_element
+  error - Undefined name 'ref' - lib\widgets\admin\admin_product_management_tab.dart:19:3 - undefined_identifier
+  error - The values in a const list literal must be constants - lib\widgets\admin\admin_product_management_tab.dart:20:3 - non_constant_list_element
+  error - Undefined name 'ref' - lib\widgets\admin\admin_product_management_tab.dart:20:3 - undefined_identifier
+  error - The values in a const list literal must be constants - lib\widgets\admin\admin_product_management_tab.dart:21:3 - non_constant_list_element
+  error - Undefined name 'ref' - lib\widgets\admin\admin_product_management_tab.dart:21:3 - undefined_identifier
+  error - The values in a const list literal must be constants - lib\widgets\admin\admin_product_management_tab.dart:22:3 - non_constant_list_element
+  error - Undefined name 'ref' - lib\widgets\admin\admin_product_management_tab.dart:22:3 - undefined_identifier
+  error - Undefined name 'ref' - lib\widgets\common\empty_state.dart:124:20 - undefined_identifier
+  error - Undefined name 'ref' - lib\widgets\common\empty_state.dart:168:21 - undefined_identifier
+  error - Undefined name 'ref' - lib\widgets\common\empty_state.dart:173:20 - undefined_identifier
+  error - The default value of an optional parameter must be constant - lib\widgets\image\image_picker_widget.dart:87:26 - non_constant_default_value
+  error - Invalid constant value - lib\widgets\promotional_banner.dart:46:10 - invalid_constant
+  error - Undefined name 'ref' - lib\widgets\promotional_banner.dart:46:10 - undefined_identifier

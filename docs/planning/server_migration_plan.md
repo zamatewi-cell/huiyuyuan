@@ -1,4 +1,4 @@
-# 汇玉源服务器迁移计划
+﻿# 汇玉源服务器迁移计划
 
 > 迁移日期: 2026-03-17
 > 当前服务器: xn--lsws2cdzg.top（原 IP: 47.98.188.141，Ubuntu 22.04）
@@ -44,8 +44,8 @@
 | 存储 | 40GB SSD | |
 
 ### 2.2 已部署服务
-1. **FastAPI后端**：`/srv/huiyuanyuan/backend/` (Gunicorn + Uvicorn)
-2. **Flutter Web前端**：`/var/www/huiyuanyuan/`
+1. **FastAPI后端**：`/srv/huiyuyuan/backend/` (Gunicorn + Uvicorn)
+2. **Flutter Web前端**：`/var/www/huiyuyuan/`
 3. **PostgreSQL 15**：数据库服务
 4. **Redis**：缓存服务
 5. **Nginx**：反向代理和静态文件服务
@@ -71,17 +71,17 @@
 #### 3.1.2 数据备份
 ```bash
 # 1. 数据库备份
-pg_dump -U huyy_user huiyuanyuan > /opt/huiyuanyuan/backups/db_backup_$(date +%Y%m%d).sql
+pg_dump -U huyy_user huiyuyuan > /opt/huiyuyuan/backups/db_backup_$(date +%Y%m%d).sql
 
 # 2. 应用文件备份
-tar -czf /opt/huiyuanyuan/backups/app_backup_$(date +%Y%m%d).tar.gz /srv/huiyuanyuan/
+tar -czf /opt/huiyuyuan/backups/app_backup_$(date +%Y%m%d).tar.gz /srv/huiyuyuan/
 
 # 3. 前端文件备份
-tar -czf /opt/huiyuanyuan/backups/web_backup_$(date +%Y%m%d).tar.gz /var/www/huiyuanyuan/
+tar -czf /opt/huiyuyuan/backups/web_backup_$(date +%Y%m%d).tar.gz /var/www/huiyuyuan/
 
 # 4. 配置文件备份
-cp /etc/nginx/conf.d/huiyuanyuan.conf /opt/huiyuanyuan/backups/nginx_backup_$(date +%Y%m%d).conf
-cp /etc/systemd/system/huiyuanyuan-backend.service /opt/huiyuanyuan/backups/systemd_backup_$(date +%Y%m%d).service
+cp /etc/nginx/conf.d/huiyuyuan.conf /opt/huiyuyuan/backups/nginx_backup_$(date +%Y%m%d).conf
+cp /etc/systemd/system/huiyuyuan-backend.service /opt/huiyuyuan/backups/systemd_backup_$(date +%Y%m%d).service
 ```
 
 #### 3.1.3 迁移脚本准备
@@ -112,11 +112,11 @@ apt install -y postgresql-15 postgresql-client-15 postgresql-contrib-15
 
 # 2. 创建数据库和用户
 sudo -u postgres psql -c "CREATE USER huyy_user WITH PASSWORD 'NEW_STRONG_PASSWORD';"
-sudo -u postgres psql -c "CREATE DATABASE huiyuanyuan OWNER huyy_user;"
-sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE huiyuanyuan TO huyy_user;"
+sudo -u postgres psql -c "CREATE DATABASE huiyuyuan OWNER huyy_user;"
+sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE huiyuyuan TO huyy_user;"
 
 # 3. 配置PostgreSQL优化参数
-cat > /etc/postgresql/15/main/conf.d/huiyuanyuan.conf << 'EOF'
+cat > /etc/postgresql/15/main/conf.d/huiyuyuan.conf << 'EOF'
 shared_buffers = 512MB
 effective_cache_size = 1GB
 work_mem = 8MB
@@ -128,8 +128,8 @@ timezone = 'Asia/Shanghai'
 EOF
 
 # 4. 配置访问权限
-echo "local   huiyuanyuan   huyy_user   scram-sha-256" >> /etc/postgresql/15/main/pg_hba.conf
-echo "host    huiyuanyuan   huyy_user   127.0.0.1/32   scram-sha-256" >> /etc/postgresql/15/main/pg_hba.conf
+echo "local   huiyuyuan   huyy_user   scram-sha-256" >> /etc/postgresql/15/main/pg_hba.conf
+echo "host    huiyuyuan   huyy_user   127.0.0.1/32   scram-sha-256" >> /etc/postgresql/15/main/pg_hba.conf
 
 systemctl restart postgresql
 ```
@@ -165,14 +165,14 @@ systemctl restart redis-server
 apt install -y python3.11 python3.11-venv python3-pip
 
 # 2. 创建应用目录
-mkdir -p /srv/huiyuanyuan
-mkdir -p /srv/huiyuanyuan/backend
-mkdir -p /var/log/huiyuanyuan
-mkdir -p /opt/huiyuanyuan/backups
-mkdir -p /var/www/huiyuanyuan
+mkdir -p /srv/huiyuyuan
+mkdir -p /srv/huiyuyuan/backend
+mkdir -p /var/log/huiyuyuan
+mkdir -p /opt/huiyuyuan/backups
+mkdir -p /var/www/huiyuyuan
 
 # 3. 创建虚拟环境
-cd /srv/huiyuanyuan/backend
+cd /srv/huiyuyuan/backend
 python3.11 -m venv venv
 source venv/bin/activate
 pip install --upgrade pip
@@ -183,17 +183,17 @@ pip install --upgrade pip
 #### 3.3.1 后端应用迁移
 ```bash
 # 1. 传输应用文件
-scp -r /srv/huiyuanyuan/backend/* root@NEW_SERVER_IP:/srv/huiyuanyuan/backend/
+scp -r /srv/huiyuyuan/backend/* root@NEW_SERVER_IP:/srv/huiyuyuan/backend/
 
 # 2. 安装依赖
-cd /srv/huiyuanyuan/backend
+cd /srv/huiyuyuan/backend
 source venv/bin/activate
 pip install -r requirements.txt
 
 # 3. 配置环境变量
-cat > /srv/huiyuanyuan/.env << 'EOF'
+cat > /srv/huiyuyuan/.env << 'EOF'
 # 数据库配置
-DATABASE_URL=postgresql://huyy_user:NEW_STRONG_PASSWORD@localhost:5432/huiyuanyuan
+DATABASE_URL=postgresql://huyy_user:NEW_STRONG_PASSWORD@localhost:5432/huiyuyuan
 
 # Redis配置
 REDIS_URL=redis://:NEW_REDIS_PASSWORD@localhost:6379/0
@@ -211,19 +211,19 @@ ALLOWED_ORIGINS=https://xn--lsws2cdzg.top,https://www.xn--lsws2cdzg.top
 LOG_LEVEL=INFO
 EOF
 
-chmod 600 /srv/huiyuanyuan/.env
+chmod 600 /srv/huiyuyuan/.env
 ```
 
 #### 3.3.2 数据库迁移
 ```bash
 # 1. 传输数据库备份
-scp /opt/huiyuanyuan/backups/db_backup_*.sql root@NEW_SERVER_IP:/tmp/
+scp /opt/huiyuyuan/backups/db_backup_*.sql root@NEW_SERVER_IP:/tmp/
 
 # 2. 在新服务器上恢复数据
-sudo -u postgres psql -d huiyuanyuan -f /tmp/db_backup_*.sql
+sudo -u postgres psql -d huiyuyuan -f /tmp/db_backup_*.sql
 
 # 3. 运行数据库迁移
-cd /srv/huiyuanyuan/backend
+cd /srv/huiyuyuan/backend
 source venv/bin/activate
 alembic upgrade head
 ```
@@ -231,18 +231,18 @@ alembic upgrade head
 #### 3.3.3 前端应用迁移
 ```bash
 # 1. 构建Flutter Web应用
-cd /path/to/huiyuanyuan_app
+cd /path/to/huiyuyuan_app
 flutter build web --release
 
 # 2. 传输前端文件
-scp -r build/web/* root@NEW_SERVER_IP:/var/www/huiyuanyuan/
+scp -r build/web/* root@NEW_SERVER_IP:/var/www/huiyuyuan/
 ```
 
 ### 3.4 阶段四：服务配置 (Day 4)
 
 #### 3.4.1 systemd服务配置
 ```bash
-cat > /etc/systemd/system/huiyuanyuan-backend.service << 'EOF'
+cat > /etc/systemd/system/huiyuyuan-backend.service << 'EOF'
 [Unit]
 Description=汇玉源 FastAPI 后端服务 v4.0
 After=network.target postgresql.service redis-server.service
@@ -253,16 +253,16 @@ Wants=redis-server.service
 Type=notify
 User=root
 Group=root
-WorkingDirectory=/srv/huiyuanyuan/backend
-Environment="PATH=/srv/huiyuanyuan/backend/venv/bin:/usr/local/bin:/usr/bin"
-EnvironmentFile=/srv/huiyuanyuan/.env
+WorkingDirectory=/srv/huiyuyuan/backend
+Environment="PATH=/srv/huiyuyuan/backend/venv/bin:/usr/local/bin:/usr/bin"
+EnvironmentFile=/srv/huiyuyuan/.env
 
-ExecStart=/srv/huiyuanyuan/backend/venv/bin/gunicorn main:app \
+ExecStart=/srv/huiyuyuan/backend/venv/bin/gunicorn main:app \
     -w 2 \
     -k uvicorn.workers.UvicornWorker \
     --bind 127.0.0.1:8000 \
-    --access-logfile /var/log/huiyuanyuan/access.log \
-    --error-logfile /var/log/huiyuanyuan/error.log \
+    --access-logfile /var/log/huiyuyuan/access.log \
+    --error-logfile /var/log/huiyuyuan/error.log \
     --timeout 120 \
     --graceful-timeout 30 \
     --max-requests 1000 \
@@ -279,7 +279,7 @@ StartLimitBurst=5
 StartLimitIntervalSec=60
 
 ProtectSystem=strict
-ReadWritePaths=/srv/huiyuanyuan /srv/huiyuanyuan/backend /var/log/huiyuanyuan
+ReadWritePaths=/srv/huiyuyuan /srv/huiyuyuan/backend /var/log/huiyuyuan
 PrivateTmp=true
 NoNewPrivileges=true
 
@@ -288,18 +288,18 @@ WantedBy=multi-user.target
 EOF
 
 systemctl daemon-reload
-systemctl enable huiyuanyuan-backend
+systemctl enable huiyuyuan-backend
 ```
 
 #### 3.4.2 Nginx配置
 ```bash
 # 复制Nginx配置文件
-cp /srv/huiyuanyuan/backend/nginx_production.conf /etc/nginx/conf.d/huiyuanyuan.conf
+cp /srv/huiyuyuan/backend/nginx_production.conf /etc/nginx/conf.d/huiyuyuan.conf
 
 # 修改server_name为生产域名
-sed -i 's/server_name .*;/server_name xn--lsws2cdzg.top www.xn--lsws2cdzg.top;/' /etc/nginx/conf.d/huiyuanyuan.conf
+sed -i 's/server_name .*;/server_name xn--lsws2cdzg.top www.xn--lsws2cdzg.top;/' /etc/nginx/conf.d/huiyuyuan.conf
 
-# conf.d 目录直接加载 huiyuanyuan.conf，无需额外创建软链接
+# conf.d 目录直接加载 huiyuyuan.conf，无需额外创建软链接
 rm -f /etc/nginx/sites-enabled/default /etc/nginx/conf.d/default.conf 2>/dev/null || true
 
 # 测试并重启Nginx
@@ -320,10 +320,10 @@ ufw --force enable
 #### 3.5.1 运行安全加固脚本
 ```bash
 # 复制安全加固脚本
-scp /srv/huiyuanyuan/backend/scripts/security_harden.sh root@NEW_SERVER_IP:/opt/huiyuanyuan/
+scp /srv/huiyuyuan/backend/scripts/security_harden.sh root@NEW_SERVER_IP:/opt/huiyuyuan/
 
 # 执行安全加固
-bash /opt/huiyuanyuan/security_harden.sh
+bash /opt/huiyuyuan/security_harden.sh
 ```
 
 #### 3.5.2 技术债务修复
@@ -350,7 +350,7 @@ bash /opt/huiyuanyuan/security_harden.sh
 curl http://127.0.0.1:8000/api/health
 
 # 2. 数据库连接验证
-psql -U huyy_user -d huiyuanyuan -c "SELECT COUNT(*) FROM users;"
+psql -U huyy_user -d huiyuyuan -c "SELECT COUNT(*) FROM users;"
 
 # 3. Redis连接验证
 redis-cli -a NEW_REDIS_PASSWORD ping
@@ -384,7 +384,7 @@ ab -n 1000 -c 10 http://127.0.0.1:8000/api/products
 1. **立即回滚DNS**：将DNS记录改回旧服务器IP
 2. **恢复旧服务器服务**：
    ```bash
-   systemctl start huiyuanyuan-backend
+   systemctl start huiyuyuan-backend
    systemctl start postgresql
    systemctl start redis-server
    ```

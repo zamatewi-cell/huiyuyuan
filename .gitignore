@@ -1,4 +1,4 @@
-# ============================================================
+﻿# ============================================================
 # HuiYuYuan root .gitignore
 # ============================================================
 
@@ -50,7 +50,7 @@ builds/migration/
 # Agent-generated local directories
 .agent/
 CLAUDE.md
-huiyuanyuan_app/.vscode/
+huiyuyuan_app/.vscode/
 
 # Local test outputs
 issue_stats.txt
@@ -62,11 +62,11 @@ test_output.txt
 venv/
 
 # Flutter build directories
-huiyuanyuan_app/build/
-huiyuanyuan_app/.dart_tool/
-huiyuanyuan_app/.flutter-plugins
-huiyuanyuan_app/.flutter-plugins-dependencies
-huiyuanyuan_app/.packages
+huiyuyuan_app/build/
+huiyuyuan_app/.dart_tool/
+huiyuyuan_app/.flutter-plugins
+huiyuyuan_app/.flutter-plugins-dependencies
+huiyuyuan_app/.packages
 
 # Database backups
 *.sql.gz

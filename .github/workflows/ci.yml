@@ -1,4 +1,4 @@
-name: CI/CD Pipeline
+﻿name: CI/CD Pipeline
 
 on:
   push:
@@ -9,7 +9,7 @@ on:
 env:
   FLUTTER_VERSION: '3.32.0'
   JAVA_VERSION: '17'
-  APP_DIR: huiyuanyuan_app
+  APP_DIR: huiyuyuan_app
   PYTHON_VERSION: '3.11'
 
 jobs:
@@ -62,17 +62,38 @@ jobs:
           path: ${{ env.APP_DIR }}/coverage/lcov.info
           retention-days: 7
 
-      - name: Build debug APK for pull requests
-        if: github.event_name == 'pull_request'
-        run: flutter build apk --debug
-
-      - name: Build release AAB on release branch
+      - name: Build release APK/AAB on main branch
         if: github.event_name == 'push' && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main')
         env:
           DASHSCOPE_API_KEY: ${{ secrets.DASHSCOPE_API_KEY }}
         run: |
+          # 如果提供了 keystore secret，则配置签名
+          if [ -n "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" ]; then
+            echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > android/huiyuyuan.jks
+            cat > android/key.properties <<EOF
+          storePassword=${{ secrets.ANDROID_STORE_PASSWORD }}
+          keyPassword=${{ secrets.ANDROID_KEY_PASSWORD }}
+          keyAlias=${{ secrets.ANDROID_KEY_ALIAS }}
+          storeFile=../huiyuyuan.jks
+          EOF
+            echo "[CI] ✓ Keystore configured from secrets"
+          else
+            echo "[CI] ⚠ No keystore secrets — building with debug signing"
+          fi
+
+          flutter build apk --release \
+            --dart-define=DASHSCOPE_API_KEY=$DASHSCOPE_API_KEY
+
           flutter build appbundle --release \
             --dart-define=DASHSCOPE_API_KEY=$DASHSCOPE_API_KEY
+
+      - name: Upload release APK
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main')
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-apk-${{ github.sha }}
+          path: ${{ env.APP_DIR }}/build/app/outputs/flutter-apk/app-release.apk
+          retention-days: 30
 
       - name: Upload release AAB
         if: github.event_name == 'push' && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main')
@@ -93,7 +114,7 @@ jobs:
       postgres:
         image: postgres:15
         env:
-          POSTGRES_DB: huiyuanyuan_test
+          POSTGRES_DB: huiyuyuan_test
           POSTGRES_USER: test_user
           POSTGRES_PASSWORD: test_password
         ports: ['5432:5432']
@@ -113,7 +134,7 @@ jobs:
           --health-retries 5
 
     env:
-      DATABASE_URL: postgresql://test_user:test_password@localhost:5432/huiyuanyuan_test
+      DATABASE_URL: postgresql://test_user:test_password@localhost:5432/huiyuyuan_test
       REDIS_URL: redis://localhost:6379/0
       JWT_SECRET_KEY: ci_test_secret_key_do_not_use_in_prod_1234567890
       APP_ENV: testing
@@ -138,7 +159,7 @@ jobs:
 
       - name: Initialize test database
         run: |
-          PGPASSWORD=test_password psql -h localhost -U test_user -d huiyuanyuan_test -f init_db.sql || true
+          PGPASSWORD=test_password psql -h localhost -U test_user -d huiyuyuan_test -f init_db.sql || true
 
       - name: Run backend tests
         run: |
@@ -265,27 +286,27 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           source: >-
-            huiyuanyuan_app/backend/main.py,
-            huiyuanyuan_app/backend/requirements.txt,
-            huiyuanyuan_app/backend/init_db.sql,
-            huiyuanyuan_app/backend/pyproject.toml,
-            huiyuanyuan_app/backend/config.py,
-            huiyuanyuan_app/backend/database.py,
-            huiyuanyuan_app/backend/security.py,
-            huiyuanyuan_app/backend/store.py,
-            huiyuanyuan_app/backend/logging_config.py,
-            huiyuanyuan_app/backend/alembic.ini,
-            huiyuanyuan_app/backend/migrations/,
-            huiyuanyuan_app/backend/schemas/,
-            huiyuanyuan_app/backend/data/,
-            huiyuanyuan_app/backend/routers/,
-            huiyuanyuan_app/backend/services/,
-            huiyuanyuan_app/backend/tests/,
-            huiyuanyuan_app/backend/scripts/,
-            huiyuanyuan_app/backend/huiyuanyuan-backend.service,
-            huiyuanyuan_app/backend/nginx_production.conf,
-            huiyuanyuan_app/backend/nginx_proxy_params.conf
-          target: /srv/huiyuanyuan/backend
+            huiyuyuan_app/backend/main.py,
+            huiyuyuan_app/backend/requirements.txt,
+            huiyuyuan_app/backend/init_db.sql,
+            huiyuyuan_app/backend/pyproject.toml,
+            huiyuyuan_app/backend/config.py,
+            huiyuyuan_app/backend/database.py,
+            huiyuyuan_app/backend/security.py,
+            huiyuyuan_app/backend/store.py,
+            huiyuyuan_app/backend/logging_config.py,
+            huiyuyuan_app/backend/alembic.ini,
+            huiyuyuan_app/backend/migrations/,
+            huiyuyuan_app/backend/schemas/,
+            huiyuyuan_app/backend/data/,
+            huiyuyuan_app/backend/routers/,
+            huiyuyuan_app/backend/services/,
+            huiyuyuan_app/backend/tests/,
+            huiyuyuan_app/backend/scripts/,
+            huiyuyuan_app/backend/huiyuyuan-backend.service,
+            huiyuyuan_app/backend/nginx_production.conf,
+            huiyuyuan_app/backend/nginx_proxy_params.conf
+          target: /srv/huiyuyuan/backend
           strip_components: 2
 
       - name: Apply backend release and verify health
@@ -297,23 +318,23 @@ jobs:
           script: |
             set -e
 
-            APP_ROOT="/srv/huiyuanyuan"
+            APP_ROOT="/srv/huiyuyuan"
             BACKEND_DIR="${APP_ROOT}/backend"
-            SNAP_DIR="/opt/huiyuanyuan/snapshots/$(date +%Y%m%d_%H%M%S)"
+            SNAP_DIR="/opt/huiyuyuan/snapshots/$(date +%Y%m%d_%H%M%S)"
 
             mkdir -p "$SNAP_DIR"
             cp -a "$BACKEND_DIR" "$SNAP_DIR/" 2>/dev/null || true
 
-            cd /opt/huiyuanyuan/snapshots
+            cd /opt/huiyuyuan/snapshots
             ls -dt */ | tail -n +4 | xargs -r rm -rf
 
-            if [ -f "$BACKEND_DIR/huiyuanyuan-backend.service" ]; then
-              cp "$BACKEND_DIR/huiyuanyuan-backend.service" /etc/systemd/system/huiyuanyuan-backend.service
+            if [ -f "$BACKEND_DIR/huiyuyuan-backend.service" ]; then
+              cp "$BACKEND_DIR/huiyuyuan-backend.service" /etc/systemd/system/huiyuyuan-backend.service
             fi
 
             if [ -f "$BACKEND_DIR/nginx_production.conf" ]; then
               mkdir -p /etc/nginx/snippets
-              cp "$BACKEND_DIR/nginx_production.conf" /etc/nginx/conf.d/huiyuanyuan.conf
+              cp "$BACKEND_DIR/nginx_production.conf" /etc/nginx/conf.d/huiyuyuan.conf
               cp "$BACKEND_DIR/nginx_proxy_params.conf" /etc/nginx/snippets/proxy_params.conf 2>/dev/null || true
             fi
 
@@ -323,8 +344,8 @@ jobs:
             alembic upgrade head
 
             systemctl daemon-reload
-            systemctl enable huiyuanyuan-backend
-            systemctl restart huiyuanyuan-backend
+            systemctl enable huiyuyuan-backend
+            systemctl restart huiyuyuan-backend
             nginx -t
             systemctl reload nginx
 
@@ -344,15 +365,15 @@ jobs:
               rm -rf "$BACKEND_DIR"
               cp -a "$SNAP_DIR/backend" "$APP_ROOT/"
             fi
-            if [ -f "$APP_ROOT/backend/huiyuanyuan-backend.service" ]; then
-              cp "$APP_ROOT/backend/huiyuanyuan-backend.service" /etc/systemd/system/huiyuanyuan-backend.service
+            if [ -f "$APP_ROOT/backend/huiyuyuan-backend.service" ]; then
+              cp "$APP_ROOT/backend/huiyuyuan-backend.service" /etc/systemd/system/huiyuyuan-backend.service
             fi
             if [ -f "$APP_ROOT/backend/nginx_production.conf" ]; then
-              cp "$APP_ROOT/backend/nginx_production.conf" /etc/nginx/conf.d/huiyuanyuan.conf
+              cp "$APP_ROOT/backend/nginx_production.conf" /etc/nginx/conf.d/huiyuyuan.conf
               cp "$APP_ROOT/backend/nginx_proxy_params.conf" /etc/nginx/snippets/proxy_params.conf 2>/dev/null || true
             fi
             systemctl daemon-reload
-            systemctl restart huiyuanyuan-backend
+            systemctl restart huiyuyuan-backend
             nginx -t && systemctl reload nginx
 
             RETRY_STATUS=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8000/api/health || true)
@@ -390,8 +411,8 @@ jobs:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
-          source: 'huiyuanyuan_app/build/web/*'
-          target: /var/www/huiyuanyuan
+          source: 'huiyuyuan_app/build/web/*'
+          target: /var/www/huiyuyuan
           strip_components: 3
 
       - name: Reload Nginx

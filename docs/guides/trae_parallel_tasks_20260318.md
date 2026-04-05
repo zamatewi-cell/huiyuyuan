@@ -1,4 +1,4 @@
-# Trae Parallel Tasks - 2026-03-18
+﻿# Trae Parallel Tasks - 2026-03-18
 
 This file is the handoff contract for parallel work between Codex and Trae.
 
@@ -59,11 +59,11 @@ Codex owns the backend slice and related tests.
 
 Files owned by Codex in this round:
 
-- `huiyuanyuan_app/backend/routers/users.py`
-- `huiyuanyuan_app/backend/schemas/user.py`
-- `huiyuanyuan_app/backend/store.py`
-- `huiyuanyuan_app/backend/tests/test_payment_accounts.py`
-- `huiyuanyuan_app/backend/migrations/versions/20260318_0003_create_payment_accounts.py`
+- `huiyuyuan_app/backend/routers/users.py`
+- `huiyuyuan_app/backend/schemas/user.py`
+- `huiyuyuan_app/backend/store.py`
+- `huiyuyuan_app/backend/tests/test_payment_accounts.py`
+- `huiyuyuan_app/backend/migrations/versions/20260318_0003_create_payment_accounts.py`
 
 Codex will not edit the Flutter payment UI/provider in this round beyond the already-finished removal of default mock accounts.
 
@@ -82,20 +82,20 @@ Trae owns the Flutter frontend integration for payment accounts.
 
 Primary files for Trae:
 
-- `huiyuanyuan_app/lib/models/payment_account.dart`
-- `huiyuanyuan_app/lib/providers/payment_provider.dart`
-- `huiyuanyuan_app/lib/screens/payment_management_screen.dart`
-- `huiyuanyuan_app/lib/config/api_config.dart`
-- `huiyuanyuan_app/lib/services/api_service.dart`
-- `huiyuanyuan_app/lib/screens/profile/profile_screen.dart`
+- `huiyuyuan_app/lib/models/payment_account.dart`
+- `huiyuyuan_app/lib/providers/payment_provider.dart`
+- `huiyuyuan_app/lib/screens/payment_management_screen.dart`
+- `huiyuyuan_app/lib/config/api_config.dart`
+- `huiyuyuan_app/lib/services/api_service.dart`
+- `huiyuyuan_app/lib/screens/profile/profile_screen.dart`
 
 Optional follow-up files for Trae after payment API integration is done:
 
-- `huiyuanyuan_app/lib/screens/admin/admin_dashboard.dart`
-- `huiyuanyuan_app/lib/screens/product/search_screen.dart`
-- `huiyuanyuan_app/lib/screens/profile/favorite_list_screen.dart`
-- `huiyuanyuan_app/lib/screens/profile/browse_history_screen.dart`
-- `huiyuanyuan_app/lib/services/push_service.dart`
+- `huiyuyuan_app/lib/screens/admin/admin_dashboard.dart`
+- `huiyuyuan_app/lib/screens/product/search_screen.dart`
+- `huiyuyuan_app/lib/screens/profile/favorite_list_screen.dart`
+- `huiyuyuan_app/lib/screens/profile/browse_history_screen.dart`
+- `huiyuyuan_app/lib/services/push_service.dart`
 
 Trae should not edit the backend files listed in the Codex ownership section.
 

@@ -1,4 +1,4 @@
-#!/usr/bin/env pwsh
+﻿#!/usr/bin/env pwsh
 
 param(
     [string]$ServerHost = "47.112.98.191",
@@ -6,7 +6,7 @@ param(
     [string]$PublicBaseUrl = "https://xn--lsws2cdzg.top",
     [string]$HealthPath = "/api/health",
     [string]$SSHKeyPath = "",
-    [string]$ServiceName = "huiyuanyuan-backend"
+    [string]$ServiceName = "huiyuyuan-backend"
 )
 
 Set-StrictMode -Version Latest
@@ -116,8 +116,8 @@ echo "listen:"
 ss -ltnp | grep -E ':80 |:443 |:8000 ' || true
 echo "local_health:"
 curl -s http://127.0.0.1:8000/api/health || true
-echo "huiyuanyuan_access_log_tail:"
-tail -n 5 /var/log/nginx/huiyuanyuan_access.log 2>/dev/null || true
+echo "huiyuyuan_access_log_tail:"
+tail -n 5 /var/log/nginx/huiyuyuan_access.log 2>/dev/null || true
 echo "default_access_log_tail:"
 tail -n 5 /var/log/nginx/access.log 2>/dev/null || true
 '@

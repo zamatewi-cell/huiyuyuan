@@ -1,0 +1,127 @@
+Scanning files...
+Patched lib\data\product_data.dart
+Patched lib\data\product_seed_generated.dart
+Patched lib\data\shop_data.dart
+Patched lib\repositories\admin_repository.dart
+Patched lib\repositories\payment_repository.dart
+Patched lib\repositories\product_catalog_repository.dart
+Patched lib\screens\login_screen.dart
+Patched lib\screens\main_screen.dart
+Patched lib\screens\payment_management_screen.dart
+Patched lib\screens\admin\inventory_screen.dart
+Patched lib\screens\ar\ar_tryon_screen.dart
+Patched lib\screens\chat\ai_assistant_screen.dart
+Patched lib\screens\legal\privacy_policy_screen.dart
+Patched lib\screens\legal\user_agreement_screen.dart
+Patched lib\screens\notification\notification_screen.dart
+Patched lib\screens\operator\operator_home.dart
+Patched lib\screens\order\logistics_screen.dart
+Patched lib\screens\order\order_detail_screen.dart
+Patched lib\screens\order\order_list_screen.dart
+Patched lib\screens\order\publish_review_screen.dart
+Patched lib\screens\order\shipping_dialog.dart
+Patched lib\screens\payment\payment_screen.dart
+Patched lib\screens\product\search_screen.dart
+Patched lib\screens\profile\address_list_screen.dart
+Patched lib\screens\profile\browse_history_screen.dart
+Patched lib\screens\profile\favorite_list_screen.dart
+Patched lib\screens\profile\profile_screen.dart
+Patched lib\screens\shop\shop_detail_screen.dart
+Patched lib\screens\shop\shop_radar.dart
+Patched lib\screens\trade\cart_screen.dart
+Patched lib\screens\trade\checkout_screen.dart
+Patched lib\screens\trade\product_detail_screen.dart
+Patched lib\screens\trade\product_list_screen.dart
+Patched lib\services\address_service.dart
+Patched lib\services\ai_insight_service.dart
+Patched lib\services\ai_product_context_service.dart
+Patched lib\services\ai_prompt_service.dart
+Patched lib\services\ai_service.dart
+Patched lib\services\api_service.dart
+Patched lib\services\backend_service.dart
+Patched lib\services\gemini_image_service.dart
+Patched lib\services\order_service.dart
+Patched lib\services\oss_service.dart
+Patched lib\services\push_service.dart
+Patched lib\services\review_service.dart
+Patched lib\widgets\product_reviews_widget.dart
+Patched lib\widgets\promotional_banner.dart
+Patched lib\widgets\admin\admin_product_management_tab.dart
+Patched lib\widgets\common\empty_state.dart
+Patched lib\widgets\common\error_handler.dart
+Patched lib\widgets\common\region_picker.dart
+Patched lib\widgets\image\image_picker_widget.dart
+Patched lib\widgets\login\login_form_widgets.dart
+Patched lib\widgets\login\login_shell_widgets.dart
+Found 1323 unique Chinese strings.
+Translating...
+API error: Invalid API-key provided.
+API error: Invalid API-key provided.
+API error: Invalid API-key provided.
+API error: Invalid API-key provided.
+API error: Invalid API-key provided.
+API error: Invalid API-key provided.
+API error: Invalid API-key provided.
+API error: Invalid API-key provided.
+API error: Invalid API-key provided.
+API error: Invalid API-key provided.
+API error: Invalid API-key provided.
+API error: Invalid API-key provided.
+API error: Invalid API-key provided.
+API error: Invalid API-key provided.
+API error: Invalid API-key provided.
+API error: Invalid API-key provided.
+API error: Invalid API-key provided.
+API error: Invalid API-key provided.
+API error: Invalid API-key provided.
+API error: Invalid API-key provided.
+API error: Invalid API-key provided.
+API error: Invalid API-key provided.
+API error: Invalid API-key provided.
+API error: Invalid API-key provided.
+API error: Invalid API-key provided.
+API error: Invalid API-key provided.
+API error: Invalid API-key provided.
+API error: Invalid API-key provided.
+API error: Invalid API-key provided.
+API error: Invalid API-key provided.
+API error: Invalid API-key provided.
+API error: Invalid API-key provided.
+API error: Invalid API-key provided.
+API error: Invalid API-key provided.
+API error: Invalid API-key provided.
+API error: Invalid API-key provided.
+API error: Invalid API-key provided.
+API error: Invalid API-key provided.
+API error: Invalid API-key provided.
+API error: Invalid API-key provided.
+API error: Invalid API-key provided.
+API error: Invalid API-key provided.
+API error: Invalid API-key provided.
+API error: Invalid API-key provided.
+API error: Invalid API-key provided.
+API error: Invalid API-key provided.
+API error: Invalid API-key provided.
+API error: Invalid API-key provided.
+API error: Invalid API-key provided.
+API error: Invalid API-key provided.
+API error: Invalid API-key provided.
+API error: Invalid API-key provided.
+API error: Invalid API-key provided.
+API error: Invalid API-key provided.
+API error: Invalid API-key provided.
+API error: Invalid API-key provided.
+API error: Invalid API-key provided.
+API error: Invalid API-key provided.
+API error: Invalid API-key provided.
+API error: Invalid API-key provided.
+API error: Invalid API-key provided.
+API error: Invalid API-key provided.
+API error: Invalid API-key provided.
+API error: Invalid API-key provided.
+API error: Invalid API-key provided.
+API error: Invalid API-key provided.
+API error: Invalid API-key provided.
+Translated 0 strings.
+Updating app_strings.dart...
+Systematic AI localization patching complete!

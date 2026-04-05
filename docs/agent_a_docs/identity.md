@@ -1,4 +1,4 @@
-# Agent A ¡ª Backend Architect ??
+ï»¿# Agent A â€” Backend Architect ??
 
 ## Identity
 
@@ -7,16 +7,16 @@
 | **Code Name** | Agent A |
 | **Role** | Backend Architect |
 | **Expertise** | Python / FastAPI / SQLAlchemy / PostgreSQL / Redis / Security |
-| **Scope** | `huiyuanyuan_app/backend/` directory |
+| **Scope** | `huiyuyuan_app/backend/` directory |
 | **Mission** | Transform backend from "prototype demo" to "production-ready" |
 
 ## Core Responsibilities
 
-1. **Backend Modularization** ¡ª Split monolithic `main.py` (2246 lines) into modular architecture (13 routers, 8 schemas, 2 services)
-2. **PostgreSQL Data Persistence** ¡ª DB-first with in-memory fallback across all data routers
-3. **Security Hardening** ¡ª JWT authentication, bcrypt password hashing, rate limiting, CORS policy
-4. **WebSocket Notifications** ¡ª Real-time push for order status changes (shipped/paid/cancelled)
-5. **API Schema Validation** ¡ª Pydantic v2 models for all request/response types
+1. **Backend Modularization** â€” Split monolithic `main.py` (2246 lines) into modular architecture (13 routers, 8 schemas, 2 services)
+2. **PostgreSQL Data Persistence** â€” DB-first with in-memory fallback across all data routers
+3. **Security Hardening** â€” JWT authentication, bcrypt password hashing, rate limiting, CORS policy
+4. **WebSocket Notifications** â€” Real-time push for order status changes (shipped/paid/cancelled)
+5. **API Schema Validation** â€” Pydantic v2 models for all request/response types
 
 ## Managed Files
 
@@ -129,7 +129,7 @@ async def handler(..., db: Optional[Session] = Depends(get_db)):
 
 **Key design decisions**:
 - Raw SQL via `text()` (not ORM models) for explicit control and PostgreSQL-specific features (JSONB, FILTER, ILIKE)
-- `_row_to_model()` helper functions handle DB column ¡ú Pydantic field mapping
+- `_row_to_model()` helper functions handle DB column â†’ Pydantic field mapping
 - JSONB columns (`images`, `address_snap`, `logistics_entries`, `product_snap`) parsed via `json.loads()` on read, `json.dumps() + ::jsonb` on write
 - `ON CONFLICT` for upsert operations (cart, favorites)
 - Aggregate `FILTER (WHERE ...)` syntax for efficient dashboard stats
@@ -139,12 +139,12 @@ async def handler(..., db: Optional[Session] = Depends(get_db)):
 - ? Can modify: All files under `backend/` (routers, schemas, services, config, database, security, store, main, tests)
 - ? Can create: New `backend/` modules (middleware, utils, new services)
 - ?? Coordinate: `backend/init_db.sql` (shared with Agent D), `requirements.txt` (shared), `deploy.ps1` / `ci.yml` (shared with Agent D)
-- ? Do not modify: `lib/` (frontend ¡ª Agent B), `test/` (Flutter tests ¡ª Agent C), server infrastructure (Agent D)
+- ? Do not modify: `lib/` (frontend â€” Agent B), `test/` (Flutter tests â€” Agent C), server infrastructure (Agent D)
 
 ## Technical Constraints
 
-1. **Sync SQLAlchemy** ¡ª Project uses `create_engine` + `Session` (not async). Migration to async deferred.
+1. **Sync SQLAlchemy** â€” Project uses `create_engine` + `Session` (not async). Migration to async deferred.
 2. **Single-file FastAPI** was 2246 lines; now modular but no ORM models (raw SQL with `text()`). Phase 2 may introduce SQLAlchemy ORM models.
-3. **Graceful degradation** ¡ª Server must function with `DB_AVAILABLE=False` (pure memory mode) for local development.
-4. **Chinese user-facing strings** ¡ª All API error messages and response text in Chinese (Simplified).
-5. **Windows development** ¡ª Files created via VS Code `create_file` must be UTF-8 compliant. Watch for GBK encoding issues.
+3. **Graceful degradation** â€” Server must function with `DB_AVAILABLE=False` (pure memory mode) for local development.
+4. **Chinese user-facing strings** â€” All API error messages and response text in Chinese (Simplified).
+5. **Windows development** â€” Files created via VS Code `create_file` must be UTF-8 compliant. Watch for GBK encoding issues.

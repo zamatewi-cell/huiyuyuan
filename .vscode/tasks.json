@@ -1,4 +1,4 @@
-{
+﻿{
 	"version": "2.0.0",
 	"tasks": [
 		{
@@ -35,7 +35,7 @@
 			"presentation": { "reveal": "always", "panel": "dedicated", "clear": true }
 		},
 		{
-			"label": "� 更新 Nginx 配置",
+			"label": "⚙️ 更新 Nginx 配置",
 			"type": "shell",
 			"command": "powershell",
 			"args": ["-ExecutionPolicy", "Bypass", "-File", "${workspaceFolder}/scripts/deploy.ps1", "-Target", "nginx"],
@@ -55,7 +55,7 @@
 			"type": "shell",
 			"command": "flutter",
 			"args": ["build", "web", "--no-tree-shake-icons", "--release"],
-			"options": { "cwd": "${workspaceFolder}/huiyuanyuan_app" },
+			"options": { "cwd": "${workspaceFolder}/huiyuyuan_app" },
 			"group": "build",
 			"problemMatcher": [],
 			"presentation": { "reveal": "always", "panel": "shared" }
@@ -65,7 +65,7 @@
 			"type": "shell",
 			"command": "dart",
 			"args": ["analyze", "lib/"],
-			"options": { "cwd": "${workspaceFolder}/huiyuanyuan_app" },
+			"options": { "cwd": "${workspaceFolder}/huiyuyuan_app" },
 			"group": "test",
 			"problemMatcher": [],
 			"presentation": { "reveal": "always", "panel": "shared" }
@@ -75,7 +75,7 @@
 			"type": "shell",
 			"command": "flutter",
 			"args": ["test"],
-			"options": { "cwd": "${workspaceFolder}/huiyuanyuan_app" },
+			"options": { "cwd": "${workspaceFolder}/huiyuyuan_app" },
 			"group": "test",
 			"problemMatcher": [],
 			"presentation": { "reveal": "always", "panel": "shared" }
@@ -86,8 +86,8 @@
 			"command": "ssh",
 			"args": [
 				"-o", "ConnectTimeout=5",
-				"root@47.98.188.141",
-				"echo '=== 服务状态 ==='; systemctl is-active huiyuanyuan; echo '=== API 健康 ==='; curl -s http://127.0.0.1:8000/api/health | python3 -m json.tool 2>/dev/null || echo 'N/A'; echo '=== Nginx ==='; nginx -t 2>&1; echo '=== 磁盘 ==='; df -h / | tail -1; echo '=== 内存 ==='; free -h | grep Mem"
+				"root@47.112.98.191",
+				"echo '=== 服务状态 ==='; systemctl is-active huiyuyuan-backend; echo '=== API 健康 ==='; curl -s http://127.0.0.1:8000/api/health | python3 -m json.tool 2>/dev/null || echo 'N/A'; echo '=== Nginx ==='; nginx -t 2>&1; echo '=== 磁盘 ==='; df -h / | tail -1; echo '=== 内存 ==='; free -h | grep Mem"
 			],
 			"problemMatcher": [],
 			"presentation": { "reveal": "always", "panel": "shared" }
@@ -98,8 +98,8 @@
 			"command": "ssh",
 			"args": [
 				"-o", "ConnectTimeout=5",
-				"root@47.98.188.141",
-				"bash /srv/huiyuanyuan/scripts/server_diagnose.sh"
+				"root@47.112.98.191",
+				"bash /srv/huiyuyuan/scripts/server_diagnose.sh"
 			],
 			"problemMatcher": [],
 			"presentation": { "reveal": "always", "panel": "dedicated", "clear": true }
@@ -110,8 +110,8 @@
 			"command": "ssh",
 			"args": [
 				"-o", "ConnectTimeout=5",
-				"root@47.98.188.141",
-				"bash /opt/huiyuanyuan/backup.sh"
+				"root@47.112.98.191",
+				"bash /opt/huiyuyuan/backup.sh"
 			],
 			"problemMatcher": [],
 			"presentation": { "reveal": "always", "panel": "shared" }

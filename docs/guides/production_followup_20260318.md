@@ -1,9 +1,9 @@
-# Production Follow-Up - 2026-03-18
+﻿# Production Follow-Up - 2026-03-18
 
 ## Current facts
 
 - The current production server is `47.112.98.191`.
-- The backend service is `huiyuanyuan-backend`.
+- The backend service is `huiyuyuan-backend`.
 - The backend process, local Nginx proxy, and local health checks are healthy on the server.
 - The new production database already has the seeded `operator_1` through `operator_10` accounts and the current admin account.
 - The old server `47.98.188.141` does not have business data in `products` or `orders`.
@@ -31,7 +31,7 @@ Example:
 - Do not overwrite current IDs or phones if conflicts are detected.
 - Create a safety backup on the new server before any import is applied.
 - Safety backup created on the current server:
-  - `/opt/huiyuanyuan/backups/pre_legacy_customer_import_20260318_155852.dump`
+  - `/opt/huiyuyuan/backups/pre_legacy_customer_import_20260318_155852.dump`
 
 Use `scripts/import_legacy_customers.ps1` for preflight or apply mode.
 

@@ -1,4 +1,4 @@
-# Agent D - DevOps Identity
+﻿# Agent D - DevOps Identity
 
 ## Role
 
@@ -11,13 +11,13 @@ Agent D is responsible for server-side operations, release hardening, Nginx, Pos
 | Production server | Alibaba Cloud ECS `47.112.98.191` |
 | Public domain | `xn--lsws2cdzg.top` / `汇玉源.top` |
 | SSH | `root@47.112.98.191` |
-| Backend path | `/srv/huiyuanyuan/backend` |
-| Env file | `/srv/huiyuanyuan/.env` |
-| Frontend path | `/var/www/huiyuanyuan` |
-| Upload path | `/srv/huiyuanyuan/backend/uploads` |
-| Nginx conf | `/etc/nginx/conf.d/huiyuanyuan.conf` |
-| systemd service | `huiyuanyuan-backend` |
-| Service log | `journalctl -u huiyuanyuan-backend -n 50 --no-pager` |
+| Backend path | `/srv/huiyuyuan/backend` |
+| Env file | `/srv/huiyuyuan/.env` |
+| Frontend path | `/var/www/huiyuyuan` |
+| Upload path | `/srv/huiyuyuan/backend/uploads` |
+| Nginx conf | `/etc/nginx/conf.d/huiyuyuan.conf` |
+| systemd service | `huiyuyuan-backend` |
+| Service log | `journalctl -u huiyuyuan-backend -n 50 --no-pager` |
 | Health check | `curl -I https://xn--lsws2cdzg.top/api/health` |
 
 ## Responsibility Boundaries

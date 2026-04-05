@@ -1,0 +1,68 @@
+﻿name: HuiYuYuan I18n Guard
+
+on:
+  push:
+    branches: [master, main, dev]
+    paths:
+      - '.github/workflows/huiyuyuan-i18n-guard.yml'
+      - 'huiyuyuan_app/lib/**'
+      - 'huiyuyuan_app/test/l10n/**'
+      - 'huiyuyuan_app/tool/**'
+      - 'huiyuyuan_app/pubspec.yaml'
+      - 'huiyuyuan_app/pubspec.lock'
+  pull_request:
+    branches: [master, main, dev]
+    paths:
+      - '.github/workflows/huiyuyuan-i18n-guard.yml'
+      - 'huiyuyuan_app/lib/**'
+      - 'huiyuyuan_app/test/l10n/**'
+      - 'huiyuyuan_app/tool/**'
+      - 'huiyuyuan_app/pubspec.yaml'
+      - 'huiyuyuan_app/pubspec.lock'
+  workflow_dispatch:
+
+concurrency:
+  group: huiyuyuan-i18n-guard-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  FLUTTER_VERSION: '3.32.0'
+  JAVA_VERSION: '17'
+  APP_DIR: huiyuyuan_app
+
+jobs:
+  i18n-guard:
+    name: HuiYuYuan i18n guard
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ${{ env.APP_DIR }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Java ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+
+      - name: Set up Flutter ${{ env.FLUTTER_VERSION }}
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Install Flutter dependencies
+        run: flutter pub get
+
+      - name: Run i18n audit
+        run: dart run tool/i18n_audit.dart
+
+      - name: Run i18n guard tests
+        run: flutter test test/l10n/i18n_guard_test.dart
+
+      - name: Analyze release-critical localization surfaces
+        run: flutter analyze --no-fatal-infos lib/ test/l10n/ tool/i18n_audit.dart

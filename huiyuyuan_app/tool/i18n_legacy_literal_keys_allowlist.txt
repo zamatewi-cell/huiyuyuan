@@ -1,0 +1,3 @@
+# Frozen legacy literal translation keys.
+# New Chinese literal keys must not be added to AppStrings primary maps.
+# Keep shrinking this list by migrating remaining runtime/data compatibility paths.

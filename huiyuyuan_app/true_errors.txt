@@ -1,0 +1,40 @@
+lib/services/ai_insight_service.dart:2:1:
+Error: The non-ASCII space character U+FEFF can only be used in strings and comments.
+lib/services/ai_insight_service.dart:237:10:
+Error: Variables must be declared using the keywords 'const', 'final', 'var' or a type name.
+lib/services/ai_prompt_service.dart:2:1:
+Error: The non-ASCII space character U+FEFF can only be used in strings and comments.
+lib/services/ai_insight_service.dart:211:5:
+Error: The setter 'urgentWords' isn't defined for the type 'AIInsightService'.
+lib/services/ai_insight_service.dart:212:24:
+Error: The getter 'urgentWords' isn't defined for the type 'AIInsightService'.
+lib/screens/trade/product_list_screen.dart:205:18:
+Error: Constant evaluation error:
+lib/screens/trade/product_list_screen.dart:207:18:
+Error: Constant evaluation error:
+lib/screens/trade/product_list_screen.dart:210:18:
+Error: Constant evaluation error:
+lib/screens/trade/product_list_screen.dart:213:18:
+Error: Constant evaluation error:
+lib/screens/trade/product_list_screen.dart:216:18:
+Error: Constant evaluation error:
+lib/screens/trade/product_list_screen.dart:219:18:
+Error: Constant evaluation error:
+lib/screens/trade/product_list_screen.dart:222:18:
+Error: Constant evaluation error:
+lib/screens/trade/product_list_screen.dart:225:18:
+Error: Constant evaluation error:
+lib/screens/trade/product_detail_screen.dart:668:18:
+Error: Constant evaluation error:
+lib/screens/trade/product_detail_screen.dart:670:19:
+Error: Constant evaluation error:
+lib/screens/trade/product_detail_screen.dart:672:19:
+Error: Constant evaluation error:
+lib/screens/trade/product_detail_screen.dart:674:18:
+Error: Constant evaluation error:
+lib/screens/trade/product_detail_screen.dart:676:17:
+Error: Constant evaluation error:
+lib/screens/trade/product_detail_screen.dart:678:17:
+Error: Constant evaluation error:
+^
+Error: Compilation failed.

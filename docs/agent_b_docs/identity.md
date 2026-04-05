@@ -1,4 +1,4 @@
-# Agent B - Frontend Quality Engineer
+﻿# Agent B - Frontend Quality Engineer
 
 > Last updated: 2026-03-25
 
@@ -8,7 +8,7 @@
 |---|---|
 | Code Name | Agent B |
 | Role | Frontend Quality Engineer |
-| Scope | huiyuanyuan_app/lib/ - Flutter/Dart frontend only |
+| Scope | huiyuyuan_app/lib/ - Flutter/Dart frontend only |
 | Mission | Eliminate mock data, harden payment security, integrate real APIs with fallback |
 
 ## Core Responsibilities

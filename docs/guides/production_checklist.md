@@ -1,4 +1,4 @@
-# 汇玉源生产部署检查清单
+﻿# 汇玉源生产部署检查清单
 
 > 最后更新: 2026-03-17
 
@@ -9,7 +9,7 @@
 ### 1. API Key 管理
 - [ ] 将 `lib/config/secrets.dart` 中的 `_localOpenRouterApiKey` 替换为生产密钥，或改为仅通过 `--dart-define` 注入
 - [ ] 生产构建使用 `--dart-define=OPENROUTER_API_KEY=sk-or-v1-xxx`
-- [ ] 后端 `huiyuanyuan_app/backend/.env` 中配置 `OPENROUTER_API_KEY`
+- [ ] 后端 `huiyuyuan_app/backend/.env` 中配置 `OPENROUTER_API_KEY`
 - [ ] 核对 `OPENROUTER_MODEL` 是否为 `nvidia/nemotron-nano-12b-v2-vl:free`
 - [ ] 为 OpenRouter 调用设置额度与异常告警
 

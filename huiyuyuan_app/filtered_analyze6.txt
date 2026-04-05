@@ -1,0 +1,23 @@
+  error - The getter 'characters' isn't defined for the type 'String' - lib\l10n\product_translator.dart:318:29 - undefined_getter
+  error - The instance member 'ref' can't be accessed in an initializer - lib\screens\admin\admin_dashboard.dart:42:28 - implicit_this_reference_in_initializer
+  error - The instance member 'ref' can't be accessed in an initializer - lib\screens\admin\inventory_screen.dart:33:28 - implicit_this_reference_in_initializer
+  error - Undefined name 'ref' - lib\screens\profile\profile_screen.dart:287:31 - undefined_identifier
+  error - Undefined name 'ref' - lib\screens\profile\profile_screen.dart:287:54 - undefined_identifier
+  error - Undefined name 'ref' - lib\screens\profile\profile_screen.dart:377:29 - undefined_identifier
+  error - Undefined name 'ref' - lib\screens\profile\profile_screen.dart:487:17 - undefined_identifier
+  error - Undefined name 'ref' - lib\screens\profile\profile_screen.dart:528:55 - undefined_identifier
+  error - Undefined name 'ref' - lib\screens\profile\profile_screen.dart:529:71 - undefined_identifier
+  error - Undefined name 'ref' - lib\screens\profile\profile_screen.dart:530:68 - undefined_identifier
+  error - Undefined name 'ref' - lib\screens\profile\profile_screen.dart:531:68 - undefined_identifier
+  error - Undefined name 'ref' - lib\screens\profile\profile_screen.dart:1059:17 - undefined_identifier
+  error - Undefined name 'ref' - lib\screens\profile\profile_screen.dart:1084:23 - undefined_identifier
+  error - Undefined name 'ref' - lib\screens\profile\profile_screen.dart:1092:23 - undefined_identifier
+  error - Undefined name 'ref' - lib\screens\profile\profile_screen.dart:1102:41 - undefined_identifier
+  error - Undefined name 'ref' - lib\screens\profile\profile_screen.dart:1103:41 - undefined_identifier
+  error - Undefined name 'ref' - lib\screens\profile\profile_screen.dart:1104:41 - undefined_identifier
+  error - Undefined name 'ref' - lib\screens\profile\profile_screen.dart:1112:17 - undefined_identifier
+  error - Undefined name 'ref' - lib\screens\profile\profile_screen.dart:1123:27 - undefined_identifier
+  error - The instance member 'ref' can't be accessed in an initializer - lib\screens\shop\shop_radar.dart:34:30 - implicit_this_reference_in_initializer
+  error - 1 positional argument expected by '_getConfig', but 0 found - lib\widgets\common\empty_state.dart:48:31 - not_enough_positional_arguments
+  error - The default value of an optional parameter must be constant - lib\widgets\image\image_picker_widget.dart:87:26 - non_constant_default_value
+  error - Undefined name 'ref' - lib\widgets\promotional_banner.dart:46:10 - undefined_identifier

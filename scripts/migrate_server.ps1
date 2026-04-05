@@ -28,20 +28,20 @@ if ($PSVersionTable.PSVersion.Major -ge 7) {
     $PSNativeCommandUseErrorActionPreference = $false
 }
 
-$BackendLocal = "d:\huiyuanyuan_project\huiyuanyuan_app\backend"
-$WebLocal = "d:\huiyuanyuan_project\huiyuanyuan_app\build\web"
-$BackendRemote = "/srv/huiyuanyuan/backend"
-$WebRemote = "/var/www/huiyuanyuan"
-$EnvRemote = "/srv/huiyuanyuan/.env"
-$ServiceName = "huiyuanyuan-backend"
-$NginxRemote = "/etc/nginx/conf.d/huiyuanyuan.conf"
+$BackendLocal = "d:\huiyuyuan_project\huiyuyuan_app\backend"
+$WebLocal = "d:\huiyuyuan_project\huiyuyuan_app\build\web"
+$BackendRemote = "/srv/huiyuyuan/backend"
+$WebRemote = "/var/www/huiyuyuan"
+$EnvRemote = "/srv/huiyuyuan/.env"
+$ServiceName = "huiyuyuan-backend"
+$NginxRemote = "/etc/nginx/conf.d/huiyuyuan.conf"
 $NginxSnippetRemote = "/etc/nginx/snippets/proxy_params.conf"
 $HealthUrl = "http://127.0.0.1:8000/api/health"
 $MigrationStamp = Get-Date -Format "yyyyMMdd_HHmmss"
 $LocalArtifactDir = Join-Path "builds\migration" "migration_$MigrationStamp"
 $LocalDbDump = Join-Path $LocalArtifactDir "db_backup.sql"
-$RemoteOldBackupDir = "/opt/huiyuanyuan/backups/migration_$MigrationStamp"
-$RemoteNewSafetyDump = "/opt/huiyuanyuan/backups/pre_migration_$MigrationStamp.dump"
+$RemoteOldBackupDir = "/opt/huiyuyuan/backups/migration_$MigrationStamp"
+$RemoteNewSafetyDump = "/opt/huiyuyuan/backups/pre_migration_$MigrationStamp.dump"
 
 function Write-Step([string]$Message) { Write-Host "`n==> $Message" -ForegroundColor Cyan }
 function Write-Info([string]$Message) { Write-Host "  [INFO] $Message" -ForegroundColor Gray }
@@ -150,14 +150,14 @@ try {
 
     Write-Step "Exporting the old server database"
     Invoke-Remote -ServerIP $OldServerIP -Command "mkdir -p $RemoteOldBackupDir"
-    Invoke-Remote -ServerIP $OldServerIP -Command "sudo -u postgres pg_dump huiyuanyuan > $RemoteOldBackupDir/db_backup.sql"
+    Invoke-Remote -ServerIP $OldServerIP -Command "sudo -u postgres pg_dump huiyuyuan > $RemoteOldBackupDir/db_backup.sql"
     Copy-FromServer -ServerIP $OldServerIP -RemotePath "$RemoteOldBackupDir/db_backup.sql" -LocalPath $LocalDbDump
     Write-Ok "database dump exported to $LocalDbDump"
 
     if (-not $SkipBackup) {
         Write-Step "Creating safety backup on the new server"
-        Invoke-Remote -ServerIP $NewServerIP -Command "mkdir -p /opt/huiyuanyuan/backups"
-        Invoke-Remote -ServerIP $NewServerIP -Command "sudo -u postgres pg_dump -Fc huiyuanyuan > $RemoteNewSafetyDump"
+        Invoke-Remote -ServerIP $NewServerIP -Command "mkdir -p /opt/huiyuyuan/backups"
+        Invoke-Remote -ServerIP $NewServerIP -Command "sudo -u postgres pg_dump -Fc huiyuyuan > $RemoteNewSafetyDump"
         Write-Ok "new server safety backup created at $RemoteNewSafetyDump"
     } else {
         Write-Warn "skipping safety backup on the new server"
@@ -165,7 +165,7 @@ try {
 
     Write-Step "Uploading backend source"
     Invoke-Remote -ServerIP $NewServerIP -Command "mkdir -p $BackendRemote"
-    Copy-ToServer -ServerIP $NewServerIP -LocalPath $BackendLocal -RemotePath "/srv/huiyuanyuan/"
+    Copy-ToServer -ServerIP $NewServerIP -LocalPath $BackendLocal -RemotePath "/srv/huiyuyuan/"
     Write-Ok "backend source uploaded"
 
     Write-Step "Uploading web assets"
@@ -190,7 +190,7 @@ chmod 600 ${EnvRemote}'
 "@
     Invoke-Remote -ServerIP $NewServerIP -Command $envCommand | Out-Null
 
-    Copy-ToServer -ServerIP $NewServerIP -LocalPath (Join-Path $BackendLocal "huiyuanyuan-backend.service") -RemotePath "/etc/systemd/system/huiyuanyuan-backend.service"
+    Copy-ToServer -ServerIP $NewServerIP -LocalPath (Join-Path $BackendLocal "huiyuyuan-backend.service") -RemotePath "/etc/systemd/system/huiyuyuan-backend.service"
     Invoke-Remote -ServerIP $NewServerIP -Command "mkdir -p /etc/nginx/snippets"
     Copy-ToServer -ServerIP $NewServerIP -LocalPath (Join-Path $BackendLocal "nginx_production.conf") -RemotePath $NginxRemote
     Copy-ToServer -ServerIP $NewServerIP -LocalPath (Join-Path $BackendLocal "nginx_proxy_params.conf") -RemotePath $NginxSnippetRemote
@@ -198,7 +198,7 @@ chmod 600 ${EnvRemote}'
 
     Write-Step "Restoring database on the new server"
     Copy-ToServer -ServerIP $NewServerIP -LocalPath $LocalDbDump -RemotePath "/tmp/db_backup.sql"
-    Invoke-Remote -ServerIP $NewServerIP -Command "sudo -u postgres psql -d huiyuanyuan -f /tmp/db_backup.sql"
+    Invoke-Remote -ServerIP $NewServerIP -Command "sudo -u postgres psql -d huiyuyuan -f /tmp/db_backup.sql"
     Write-Ok "database restored"
 
     Write-Step "Applying Alembic and restarting services"

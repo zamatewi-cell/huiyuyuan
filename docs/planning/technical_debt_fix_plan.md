@@ -1,4 +1,4 @@
-# 汇玉源技术债务修复计划
+﻿# 汇玉源技术债务修复计划
 
 > 更新日期: 2026-03-17
 > 状态: 进行中
@@ -508,7 +508,7 @@ class ErrorWidget extends StatelessWidget {
 ```bash
 #!/bin/bash
 # scripts/db_backup.sh
-BACKUP_DIR="/opt/huiyuanyuan/backups"
+BACKUP_DIR="/opt/huiyuyuan/backups"
 DATE=$(date +%Y%m%d_%H%M%S)
 BACKUP_FILE="$BACKUP_DIR/db_backup_$DATE.sql.gz"
 
@@ -516,7 +516,7 @@ BACKUP_FILE="$BACKUP_DIR/db_backup_$DATE.sql.gz"
 mkdir -p $BACKUP_DIR
 
 # 备份数据库
-pg_dump -U huyy_user huiyuanyuan | gzip > $BACKUP_FILE
+pg_dump -U huyy_user huiyuyuan | gzip > $BACKUP_FILE
 
 # 验证备份
 if [ $? -eq 0 ]; then
@@ -534,7 +534,7 @@ fi
 #!/bin/bash
 # scripts/verify_backup.sh
 BACKUP_FILE=$1
-TEMP_DB="huiyuanyuan_verify"
+TEMP_DB="huiyuyuan_verify"
 
 # 创建临时数据库
 createdb $TEMP_DB
@@ -560,16 +560,16 @@ dropdb $TEMP_DB
 # 数据库恢复流程
 
 ## 1. 停止应用服务
-systemctl stop huiyuanyuan
+systemctl stop huiyuyuan
 
 ## 2. 恢复数据库
-gunzip -c /opt/huiyuanyuan/backups/db_backup_YYYYMMDD_HHMMSS.sql.gz | psql -U huyy_user huiyuanyuan
+gunzip -c /opt/huiyuyuan/backups/db_backup_YYYYMMDD_HHMMSS.sql.gz | psql -U huyy_user huiyuyuan
 
 ## 3. 验证数据
-psql -U huyy_user -d huiyuanyuan -c "SELECT COUNT(*) FROM users;"
+psql -U huyy_user -d huiyuyuan -c "SELECT COUNT(*) FROM users;"
 
 ## 4. 启动应用服务
-systemctl start huiyuanyuan
+systemctl start huiyuyuan
 
 ## 5. 验证服务
 curl http://localhost:8000/api/health

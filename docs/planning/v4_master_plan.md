@@ -1,4 +1,4 @@
-# 汇玉源 v4.0 — 多Agent协同开发总体规划
+﻿# 汇玉源 v4.0 — 多Agent协同开发总体规划
 
 > 制定时间: 2026-02-27
 > 基于: 全量代码审计 (28屏幕/12服务/5Provider/49端点/16测试)
@@ -222,7 +222,7 @@ CREATE TABLE addresses (
 ```
 
 **具体步骤**:
-1. 在服务器安装 PostgreSQL 15, 创建数据库 `huiyuanyuan`
+1. 在服务器安装 PostgreSQL 15, 创建数据库 `huiyuyuan`
 2. 创建 `backend/models/*.py` SQLAlchemy 模型 (对应上述7张表)
 3. 创建 `backend/database.py` 连接管理
 4. 逐个迁移 router 从 `内存字典` → `async session + ORM 查询`
@@ -259,15 +259,15 @@ CREATE TABLE addresses (
 ```bash
 # 在 xn--lsws2cdzg.top 上执行
 apt install postgresql-15 postgresql-client-15
-sudo -u postgres createuser huiyuanyuan_user -P  # 设置强密码
-sudo -u postgres createdb huiyuanyuan -O huiyuanyuan_user
+sudo -u postgres createuser huiyuyuan_user -P  # 设置强密码
+sudo -u postgres createdb huiyuyuan -O huiyuyuan_user
 # pg_hba.conf: 仅允许 localhost 连接
 # postgresql.conf: listen_addresses = 'localhost'
 ```
 
 **配置 .env**:
 ```env
-DATABASE_URL=postgresql+asyncpg://huiyuanyuan_user:STRONG_PWD@localhost/huiyuanyuan
+DATABASE_URL=postgresql+asyncpg://huiyuyuan_user:STRONG_PWD@localhost/huiyuyuan
 JWT_SECRET_KEY=<生成64位随机字符串>
 REDIS_URL=redis://localhost:6379/0
 ```
@@ -290,13 +290,13 @@ certbot --nginx -d xn--lsws2cdzg.top -d www.xn--lsws2cdzg.top
 
 #### D4. 数据库备份脚本 (Day 2)
 ```bash
-# /opt/huiyuanyuan/backup.sh
+# /opt/huiyuyuan/backup.sh
 #!/bin/bash
-BACKUP_DIR="/opt/huiyuanyuan/backups"
-pg_dump huiyuanyuan | gzip > "$BACKUP_DIR/db_$(date +%Y%m%d_%H%M%S).sql.gz"
+BACKUP_DIR="/opt/huiyuyuan/backups"
+pg_dump huiyuyuan | gzip > "$BACKUP_DIR/db_$(date +%Y%m%d_%H%M%S).sql.gz"
 find "$BACKUP_DIR" -name "*.sql.gz" -mtime +7 -delete  # 保留7天
 ```
-加入 crontab: `0 3 * * * /opt/huiyuanyuan/backup.sh`
+加入 crontab: `0 3 * * * /opt/huiyuyuan/backup.sh`
 
 **验收标准**:
 - [ ] PostgreSQL 运行中，`psql` 可连接
@@ -557,7 +557,7 @@ server {
     }
     
     location / {
-        root /var/www/huiyuanyuan;
+        root /var/www/huiyuyuan;
         try_files $uri $uri/ /index.html;
     }
 }
@@ -643,7 +643,7 @@ Day 10+ ████████ Phase 6 创新功能持续迭代
 ### 环境变量约定 (Agent A 与 Agent D)
 ```env
 # 必填 (无则启动失败)
-DATABASE_URL=postgresql+asyncpg://user:pwd@localhost/huiyuanyuan
+DATABASE_URL=postgresql+asyncpg://user:pwd@localhost/huiyuyuan
 JWT_SECRET_KEY=<64字符随机串>
 
 # 可选 (无则降级)

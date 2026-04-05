@@ -1,9 +1,9 @@
-#!/usr/bin/env pwsh
+﻿#!/usr/bin/env pwsh
 <#
 .SYNOPSIS
     Deploy the current project to the production ECS server.
 .DESCRIPTION
-    Syncs the backend source into /srv/huiyuanyuan/backend, uploads the Flutter
+    Syncs the backend source into /srv/huiyuyuan/backend, uploads the Flutter
     web build, applies Alembic migrations, reloads Nginx, and verifies the
     backend health endpoint.
 .PARAMETER Target
@@ -19,7 +19,7 @@
 #>
 
 param(
-    [ValidateSet("all", "web", "backend", "nginx", "db-init")]
+    [ValidateSet("all", "web", "backend", "nginx", "db-init", "apk")]
     [string]$Target = "all",
     [switch]$SkipAnalyze,
     [switch]$SkipBuild,
@@ -32,17 +32,17 @@ $ErrorActionPreference = "Stop"
 $SERVER_HOST = "47.112.98.191"
 $SERVER_USER = "root"
 $PRIMARY_DOMAIN = "xn--lsws2cdzg.top"
-$APP_DIR = "huiyuanyuan_app"
-$BACKEND_LOCAL = "huiyuanyuan_app\backend"
-$BACKEND_REMOTE = "/srv/huiyuanyuan/backend"
-$WEB_LOCAL = "huiyuanyuan_app\build\web"
-$WEB_REMOTE = "/var/www/huiyuanyuan"
-$SERVICE_NAME = "huiyuanyuan-backend"
+$APP_DIR = "huiyuyuan_app"
+$BACKEND_LOCAL = "huiyuyuan_app\backend"
+$BACKEND_REMOTE = "/srv/huiyuyuan/backend"
+$WEB_LOCAL = "huiyuyuan_app\build\web"
+$WEB_REMOTE = "/var/www/huiyuyuan"
+$SERVICE_NAME = "huiyuyuan-backend"
 $SYSTEMD_REMOTE_UNIT = "/etc/systemd/system/${SERVICE_NAME}.service"
-$NGINX_REMOTE_CONF = "/etc/nginx/conf.d/huiyuanyuan.conf"
+$NGINX_REMOTE_CONF = "/etc/nginx/conf.d/huiyuyuan.conf"
 $NGINX_SNIPPET_REMOTE = "/etc/nginx/snippets/proxy_params.conf"
 $HEALTH_URL = "http://127.0.0.1:8000/api/health"
-$SNAPSHOT_DIR = "/opt/huiyuanyuan/snapshots"
+$SNAPSHOT_DIR = "/opt/huiyuyuan/snapshots"
 $MAX_SNAPSHOTS = 3
 $MAX_RETRIES = 5
 $RETRY_DELAY = 3
@@ -56,7 +56,7 @@ $BACKEND_SYNC_ITEMS = @(
     "data",
     "database.py",
     "deploy_current_server.sh",
-    "huiyuanyuan-backend.service",
+    "huiyuyuan-backend.service",
     "init_db.sql",
     "logging_config.py",
     "main.py",
@@ -81,7 +81,7 @@ $SNAPSHOT_ITEMS = @(
     "data",
     "database.py",
     "deploy_current_server.sh",
-    "huiyuanyuan-backend.service",
+    "huiyuyuan-backend.service",
     "init_db.sql",
     "logging_config.py",
     "main.py",
@@ -159,10 +159,10 @@ function Invoke-SCP {
 
 function Ensure-ProjectRoot {
     $projectRoot = $PSScriptRoot | Split-Path -Parent
-    if (Test-Path (Join-Path $projectRoot "huiyuanyuan_app\pubspec.yaml")) {
+    if (Test-Path (Join-Path $projectRoot "huiyuyuan_app\pubspec.yaml")) {
         return $projectRoot
     }
-    if (Test-Path "huiyuanyuan_app\pubspec.yaml") {
+    if (Test-Path "huiyuyuan_app\pubspec.yaml") {
         return (Get-Location).Path
     }
     throw "Run this script from the repository root."
@@ -358,7 +358,7 @@ systemctl restart ${SERVICE_NAME}'
         Write-Step "Initializing database bootstrap SQL"
         $initSql = Join-Path $BACKEND_LOCAL "init_db.sql"
         Invoke-SCP -Source $initSql -Dest "${BACKEND_REMOTE}/init_db.sql"
-        Invoke-SSH "sudo -u postgres psql -d huiyuanyuan -f ${BACKEND_REMOTE}/init_db.sql" | Out-Null
+        Invoke-SSH "sudo -u postgres psql -d huiyuyuan -f ${BACKEND_REMOTE}/init_db.sql" | Out-Null
         Invoke-SSH "bash -lc 'cd ${BACKEND_REMOTE}; source venv/bin/activate; alembic upgrade head'" | Out-Null
         Write-Ok "database bootstrap and migrations completed"
     }
@@ -374,6 +374,21 @@ systemctl restart ${SERVICE_NAME}'
 
         Invoke-SSH "nginx -t 2>&1 && systemctl reload nginx" | Out-Null
         Write-Ok "Nginx reloaded after web deployment"
+    }
+
+    # ── APK 分发（仅在全量发布或指定 target=apk 时） ──
+    if ($Target -eq "all" -or $Target -eq "apk") {
+        $apkLocal = Join-Path $APP_DIR "build\app\outputs\flutter-apk\app-release.apk"
+        if (Test-Path $apkLocal) {
+            Write-Step "Distributing APK to server"
+            Invoke-SSH "mkdir -p /var/www/huiyuyuan/downloads"
+            Invoke-SCP -Source $apkLocal -Dest "/var/www/huiyuyuan/downloads/huiyuyuan-latest.apk"
+            $apkSize = [math]::Round((Get-Item $apkLocal).Length / 1MB, 1)
+            Write-Ok "APK distributed (${apkSize}MB) → /downloads/huiyuyuan-latest.apk"
+        } else {
+            Write-Host "  [skip] no release APK found at ${apkLocal}" -ForegroundColor Yellow
+            Write-Host "  Hint: run 'flutter build apk --release' first" -ForegroundColor Gray
+        }
     }
 
     $elapsed = [math]::Round(((Get-Date) - $startTime).TotalSeconds, 1)

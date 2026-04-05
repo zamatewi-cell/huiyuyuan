@@ -97,7 +97,7 @@ function Export-QueryCsv {
     )
 
     $remoteCommand = @"
-cd /tmp && cat <<'SQL' | sudo -u postgres psql -d huiyuanyuan
+cd /tmp && cat <<'SQL' | sudo -u postgres psql -d huiyuyuan
 $Sql
 SQL
 "@
@@ -133,7 +133,7 @@ function Get-Scalar {
     )
 
     $remoteCommand = @"
-cd /tmp && cat <<'SQL' | sudo -u postgres psql -d huiyuanyuan -Atq
+cd /tmp && cat <<'SQL' | sudo -u postgres psql -d huiyuyuan -Atq
 $Sql
 SQL
 "@
@@ -210,7 +210,7 @@ $sqlLocalPath = Join-Path $resolvedExportDir "legacy_customers_import_${timestam
 $smsLocalPath = Join-Path $resolvedExportDir "legacy_sms_logs_${timestamp}.csv"
 $csvRemotePath = "/tmp/legacy_customers_${timestamp}.csv"
 $sqlRemotePath = "/tmp/legacy_customers_import_${timestamp}.sql"
-$backupRemotePath = "/opt/huiyuanyuan/backups/pre_legacy_customer_import_${timestamp}.dump"
+$backupRemotePath = "/opt/huiyuyuan/backups/pre_legacy_customer_import_${timestamp}.dump"
 
 Write-Step "Checking server access"
 Invoke-SshRaw -User $OldServerUser -ServerHost $OldServerIP -Command "echo legacy-ok" | Out-Null
@@ -337,7 +337,7 @@ if (-not $Apply) {
 }
 
 Write-Step "Creating a safety backup on the current server"
-Invoke-SshRaw -User $NewServerUser -ServerHost $NewServerIP -Command "mkdir -p /opt/huiyuanyuan/backups && sudo -u postgres pg_dump -d huiyuanyuan --format=custom --compress=9 > $backupRemotePath"
+Invoke-SshRaw -User $NewServerUser -ServerHost $NewServerIP -Command "mkdir -p /opt/huiyuyuan/backups && sudo -u postgres pg_dump -d huiyuyuan --format=custom --compress=9 > $backupRemotePath"
 Write-Ok "backup created at $backupRemotePath"
 
 Write-Step "Uploading import artifacts"
@@ -347,7 +347,7 @@ Invoke-SshRaw -User $NewServerUser -ServerHost $NewServerIP -Command "chmod 644 
 Write-Ok "artifacts uploaded to /tmp"
 
 Write-Step "Applying legacy customer import"
-$applyOutput = Invoke-SshRaw -User $NewServerUser -ServerHost $NewServerIP -Command "cd /tmp && sudo -u postgres psql -d huiyuanyuan -f $sqlRemotePath"
+$applyOutput = Invoke-SshRaw -User $NewServerUser -ServerHost $NewServerIP -Command "cd /tmp && sudo -u postgres psql -d huiyuyuan -f $sqlRemotePath"
 Write-Host $applyOutput
 
 Write-Step "Verifying imported counts"

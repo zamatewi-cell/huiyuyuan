@@ -1,0 +1,36 @@
+Analyzing app_strings.dart...
+
+  error - app_strings.dart:695:5 - Expressions can't be used in a map literal. Try removing the expression or converting it to be a map entry. - expression_in_map
+  error - app_strings.dart:695:13 - Expected to find ','. - expected_token
+  error - app_strings.dart:695:13 - Illegal character '29366'. - illegal_character
+  error - app_strings.dart:695:13 - The keys in a const map literal must be constant. Try removing the keyword 'const' from the map literal. - non_constant_map_key
+  error - app_strings.dart:695:13 - Undefined name '状态'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - app_strings.dart:695:14 - Illegal character '24577'. - illegal_character
+  error - app_strings.dart:695:17 - Expected an identifier. - missing_identifier
+  error - app_strings.dart:695:17 - The values in a const map literal must be constant. Try removing the keyword 'const' from the map literal. - non_constant_map_value
+  error - app_strings.dart:1637:5 - Expressions can't be used in a map literal. Try removing the expression or converting it to be a map entry. - expression_in_map
+  error - app_strings.dart:1637:13 - Expected to find ','. - expected_token
+  error - app_strings.dart:1637:13 - The keys in a const map literal must be constant. Try removing the keyword 'const' from the map literal. - non_constant_map_key
+  error - app_strings.dart:1637:13 - Undefined name 'Status'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - app_strings.dart:1637:21 - Expected an identifier. - missing_identifier
+  error - app_strings.dart:1637:21 - The values in a const map literal must be constant. Try removing the keyword 'const' from the map literal. - non_constant_map_value
+  error - app_strings.dart:2579:5 - Expressions can't be used in a map literal. Try removing the expression or converting it to be a map entry. - expression_in_map
+  error - app_strings.dart:2579:13 - Expected to find ','. - expected_token
+  error - app_strings.dart:2579:13 - Illegal character '29376'. - illegal_character
+  error - app_strings.dart:2579:13 - The keys in a const map literal must be constant. Try removing the keyword 'const' from the map literal. - non_constant_map_key
+  error - app_strings.dart:2579:13 - Undefined name '狀態'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - app_strings.dart:2579:14 - Illegal character '24907'. - illegal_character
+  error - app_strings.dart:2579:17 - Expected an identifier. - missing_identifier
+  error - app_strings.dart:2579:17 - The values in a const map literal must be constant. Try removing the keyword 'const' from the map literal. - non_constant_map_value
+  error - app_strings.dart:2857:2 - Expected a method, getter, setter or operator declaration. This appears to be incomplete code. Try removing it or completing it. - expected_executable
+  error - app_strings.dart:2857:3 - Expected to find ';'. - expected_token
+  error - app_strings.dart:2857:3 - Variables must be declared using the keywords 'const', 'final', 'var' or a type name. Try adding the name of the type of the variable or the keyword 'var'. - missing_const_final_var_or_type
+  error - app_strings.dart:2858:1 - Expected a method, getter, setter or operator declaration. This appears to be incomplete code. Try removing it or completing it. - expected_executable
+  error - app_strings.dart:2858:2 - Expected to find ';'. - expected_token
+  error - app_strings.dart:2858:2 - The name '$' is already defined. Try renaming one of the declarations. - duplicate_definition
+           - The first definition of this name at app_strings.dart:2857:3.
+  error - app_strings.dart:2858:2 - Variables must be declared using the keywords 'const', 'final', 'var' or a type name. Try adding the name of the type of the variable or the keyword 'var'. - missing_const_final_var_or_type
+   info - app_strings.dart:2857:3 - An uninitialized variable should have an explicit type annotation. Try adding a type annotation. - prefer_typing_uninitialized_variables
+   info - app_strings.dart:2858:2 - An uninitialized variable should have an explicit type annotation. Try adding a type annotation. - prefer_typing_uninitialized_variables
+
+31 issues found.

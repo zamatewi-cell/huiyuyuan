@@ -1,4 +1,4 @@
-# Agent A ¡ª Backend Architect Roadmap
+# Agent A â€” Backend Architect Roadmap
 
 > Prioritized development plan for the HuiYuYuan backend.
 
@@ -7,10 +7,10 @@
 ## Completed ?
 
 ### A1: Backend Modularization ?
-- [x] Extract `config.py` ¡ª Pydantic Settings from environment
-- [x] Create `database.py` ¡ª SQLAlchemy engine + session + Redis
-- [x] Create `security.py` ¡ª JWT + bcrypt + require_user
-- [x] Create `store.py` ¡ª In-memory storage + init_store()
+- [x] Extract `config.py` â€” Pydantic Settings from environment
+- [x] Create `database.py` â€” SQLAlchemy engine + session + Redis
+- [x] Create `security.py` â€” JWT + bcrypt + require_user
+- [x] Create `store.py` â€” In-memory storage + init_store()
 - [x] Extract 13 routers (auth, products, orders, cart, users, admin, favorites, reviews, shops, notifications, upload, ai, ws)
 - [x] Create 8 Pydantic schema modules
 - [x] Create 2 service modules (SMS, AI)
@@ -32,17 +32,17 @@
 
 ### A2: PostgreSQL Data Persistence ?
 - [x] Update `init_db.sql` with v4.0 schema migrations (7 ALTER TABLE + favorites table)
-- [x] products.py ¡ª Full CRUD with parameterized queries, ILIKE search, sort, pagination
-- [x] cart.py ¡ª UPSERT via ON CONFLICT, JOIN for reads
-- [x] users.py ¡ª Profile + address CRUD with is_default cascade
-- [x] orders.py ¡ª Multi-table transactions (orders + order_items + stock + cart cleanup)
-- [x] admin.py ¡ª Aggregate dashboard + activities + ship order
-- [x] favorites.py ¡ª Junction table with ON CONFLICT DO NOTHING
-- [x] reviews.py ¡ª JOIN with users, AVG rating computation
+- [x] products.py â€” Full CRUD with parameterized queries, ILIKE search, sort, pagination
+- [x] cart.py â€” UPSERT via ON CONFLICT, JOIN for reads
+- [x] users.py â€” Profile + address CRUD with is_default cascade
+- [x] orders.py â€” Multi-table transactions (orders + order_items + stock + cart cleanup)
+- [x] admin.py â€” Aggregate dashboard + activities + ship order
+- [x] favorites.py â€” Junction table with ON CONFLICT DO NOTHING
+- [x] reviews.py â€” JOIN with users, AVG rating computation
 - [x] All 8 data routers verified DB-aware
 
 ### A2+: Extended DB Persistence ?
-- [x] Auth router DB enhancement ¡ª admin/operator/customer login now queries DB first
+- [x] Auth router DB enhancement â€” admin/operator/customer login now queries DB first
 - [x] `_db_find_user()` generic helper for flexible user lookup
 - [x] Customer SMS login creates user in DB on first visit
 - [x] Shops table created (`shops` with 17 columns, 3 indexes)
@@ -55,7 +55,7 @@
 
 ---
 
-## P0 ¡ª Next Up (Estimated: 1-2 days)
+## P0 â€” Next Up (Estimated: 1-2 days)
 
 ### ? Backend Test Coverage
 - **Status**: 6 test files (~801 lines), basic coverage
@@ -67,18 +67,18 @@
   - [ ] Test new auth DB login paths (admin, operator, customer SMS)
   - [ ] Test notifications endpoints (register, list, mark-read)
   - [ ] Test shops DB endpoints (list with filters, detail)
-  - [ ] Target: ¡Ý80% line coverage for all routers
+  - [ ] Target: â‰¥80% line coverage for all routers
 
 ---
 
-## P1 ¡ª Important (Estimated: 3-5 days)
+## P1 â€” Important (Estimated: 3-5 days)
 
 ### ? SQLAlchemy ORM Models
 - **Current**: Raw SQL via `text()` with manual column mapping
 - **Target**: SQLAlchemy declarative models for type safety and migration support
 - **Files**: New `backend/models/` directory (user.py, product.py, order.py, cart.py, review.py, favorite.py, shop.py)
 - **Benefits**: Alembic migrations, relationship loading, type checking, less boilerplate
-- **Risk**: Medium ¡ª requires careful migration from raw SQL; must maintain backward compatibility with existing `_row_to_model()` pattern during transition
+- **Risk**: Medium â€” requires careful migration from raw SQL; must maintain backward compatibility with existing `_row_to_model()` pattern during transition
 - **Dependency**: Coordinate with Agent D for Alembic setup
 
 ### ? Alembic Database Migrations
@@ -111,7 +111,7 @@
 
 ---
 
-## P2 ¡ª Improvements (Estimated: 1-2 weeks)
+## P2 â€” Improvements (Estimated: 1-2 weeks)
 
 ### ? Query Optimization
 - Products listing: Add composite index on `(category, is_active, created_at)`
@@ -146,7 +146,7 @@
 
 ---
 
-## P3 ¡ª Long-term Vision
+## P3 â€” Long-term Vision
 
 ### ? Async Migration
 - Migrate from sync SQLAlchemy to async (`asyncpg` + `sqlalchemy.ext.asyncio`)
@@ -171,11 +171,11 @@
 
 ```
 v3.x (Before)                    v4.0 (Current)                  v4.x (Next)
-©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤                    ©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤                  ©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤
-main.py (2246 lines)     ¡ú       13 routers + 8 schemas    ¡ú     ORM models + Alembic
-Memory-only storage      ¡ú       DB-first (10/13 routers)  ¡ú     DB-only + Redis cache
-Hardcoded credentials    ¡ú       JWT + bcrypt + DB auth    ¡ú     OAuth2 + refresh tokens
-No WebSocket             ¡ú       WS + notification persist ¡ú     Full real-time (chat, live)
-No tests                 ¡ú       6 test files              ¡ú     ¡Ý80% coverage + E2E
-Manual deploy            ¡ú       deploy.ps1 + CI/CD        ¡ú     Blue-green deployment
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€                    â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€                  â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+main.py (2246 lines)     â†’       13 routers + 8 schemas    â†’     ORM models + Alembic
+Memory-only storage      â†’       DB-first (10/13 routers)  â†’     DB-only + Redis cache
+Hardcoded credentials    â†’       JWT + bcrypt + DB auth    â†’     OAuth2 + refresh tokens
+No WebSocket             â†’       WS + notification persist â†’     Full real-time (chat, live)
+No tests                 â†’       6 test files              â†’     â‰¥80% coverage + E2E
+Manual deploy            â†’       deploy.ps1 + CI/CD        â†’     Blue-green deployment
 ```

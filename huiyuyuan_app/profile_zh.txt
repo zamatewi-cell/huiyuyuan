@@ -1,0 +1,31 @@
+1:/// 汇玉源 - 个人中心
+3:/// 功能:
+4:/// - 用户信息展示
+5:/// - 订单管理入口
+6:/// - 收藏管理入口
+7:/// - 收款账户管理
+8:/// - 提醒设置
+9:/// - 系统设置
+10:/// - 退出登录
+29:/// 个人中心页面
+46:              // 用户信息卡片
+47:              _buildUserCard(context, ref, user?.username ?? '用户', isAdmin),
+49:              // 资产卡片
+52:              // 订单入口
+55:              // 快捷菜单
+169:                    // 退出登录按钮
+174:                    // 合规信息
+343:            Text('编辑资料',
+353:                labelText: '昵称',
+367:                      content: Text('✅ 资料已更新'),
+395:        ? '¥${(totalAmount / 10000).toStringAsFixed(1)}万'
+415:          _buildAssetItem('订单总数', '$total', Icons.shopping_bag),
+417:          _buildAssetItem('累计业绩', amountStr, Icons.trending_up),
+506:                      '全部订单',
+757:  // ============ 设置功能对话框 ============
+1007:                  content: Text('✅ 已清除 ${cacheSize.toStringAsFixed(1)} MB 缓存'),
+1103:                        _buildAboutStat(ref.tr('about_cert'), '100万+'),
+1104:                        _buildAboutStat(ref.tr('about_users'), '50万+'),
+1158:  // ============ 辅助方法 ============
+1183:/// 提醒设置弹窗（持久化版）
+1272:                      content: Text('✅ 提醒设置已保存'),

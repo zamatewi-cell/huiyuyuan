@@ -1,4 +1,4 @@
-# 汇玉源 - UI/UX 极致化优化方案
+﻿# 汇玉源 - UI/UX 极致化优化方案
 
 📅 **方案日期**: 2026-02-03  
 🎯 **目标**: 将 UI/UX 从 75分 提升至 95分  
@@ -723,7 +723,7 @@ dependencies:
 
 ### 步骤1: 安装依赖
 ```bash
-cd /d/huiyuanyuan_project/huiyuanyuan_app
+cd /d/huiyuyuan_project/huiyuyuan_app
 flutter pub add google_fonts flutter_staggered_animations page_transition flutter_spinkit
 ```
 

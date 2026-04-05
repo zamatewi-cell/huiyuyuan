@@ -1,4 +1,4 @@
-# 汇玉源 v3.0 功能实施计划
+﻿# 汇玉源 v3.0 功能实施计划
 
 ## 📋 概述
 
@@ -120,7 +120,7 @@
 class Secrets {
   static const String ossAccessKeyId = 'YOUR_OSS_ACCESS_KEY';
   static const String ossAccessKeySecret = 'YOUR_OSS_SECRET';
-  static const String ossBucket = 'huiyuanyuan-images';
+  static const String ossBucket = 'huiyuyuan-images';
   static const String ossEndpoint = 'oss-cn-hangzhou.aliyuncs.com';
   
   static const String geminiApiKey = 'YOUR_GEMINI_API_KEY';

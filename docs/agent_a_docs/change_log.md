@@ -1,17 +1,17 @@
-# Agent A ¡ª Backend Architect Change Log
+# Agent A â€” Backend Architect Change Log
 
 > Chronological record of all backend modifications, newest first.
 
 ---
 
-## [2026-02-27] Session 3 ¡ª Auth Enhancement + Shops & Notifications DB Migration
+## [2026-02-27] Session 3 â€” Auth Enhancement + Shops & Notifications DB Migration
 
 ### Overview
 Extended DB persistence to the remaining 2 data routers (shops, notifications) and enhanced auth login to query the database. Also added notification persistence for the WebSocket push system. DB-aware routers now at **10/13** (3 stateless by design).
 
 ### Schema Updates
 
-#### `init_db.sql` ¡ª v4.1 Tables Added
+#### `init_db.sql` â€” v4.1 Tables Added
 - **CREATE TABLE shops** (17 columns): Full shop data with `platform`, `category`, `contact_status` CHECK constraint, `conversion_rate`, `followers`, `monthly_sales`, `negative_rate`, `is_influencer`, `operator_id` FK, `ai_priority`, `is_active`. Indexes on `platform`, `category`, `operator_id`.
 - **CREATE TABLE devices** (8 columns): Push notification device registration. `device_token` UNIQUE, `user_id` FK, `platform`, `settings` JSONB, `is_active`. Indexes on `user_id`, `device_token`.
 - **CREATE TABLE notifications** (8 columns): Notification history. Auto-ID via UUID, `user_id` FK, `title`, `body`, `type`, `ref_id`, `is_read`, `created_at`. Indexes on `user_id`, `created_at DESC`.
@@ -19,15 +19,15 @@ Extended DB persistence to the remaining 2 data routers (shops, notifications) a
 ### Router Changes
 
 #### `routers/auth.py` (399 lines, enhanced)
-- **NEW**: `_db_find_user(db, phone, username, operator_num, user_type)` ¡ª Generic DB user lookup helper with flexible filter params
-- **NEW**: `_login_success(user_id, user_data)` ¡ª DRY helper for token generation + response assembly
+- **NEW**: `_db_find_user(db, phone, username, operator_num, user_type)` â€” Generic DB user lookup helper with flexible filter params
+- **NEW**: `_login_success(user_id, user_data)` â€” DRY helper for token generation + response assembly
 - **CHANGED**: Admin login now attempts DB lookup first (`SELECT FROM users WHERE phone = :phone AND user_type = 'admin'`), falls back to memory `USERS_DB`
 - **CHANGED**: Operator login now tries DB by `operator_num` or `username` first, falls back to memory
 - **CHANGED**: Customer SMS login now creates new users in DB via `INSERT INTO users`, falls back to memory
 - **CHANGED**: All login paths now share `_login_success()` for consistent response format
 
 #### `routers/shops.py` (127 lines, rewritten)
-- **NEW**: `_row_to_shop(m)` helper for DB row ¡ú Shop schema
+- **NEW**: `_row_to_shop(m)` helper for DB row â†’ Shop schema
 - **GET /**: Dynamic WHERE clause with filters (platform, category, contact_status, is_influencer, operator_id), `ORDER BY ai_priority DESC`, pagination
 - **GET /{id}**: DB lookup with `is_active = true` filter
 - Both endpoints fall back to in-memory `SHOPS_DB` if DB unavailable
@@ -35,11 +35,11 @@ Extended DB persistence to the remaining 2 data routers (shops, notifications) a
 #### `routers/notifications.py` (176 lines, rewritten)
 - **POST /register**: `INSERT INTO devices ... ON CONFLICT (device_token) DO UPDATE` (upsert) + memory write-through
 - **GET /**: DB query with pagination, `ORDER BY created_at DESC`, aggregate count for total/unread stats; demo data fallback when DB unavailable
-- **NEW**: `POST /{id}/read` ¡ª Mark single notification as read
-- **NEW**: `POST /read-all` ¡ª Mark all notifications as read for a user
+- **NEW**: `POST /{id}/read` â€” Mark single notification as read
+- **NEW**: `POST /read-all` â€” Mark all notifications as read for a user
 
 #### `routers/ws.py` (139 lines, enhanced)
-- **NEW**: `persist_notification(user_id, title, body, ntype, ref_id)` ¡ª Best-effort DB persistence for every WS push notification, uses own Session (non-blocking)
+- **NEW**: `persist_notification(user_id, title, body, ntype, ref_id)` â€” Best-effort DB persistence for every WS push notification, uses own Session (non-blocking)
 
 #### `routers/orders.py` (710 lines, enhanced)
 - **CHANGED**: `_ws_notify()` now calls `persist_notification()` to store every order event push as a notification record in DB
@@ -52,14 +52,14 @@ Extended DB persistence to the remaining 2 data routers (shops, notifications) a
 
 ---
 
-## [2026-02-27] Session 2 ¡ª PostgreSQL Data Persistence (A2)
+## [2026-02-27] Session 2 â€” PostgreSQL Data Persistence (A2)
 
 ### Overview
 Completed the DB persistence layer for all 8 data routers. Every data-access endpoint now follows the **DB-first with in-memory fallback** pattern.
 
 ### Schema Updates
 
-#### `init_db.sql` ¡ª v4.0 Migrations Added
+#### `init_db.sql` â€” v4.0 Migrations Added
 - **ALTER TABLE orders**: Added 7 columns required by the Order Pydantic model:
   - `cancel_reason TEXT`
   - `logistics_company VARCHAR(64)`
@@ -73,7 +73,7 @@ Completed the DB persistence layer for all 8 data routers. Every data-access end
 
 ### Router Rewrites (7 files, ~2,100 lines)
 
-All rewrites follow the same architecture: `Depends(get_db)` ¡ú SQL via `text()` ¡ú `_row_to_model()` helper ¡ú memory fallback.
+All rewrites follow the same architecture: `Depends(get_db)` â†’ SQL via `text()` â†’ `_row_to_model()` helper â†’ memory fallback.
 
 #### `routers/products.py` (298 lines)
 - **GET /**: Dynamic WHERE clause, parameterized ILIKE search, configurable sort, LIMIT/OFFSET pagination from DB
@@ -81,7 +81,7 @@ All rewrites follow the same architecture: `Depends(get_db)` ¡ú SQL via `text()`
 - **POST /**: DB `INSERT` with `::jsonb` cast for images array + memory write-through
 - **PUT /{id}**: DB `UPDATE` with dynamic SET clause + memory update
 - **DELETE /{id}**: Soft delete via `UPDATE SET is_active = false` + memory removal
-- **Helper**: `_row_to_product(m)` ¡ª handles JSONB images parsing, all column-to-field mapping
+- **Helper**: `_row_to_product(m)` â€” handles JSONB images parsing, all column-to-field mapping
 
 #### `routers/cart.py` (218 lines)
 - **GET /**: `JOIN products` for full product data in cart response
@@ -91,14 +91,14 @@ All rewrites follow the same architecture: `Depends(get_db)` ¡ú SQL via `text()`
 - **DELETE /**: DB `DELETE` all cart items for user
 
 #### `routers/users.py` (277 lines)
-- **GET /profile**: DB `SELECT` from users, maps `avatar_url` ¡ú `avatar`, `operator_num` ¡ú `operator_number`
+- **GET /profile**: DB `SELECT` from users, maps `avatar_url` â†’ `avatar`, `operator_num` â†’ `operator_number`
 - **PUT /profile**: Dynamic SET clause for allowed fields (username, avatar)
 - **Address CRUD**: Full DB persistence with `is_default` cascade (UPDATE all to false before setting new default)
-- **Helper**: `_row_to_address(m)` for DB row ¡ú Address schema conversion
+- **Helper**: `_row_to_address(m)` for DB row â†’ Address schema conversion
 
-#### `routers/orders.py` (701 lines) ¡ª Most Complex
+#### `routers/orders.py` (701 lines) â€” Most Complex
 - **Helpers**: `_row_to_order(m, items)`, `_ts(val)`, `_fetch_order_items(db, oid)`, `_fetch_order_with_items(db, oid)`, `_ws_notify(uid, payload)`
-- **Column mapping**: DB `tracking_no` ¡ú Pydantic `tracking_number`, DB `address_snap` ¡ú Pydantic `address`
+- **Column mapping**: DB `tracking_no` â†’ Pydantic `tracking_number`, DB `address_snap` â†’ Pydantic `address`
 - **GET /**: Fetches orders + batch-fetches order_items per order
 - **GET /stats**: Single aggregate query with `FILTER (WHERE status = ...)` for all status counts
 - **POST /** (create order): Multi-table transaction:
@@ -130,18 +130,18 @@ All rewrites follow the same architecture: `Depends(get_db)` ¡ú SQL via `text()`
 - **Helper**: `_row_to_review(m)` with anonymous user handling
 
 ### Encoding Fix
-- All 7 newly created router files required GBK ¡ú UTF-8 conversion due to Windows `create_file` encoding behavior
+- All 7 newly created router files required GBK â†’ UTF-8 conversion due to Windows `create_file` encoding behavior
 - Applied batch conversion script; verified all 14 router `.py` files as valid UTF-8
 
 ### Verification Results
-- ? `from main import app` ¡ª 55 routes registered successfully
+- ? `from main import app` â€” 55 routes registered successfully
 - ? All 8 data routers confirmed DB-aware (auth, products, cart, users, orders, admin, favorites, reviews)
 - ? All 5 stateless routers confirmed memory-only by design (shops, notifications, upload, ai, ws)
 - ? All 14 router files valid UTF-8 encoding
 
 ---
 
-## [2026-02-27] Session 1 ¡ª Modularization + Security + WebSocket (A1, A3, A4)
+## [2026-02-27] Session 1 â€” Modularization + Security + WebSocket (A1, A3, A4)
 
 ### A1: Backend Modularization
 
@@ -182,10 +182,10 @@ All rewrites follow the same architecture: `Depends(get_db)` ¡ú SQL via `text()`
 - **`routers/ws.py`** (113 lines): `ConnectionManager` class with per-user connection tracking
 - **Endpoint**: `WS /ws/notifications` with authentication via `?token=` query parameter
 - **Integration**: `_ws_notify()` helper in orders.py and admin.py for real-time push:
-  - `order_created` ¡ª when buyer creates an order
-  - `payment_success` ¡ª when payment confirmed
-  - `order_shipped` ¡ª when admin ships an order
-  - `order_cancelled` / `order_refund` ¡ª status change notifications
+  - `order_created` â€” when buyer creates an order
+  - `payment_success` â€” when payment confirmed
+  - `order_shipped` â€” when admin ships an order
+  - `order_cancelled` / `order_refund` â€” status change notifications
 
 ### Deployment Updates
 

@@ -1,4 +1,4 @@
-# 汇玉源珠宝智能交易平台 - 实施计划
+﻿# 汇玉源珠宝智能交易平台 - 实施计划
 
 > 📍 **唯一活跃规划文档** | 最后更新: 2026-02-23（全面修订版，含上架路线图）
 
@@ -247,11 +247,11 @@ sudo apt install -y python3.11 python3.11-venv python3-pip nginx redis-server
 
 # 2. 数据库（PostgreSQL 16）
 sudo apt install -y postgresql-16
-sudo -u postgres createdb huiyuanyuan
-sudo -u postgres createuser huiyuanyuan_user
+sudo -u postgres createdb huiyuyuan
+sudo -u postgres createuser huiyuyuan_user
 
 # 3. 应用部署
-cd /srv/huiyuanyuan
+cd /srv/huiyuyuan
 python3.11 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
@@ -261,10 +261,10 @@ gunicorn main:app -w 4 -k uvicorn.workers.UvicornWorker \
   --bind 0.0.0.0:8000 --daemon
 
 # 5. Nginx 反向代理（含 SSL）
-# /etc/nginx/sites-available/huiyuanyuan
+# /etc/nginx/sites-available/huiyuyuan
 server {
     listen 443 ssl http2;
-    server_name api.huiyuanyuan.com;
+    server_name api.huiyuyuan.com;
     ssl_certificate /etc/letsencrypt/.../fullchain.pem;
     ssl_certificate_key /etc/letsencrypt/.../privkey.pem;
     location / {
@@ -425,7 +425,7 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            cd /srv/huiyuanyuan
+            cd /srv/huiyuyuan
             git pull origin main
             source venv/bin/activate
             pip install -r requirements.txt --quiet
@@ -611,7 +611,7 @@ def create_wechat_order(order_id, amount, openid=None):
         "description": "汇玉源珠宝订单",
         "out_trade_no": order_id,
         "amount": {"total": int(amount * 100), "currency": "CNY"},
-        "notify_url": "https://api.huiyuanyuan.com/api/pay/wechat/callback",
+        "notify_url": "https://api.huiyuyuan.com/api/pay/wechat/callback",
     }
     # 使用商户私钥签名（RSA-256）
     return wechatpay.pay(params)
@@ -741,15 +741,15 @@ def wechat_callback(request):
 #### Android（Flutter）
 ```bash
 # 1. 生成正式签名密钥（仅一次，密钥文件务必备份！）
-keytool -genkey -v -keystore huiyuanyuan.jks \
-  -alias huiyuanyuan -keyalg RSA -keysize 2048 -validity 36500
+keytool -genkey -v -keystore huiyuyuan.jks \
+  -alias huiyuyuan -keyalg RSA -keysize 2048 -validity 36500
 
 # 2. 配置 android/app/build.gradle.kts
 signingConfigs {
     create("release") {
-        storeFile = file("huiyuanyuan.jks")
+        storeFile = file("huiyuyuan.jks")
         storePassword = System.getenv("KEYSTORE_PASSWORD")
-        keyAlias = "huiyuanyuan"
+        keyAlias = "huiyuyuan"
         keyPassword = System.getenv("KEY_PASSWORD")
     }
 }
@@ -766,7 +766,7 @@ flutter build appbundle --release \
 
 #### iOS
 ```bash
-# 1. Xcode 配置 Bundle ID：com.huiyuanyuan.app
+# 1. Xcode 配置 Bundle ID：com.huiyuyuan.app
 # 2. 配置推送证书（APNs）
 # 3. 构建
 flutter build ipa --release \

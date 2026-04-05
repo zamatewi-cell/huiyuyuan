@@ -1,4 +1,4 @@
-# 汇玉源 - 域名注册与 SSL 证书配置指南
+﻿# 汇玉源 - 域名注册与 SSL 证书配置指南
 
 > 文档版本：v1.1  
 > 最后更新：2026-03-25  
@@ -127,10 +127,10 @@ certbot --nginx -d xn--lsws2cdzg.top -d www.xn--lsws2cdzg.top
 
 ```bash
 # 备份原配置
-cp /etc/nginx/conf.d/huiyuanyuan.conf /etc/nginx/conf.d/huiyuanyuan.conf.backup
+cp /etc/nginx/conf.d/huiyuyuan.conf /etc/nginx/conf.d/huiyuyuan.conf.backup
 
 # 编辑配置
-vi /etc/nginx/conf.d/huiyuanyuan.conf
+vi /etc/nginx/conf.d/huiyuyuan.conf
 ```
 
 完整配置内容：
@@ -182,7 +182,7 @@ server {
     gzip_types text/plain text/css application/javascript application/json text/javascript;
 
     # 前端文件根目录
-    root /var/www/huiyuanyuan;
+    root /var/www/huiyuyuan;
     index index.html;
 
     # Flutter 关键文件不缓存
@@ -217,7 +217,7 @@ server {
 
     # 上传文件
     location /uploads/ {
-        alias /srv/huiyuanyuan/backend/uploads/;
+        alias /srv/huiyuyuan/backend/uploads/;
         expires 30d;
     }
 
@@ -546,10 +546,10 @@ Congratulations, all renewals succeeded:
 以下仓库文件应当与域名/证书状态保持一致：
 
 ```text
-huiyuanyuan_app/lib/config/api_config.dart
-huiyuanyuan_app/backend/nginx_current.conf
-huiyuanyuan_app/backend/nginx_production.conf
-huiyuanyuan_app/backend/.env.example
+huiyuyuan_app/lib/config/api_config.dart
+huiyuyuan_app/backend/nginx_current.conf
+huiyuyuan_app/backend/nginx_production.conf
+huiyuyuan_app/backend/.env.example
 scripts/deploy.ps1
 ```
 
@@ -559,22 +559,22 @@ scripts/deploy.ps1
 生产域名: https://xn--lsws2cdzg.top
 CORS: https://汇玉源.top, https://www.汇玉源.top,
       https://xn--lsws2cdzg.top, https://www.xn--lsws2cdzg.top
-Nginx 配置路径: /etc/nginx/conf.d/huiyuanyuan.conf
-后端服务: huiyuanyuan-backend
-后端代码目录: /srv/huiyuanyuan/backend
+Nginx 配置路径: /etc/nginx/conf.d/huiyuyuan.conf
+后端服务: huiyuyuan-backend
+后端代码目录: /srv/huiyuyuan/backend
 ```
 
-服务器 `.env` 仍建议放在 `/srv/huiyuanyuan/.env`，因为后端当前会同时加载：
+服务器 `.env` 仍建议放在 `/srv/huiyuyuan/.env`，因为后端当前会同时加载：
 
-- `/srv/huiyuanyuan/.env`
-- `/srv/huiyuanyuan/backend/.env`
+- `/srv/huiyuyuan/.env`
+- `/srv/huiyuyuan/backend/.env`
 
 ### 5.2 重新部署项目
 
 在 Windows PowerShell 执行：
 
 ```powershell
-cd d:\huiyuanyuan_project
+cd d:\huiyuyuan_project
 
 # 推荐顺序：先后端和数据库迁移，再 Nginx，再前端
 .\scripts\deploy.ps1 -Target backend
@@ -588,8 +588,8 @@ cd d:\huiyuanyuan_project
 说明：
 
 - `backend` 目标会自动执行 `alembic upgrade head`
-- `nginx` 目标会把 `nginx_current.conf` 下发到 `/etc/nginx/conf.d/huiyuanyuan.conf`
-- `web` 目标会上传 Flutter Web 构建产物到 `/var/www/huiyuanyuan/`
+- `nginx` 目标会把 `nginx_current.conf` 下发到 `/etc/nginx/conf.d/huiyuyuan.conf`
+- `web` 目标会上传 Flutter Web 构建产物到 `/var/www/huiyuyuan/`
 
 ### 5.3 验证清单
 
@@ -597,7 +597,7 @@ cd d:\huiyuanyuan_project
 - [ ] 浏览器访问 `https://www.汇玉源.top` 显示正常
 - [ ] HTTP 自动跳转到 HTTPS
 - [ ] API 接口正常工作
-- [ ] `huiyuanyuan-backend` 服务状态正常
+- [ ] `huiyuyuan-backend` 服务状态正常
 - [ ] `curl http://127.0.0.1:8000/api/health` 返回正常
 - [ ] `curl -I https://xn--lsws2cdzg.top/api/health` 返回正常
 - [ ] 浏览器地址栏显示安全锁图标
@@ -613,12 +613,12 @@ certbot certificates
 # 证书到期前 30 天检查自动续期是否成功
 
 # 检查后端服务
-systemctl status huiyuanyuan-backend
-journalctl -u huiyuanyuan-backend -n 50 --no-pager
+systemctl status huiyuyuan-backend
+journalctl -u huiyuyuan-backend -n 50 --no-pager
 
 # 定期检查 Nginx 日志
-tail -f /var/log/nginx/huiyuanyuan_access.log
-tail -f /var/log/nginx/huiyuanyuan_error.log
+tail -f /var/log/nginx/huiyuyuan_access.log
+tail -f /var/log/nginx/huiyuyuan_error.log
 ```
 
 ---
@@ -629,12 +629,12 @@ tail -f /var/log/nginx/huiyuanyuan_error.log
 
 | 文件 | 路径 |
 |------|------|
-| Nginx 配置 | `/etc/nginx/conf.d/huiyuanyuan.conf` |
+| Nginx 配置 | `/etc/nginx/conf.d/huiyuyuan.conf` |
 | SSL 证书 | `/etc/letsencrypt/live/xn--lsws2cdzg.top/fullchain.pem` |
 | SSL 私钥 | `/etc/letsencrypt/live/xn--lsws2cdzg.top/privkey.pem` |
-| 后端环境配置 | `/srv/huiyuanyuan/.env` |
-| 前端文件目录 | `/var/www/huiyuanyuan/` |
-| 后端应用目录 | `/srv/huiyuanyuan/backend/` |
+| 后端环境配置 | `/srv/huiyuyuan/.env` |
+| 前端文件目录 | `/var/www/huiyuyuan/` |
+| 后端应用目录 | `/srv/huiyuyuan/backend/` |
 | 续期配置 | `/etc/letsencrypt/renewal/xn--lsws2cdzg.top.conf` |
 | Cron 任务 | `/var/spool/cron/root` |
 

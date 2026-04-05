@@ -1,4 +1,4 @@
-# 汇玉源 - AI 服务架构指南
+﻿# 汇玉源 - AI 服务架构指南
 
 > 最后更新: 2026-03-17
 > ⚠️ 2026-03-25 更正：旧 OpenRouter 文案已过时，当前主链路为 DashScope / 千问（Qwen）
@@ -23,7 +23,7 @@
 
 ### Flutter 客户端
 
-文件：`huiyuanyuan_app/lib/config/secrets.dart`
+文件：`huiyuyuan_app/lib/config/secrets.dart`
 
 ```dart
 class Secrets {
@@ -38,7 +38,7 @@ class Secrets {
 
 ### FastAPI 后端
 
-文件：`huiyuanyuan_app/backend/.env`
+文件：`huiyuyuan_app/backend/.env`
 
 ```env
 DASHSCOPE_API_KEY=sk-xxxxxxxx
@@ -61,7 +61,7 @@ flutter build apk --release \
 
 ### 1. 文本对话
 
-入口：`huiyuanyuan_app/lib/services/ai_service.dart`
+入口：`huiyuyuan_app/lib/services/ai_service.dart`
 
 - 通过 `AIDashScopeService` 调用 DashScope `chat/completions`
 - 支持普通对话（`createChatCompletion`）和 SSE 流式输出（`createChatCompletionStream`）
@@ -70,7 +70,7 @@ flutter build apk --release \
 
 ### 2. 图片识别
 
-入口：`huiyuanyuan_app/backend/services/ai_service.py`
+入口：`huiyuyuan_app/backend/services/ai_service.py`
 
 - 通过 `/api/ai/analyze-image` 上传图片
 - 后端将图片转成 `data:` URL 后发送到 DashScope（模型：`qwen-vl-plus-latest`）
@@ -78,7 +78,7 @@ flutter build apk --release \
 
 ### 3. Flutter 图片分析组件
 
-入口：`huiyuanyuan_app/lib/services/gemini_image_service.dart`
+入口：`huiyuyuan_app/lib/services/gemini_image_service.dart`
 
 - 保留旧类名以兼容现有页面
 - 实际实现已改为复用后端 `/api/ai/analyze-image`
@@ -101,8 +101,8 @@ flutter build apk --release \
 
 按顺序检查：
 
-1. `huiyuanyuan_app/backend/.env` 是否存在 `DASHSCOPE_API_KEY`
-2. 服务是否已重启（`systemctl restart huiyuanyuan-backend`）
+1. `huiyuyuan_app/backend/.env` 是否存在 `DASHSCOPE_API_KEY`
+2. 服务是否已重启（`systemctl restart huiyuyuan-backend`）
 3. 使用 `curl -X POST http://localhost:8000/api/ai/analyze-image -F 'file=@test.jpg'` 自测
 4. 图片体积是否超过 10MB
 

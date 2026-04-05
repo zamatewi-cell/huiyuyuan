@@ -1,6 +1,6 @@
-# Agent B Change Log
+﻿# Agent B Change Log
 
-> Reverse-chronological record of all frontend changes in huiyuanyuan_app/lib/.
+> Reverse-chronological record of all frontend changes in huiyuyuan_app/lib/.
 > Last updated: 2026-03-25
 
 ---

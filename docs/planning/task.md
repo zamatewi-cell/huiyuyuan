@@ -1,4 +1,4 @@
-# 汇玉源珠宝智能交易平台 - 任务清单
+﻿# 汇玉源珠宝智能交易平台 - 任务清单
 
 > 📍 **唯一活跃任务文档** | 最后更新: 2026-02-25
 
@@ -49,7 +49,7 @@
 - [x] **DeepSeek → Gemini 三级降级策略** (DeepSeek 优先 → Gemini 备用 → 本地离线) — 2026-02-22
 - [x] Gemini SSE 流式输出支持 (streamGenerateContent) — 2026-02-22
 - [x] **AI 图片识别代理方案** — Gemini 国内不可达，切换至阿里云 DashScope（通义千问 qwen-vl-max），后端代理 `/api/ai/analyze-image` — 2026-02-23
-- [x] **DashScope API Key 服务器配置** — `DASHSCOPE_API_KEY` 在 `/srv/huiyuanyuan/.env` 中配置并验证图片识别通过 — 2026-02-23
+- [x] **DashScope API Key 服务器配置** — `DASHSCOPE_API_KEY` 在 `/srv/huiyuyuan/.env` 中配置并验证图片识别通过 — 2026-02-23
 
 ### 🎭 主题与国际化
 - [x] 深色/浅色模式完整适配 (所有页面)
@@ -87,7 +87,7 @@
 - [x] 库存管理模块 (库存总览/出入库记录/库存统计三Tab、归入管理员仪表盘)
 - [x] **一键部署脚本** `scripts/deploy.ps1`（分析→构建→后端→前端→健康检查，支持 -Target / -SkipAnalyze / -DryRun）— 2026-02-25
 - [x] **VSCode 任务集成** `.vscode/tasks.json`（8 个任务：全量/快速/前端/后端部署 + 构建/分析/测试/健康检查）— 2026-02-25
-- [x] **CI/CD 增强** — 新增 Web 前端自动部署 Job、统一后端部署路径 `/srv/huiyuanyuan` — 2026-02-25
+- [x] **CI/CD 增强** — 新增 Web 前端自动部署 Job、统一后端部署路径 `/srv/huiyuyuan` — 2026-02-25
 - [x] **项目清理** — 删除 17 个临时/过时文件、新增根 `.gitignore`、同步 nginx.conf 至生产配置 — 2026-02-25
 
 ---
@@ -108,7 +108,7 @@
 | 🚀 部署上线 | `flutter build web` 构建成功，scp 部署到 xn--lsws2cdzg.top（原 47.98.188.141），nginx reload，后端 health check 通过 |
 | 🤖 自动化部署系统 | 新增 `scripts/deploy.ps1` 一键部署脚本（支持 -Target all/web/backend、-SkipAnalyze、-SkipBuild、-DryRun），含 SSH 连通检查、静态分析、Web 构建、SCP 上传、服务重启、健康检查完整流水线 |
 | ⌨️ VSCode 任务集成 | `.vscode/tasks.json` 新增 8 个任务（全量部署/快速部署/前端部署/后端部署/仅构建/静态分析/测试/健康检查），Ctrl+Shift+B 触发默认部署 |
-| 🔄 CI/CD 增强 | `ci.yml` 新增 Job 3: Web 前端自动部署（flutter build web → SCP → nginx reload），后端路径统一为 `/srv/huiyuanyuan` |
+| 🔄 CI/CD 增强 | `ci.yml` 新增 Job 3: Web 前端自动部署（flutter build web → SCP → nginx reload），后端路径统一为 `/srv/huiyuyuan` |
 | 🧹 项目清理 | 删除 17 个临时/过时文件（analyze*.txt、tmp_*.txt、test_sms.py、docs/reference/1.md、2.md），新增根 `.gitignore`，nginx.conf 同步至生产配置 |
 | 📖 部署文档 | 新增 `docs/guides/deployment_guide.md`（架构概览、三种部署方式、服务器目录、故障排查），更新 copilot-instructions.md |
 
@@ -194,7 +194,7 @@
 - [x] 首次启动隐私协议弹窗（用户同意后才初始化 Analytics/Crashlytics）— `main.dart _AppRouter` + `_PrivacyConsentDialog`，SharedPreferences `privacy_accepted_v1`
 
 #### 发布准备
-- [ ] 生成 Android 签名密钥（`huiyuanyuan.jks`），安全备份到多处
+- [ ] 生成 Android 签名密钥（`huiyuyuan.jks`），安全备份到多处
 - [ ] 配置 `build.gradle.kts` Release 签名（从环境变量读取密码）
 - [ ] 购买 Apple Developer Program（¥688/年，如需 iOS 上架）
 - [ ] 构建首个 Release AAB / IPA 并内部测试通过
