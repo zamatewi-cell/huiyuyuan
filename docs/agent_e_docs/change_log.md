@@ -45,6 +45,6 @@
 ### Production Docs Sweep Follow-up
 
 - Rebuilt `docs/agent_d_docs/identity.md` and `docs/agent_d_docs/roadmap.md` as UTF-8 docs because the legacy files were not valid UTF-8 and could not be patched safely.
-- Aligned Agent D's production facts with the live server `47.112.98.191`, backend path `/srv/huiyuyuan/backend`, env path `/srv/huiyuyuan/.env`, Nginx conf `/etc/nginx/conf.d/huiyuyuan.conf`, and service `huiyuyuan-backend`.
+- Aligned Agent D's production facts with the live server `47.112.98.191`, backend path `/srv/huiyuyuan/backend`, env path `/srv/huiyuyuan/backend/.env`, Nginx conf `/etc/nginx/conf.d/huiyuyuan.conf`, and service `huiyuyuan-backend`.
 - Rewrote `docs/guides/deployment_guide.md` to remove the remaining root-level backend, `sites-enabled`, and legacy `huiyuyuan` service assumptions while preserving the current domain-based release flow.
 - Left `huiyuyuan_app/backend/scripts/ssl_setup.sh` untouched because that encoding task is now owned by an external collaborating agent.

@@ -335,7 +335,7 @@
 | SSH 用户 | `root` |
 | 主域名 | `xn--lsws2cdzg.top` |
 | 后端目录 | `/srv/huiyuyuan/backend/` |
-| 生产环境变量 | `/srv/huiyuyuan/.env` |
+| 生产环境变量 | `/srv/huiyuyuan/backend/.env` |
 | 前端静态目录 | `/var/www/huiyuyuan/` |
 | systemd 服务 | `huiyuyuan-backend` |
 | Nginx 配置 | `/etc/nginx/conf.d/huiyuyuan.conf` |
@@ -624,7 +624,7 @@ ssh root@47.112.98.191 "nginx -t"
 先看：
 
 ```powershell
-ssh root@47.112.98.191 "cat /srv/huiyuyuan/.env | grep ALLOWED_ORIGINS"
+ssh root@47.112.98.191 "cat /srv/huiyuyuan/backend/.env | grep ALLOWED_ORIGINS"
 ```
 
 ### 6.10 当前权威入口

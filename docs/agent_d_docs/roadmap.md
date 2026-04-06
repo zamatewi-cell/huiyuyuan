@@ -14,7 +14,7 @@
 
 ### Production layout consistency
 - Confirm all deployment docs, scripts, and service references point to `/srv/huiyuyuan/backend`.
-- Keep the authoritative env path at `/srv/huiyuyuan/.env`.
+- Keep the authoritative env path at `/srv/huiyuyuan/backend/.env`.
 - Remove any remaining references to the legacy service name `huiyuyuan` for production operations.
 
 ## P1

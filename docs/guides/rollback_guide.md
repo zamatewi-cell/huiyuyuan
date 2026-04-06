@@ -150,24 +150,28 @@ ssh root@47.112.98.191 "
 
 ### 5.2 完整数据库恢复
 
-如果有 PostgreSQL 备份：
+> ⚠️ 当前备份脚本 `db_backup.sh` 使用 `pg_dump -Fc`（custom 格式）并以 gzip 压缩，
+> 产物为 `huiyuyuan_*.dump.gz`。恢复时必须用 `pg_restore`，不能用 `psql`。
 
 ```powershell
-# 1. 查看可用备份
-ssh root@47.112.98.191 "ls -lt /opt/huiyuyuan/backups/*.sql* | head -5"
+# 1. 查看可用备份（custom dump 格式，非 SQL）
+ssh root@47.112.98.191 "ls -lt /opt/huiyuyuan/backups/huiyuyuan_*.dump.gz | head -5"
 
 # 2. 停止后端
 ssh root@47.112.98.191 "systemctl stop huiyuyuan-backend"
 
 # 3. 删除并重建数据库
 ssh root@47.112.98.191 "
-  sudo -u postgres dropdb huiyuyuan
+  sudo -u postgres dropdb --if-exists huiyuyuan
   sudo -u postgres createdb -O huyy_user huiyuyuan
 "
 
-# 4. 恢复备份
+# 4. 恢复备份（使用 pg_restore，非 psql）
+#    先将远程 .dump.gz 解压为 .dump，再用 pg_restore 恢复
 ssh root@47.112.98.191 "
-  gunzip -c /opt/huiyuyuan/backups/latest_dump.sql.gz | sudo -u postgres psql -d huiyuyuan
+  BACKUP=\$(ls -t /opt/huiyuyuan/backups/huiyuyuan_*.dump.gz | head -1)
+  echo \"Restoring from: \$BACKUP\"
+  gunzip -c \"\$BACKUP\" | sudo -u postgres pg_restore -d huiyuyuan --clean --if-exists
 "
 
 # 5. 重启后端

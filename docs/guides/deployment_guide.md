@@ -18,7 +18,7 @@
         ↓
 阿里云 ECS (47.112.98.191)
  ├─ /srv/huiyuyuan/backend/        ← FastAPI 后端源码
- ├─ /srv/huiyuyuan/.env            ← 生产环境变量
+ ├─ /srv/huiyuyuan/backend/.env    ← 生产环境变量
  ├─ /var/www/huiyuyuan/            ← Flutter Web 静态文件
  ├─ /etc/nginx/conf.d/huiyuyuan.conf
  └─ systemd: huiyuyuan-backend
@@ -94,7 +94,7 @@ GitHub Actions 中与服务器相关的关键变量应保持如下理解：
 |---|---|
 | `/srv/huiyuyuan/backend/` | 后端源码目录 |
 | `/srv/huiyuyuan/backend/venv/` | Python 虚拟环境 |
-| `/srv/huiyuyuan/.env` | 生产环境变量 |
+| `/srv/huiyuyuan/backend/.env` | 生产环境变量 |
 | `/srv/huiyuyuan/backend/uploads/` | 后端上传目录 |
 | `/var/www/huiyuyuan/` | Flutter Web 静态目录 |
 | `/etc/nginx/conf.d/huiyuyuan.conf` | 当前线上 Nginx 配置 |
@@ -129,7 +129,7 @@ nginx -t && systemctl reload nginx
 | Nginx 配置错误 | `nginx -t` 查看具体报错 |
 | 前端页面空白 | 检查 `/var/www/huiyuyuan/index.html` 是否存在 |
 | 502 Bad Gateway | 确认 `huiyuyuan-backend` 正在运行，且 upstream 指向 `127.0.0.1:8000` |
-| HTTPS 可访问但接口跨域失败 | 检查 `/srv/huiyuyuan/.env` 中的 `ALLOWED_ORIGINS` |
+| HTTPS 可访问但接口跨域失败 | 检查 `/srv/huiyuyuan/backend/.env` 中的 `ALLOWED_ORIGINS` |
 
 ---
 

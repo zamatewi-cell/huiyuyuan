@@ -564,9 +564,7 @@ Nginx 配置路径: /etc/nginx/conf.d/huiyuyuan.conf
 后端代码目录: /srv/huiyuyuan/backend
 ```
 
-服务器 `.env` 仍建议放在 `/srv/huiyuyuan/.env`，因为后端当前会同时加载：
-
-- `/srv/huiyuyuan/.env`
+服务器 `.env` 权威路径为 `/srv/huiyuyuan/backend/.env`，后端通过 `python-dotenv` 加载。
 - `/srv/huiyuyuan/backend/.env`
 
 ### 5.2 重新部署项目
@@ -632,7 +630,7 @@ tail -f /var/log/nginx/huiyuyuan_error.log
 | Nginx 配置 | `/etc/nginx/conf.d/huiyuyuan.conf` |
 | SSL 证书 | `/etc/letsencrypt/live/xn--lsws2cdzg.top/fullchain.pem` |
 | SSL 私钥 | `/etc/letsencrypt/live/xn--lsws2cdzg.top/privkey.pem` |
-| 后端环境配置 | `/srv/huiyuyuan/.env` |
+| 后端环境配置 | `/srv/huiyuyuan/backend/.env` |
 | 前端文件目录 | `/var/www/huiyuyuan/` |
 | 后端应用目录 | `/srv/huiyuyuan/backend/` |
 | 续期配置 | `/etc/letsencrypt/renewal/xn--lsws2cdzg.top.conf` |

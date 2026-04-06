@@ -37,7 +37,7 @@
 
 - 安全组只允许公网访问 `80/443`，`22` 仅限运维 IP。
 - `8000` 端口不能对公网开放。
-- `/srv/huiyuyuan/.env` 已配置：
+- `/srv/huiyuyuan/backend/.env` 已配置：
   - `APP_ENV=production`
   - `JWT_SECRET_KEY`
   - `ALLOWED_ORIGINS`

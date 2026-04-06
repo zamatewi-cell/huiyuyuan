@@ -191,7 +191,7 @@ source venv/bin/activate
 pip install -r requirements.txt
 
 # 3. 配置环境变量
-cat > /srv/huiyuyuan/.env << 'EOF'
+cat > /srv/huiyuyuan/backend/.env << 'EOF'
 # 数据库配置
 DATABASE_URL=postgresql://huyy_user:NEW_STRONG_PASSWORD@localhost:5432/huiyuyuan
 
@@ -211,7 +211,7 @@ ALLOWED_ORIGINS=https://xn--lsws2cdzg.top,https://www.xn--lsws2cdzg.top
 LOG_LEVEL=INFO
 EOF
 
-chmod 600 /srv/huiyuyuan/.env
+chmod 600 /srv/huiyuyuan/backend/.env
 ```
 
 #### 3.3.2 数据库迁移
@@ -255,7 +255,7 @@ User=root
 Group=root
 WorkingDirectory=/srv/huiyuyuan/backend
 Environment="PATH=/srv/huiyuyuan/backend/venv/bin:/usr/local/bin:/usr/bin"
-EnvironmentFile=/srv/huiyuyuan/.env
+EnvironmentFile=/srv/huiyuyuan/backend/.env
 
 ExecStart=/srv/huiyuyuan/backend/venv/bin/gunicorn main:app \
     -w 2 \

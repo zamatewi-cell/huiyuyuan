@@ -68,7 +68,7 @@ def cmd_get():
             ver, build = reader()
             print(f"{name:<25} {ver:<12} {build}")
         except Exception as e:
-            print(f"{name:<25} ❌ {e}")
+            print(f"{name:<25} [ERR] {e}")
 
 
 def cmd_check():
@@ -78,17 +78,17 @@ def cmd_check():
         v2, b2 = read_app_config()
         v3, b3 = read_backend_config()
     except Exception as e:
-        print(f"❌ 读取失败: {e}")
+        print(f"[ERR] 读取失败: {e}")
         return 1
 
     versions = {v1, v2, v3}
     builds = {b1, b2, b3}
 
     if len(versions) == 1 and len(builds) == 1:
-        print(f"✅ 版本一致: {v1}+{b1}")
+        print(f"[OK] 版本一致: {v1}+{b1}")
         return 0
     else:
-        print("❌ 版本不一致!")
+        print("[ERR] 版本不一致!")
         print(f"  pubspec.yaml:    {v1}+{b1}")
         print(f"  app_config.dart: {v2}+{b2}")
         print(f"  backend/config:  {v3}+{b3}")
@@ -96,49 +96,63 @@ def cmd_check():
 
 
 def cmd_set(version, build_number):
-    """统一设置版本号"""
-    # 1. 更新 pubspec.yaml
-    text = PUBSPEC.read_text(encoding="utf-8")
-    text = re.sub(
+    """统一设置版本号（先全部写入内存，再原子写入文件，避免半完成状态）"""
+    # 阶段1：读取所有原始内容（验证可读取性）
+    texts = {}
+    for path in (PUBSPEC, APP_CONFIG, BACKEND_CONFIG):
+        texts[path] = path.read_text(encoding="utf-8")
+
+    # 阶段2：在内存中完成所有替换
+    new_texts = {}
+
+    # pubspec.yaml
+    t = texts[PUBSPEC]
+    t = re.sub(
         r"^version:\s*\d+\.\d+\.\d+\+\d+",
         f"version: {version}+{build_number}",
-        text,
+        t,
         flags=re.MULTILINE,
     )
-    PUBSPEC.write_text(text, encoding="utf-8")
-    print(f"✅ pubspec.yaml → {version}+{build_number}")
+    new_texts[PUBSPEC] = t
 
-    # 2. 更新 app_config.dart
-    text = APP_CONFIG.read_text(encoding="utf-8")
-    text = re.sub(
+    # app_config.dart
+    t = texts[APP_CONFIG]
+    t = re.sub(
         r"(static const String appVersion\s*=\s*)'[^']+'",
         rf"\1'{version}'",
-        text,
+        t,
     )
-    text = re.sub(
+    t = re.sub(
         r"(static const int appBuildNumber\s*=\s*)\d+",
         rf"\1{build_number}",
-        text,
+        t,
     )
-    APP_CONFIG.write_text(text, encoding="utf-8")
-    print(f"✅ app_config.dart → {version}+{build_number}")
+    new_texts[APP_CONFIG] = t
 
-    # 3. 更新 backend/config.py
-    text = BACKEND_CONFIG.read_text(encoding="utf-8")
-    text = re.sub(
+    # backend/config.py
+    t = texts[BACKEND_CONFIG]
+    t = re.sub(
         r'(APP_LATEST_VERSION\s*=\s*os\.getenv\([^,]+,\s*)"([^"]+)"',
         rf'\1"{version}"',
-        text,
+        t,
     )
-    text = re.sub(
+    t = re.sub(
         r"(APP_LATEST_BUILD_NUMBER\s*=\s*int\(os\.getenv\([^,]+,\s*\")(\d+)(\")",
         rf"\1{build_number}\3",
-        text,
+        t,
     )
-    BACKEND_CONFIG.write_text(text, encoding="utf-8")
-    print(f"✅ backend/config.py → {version}+{build_number}")
+    new_texts[BACKEND_CONFIG] = t
 
-    print(f"\n🎉 版本已统一设置为 {version}+{build_number}")
+    # 阶段3：原子写入所有文件
+    for path, content in new_texts.items():
+        path.write_text(content, encoding="utf-8")
+
+    # 阶段4：全部写入成功后再输出结果
+    print(f"[OK] pubspec.yaml    -> {version}+{build_number}")
+    print(f"[OK] app_config.dart -> {version}+{build_number}")
+    print(f"[OK] backend/config  -> {version}+{build_number}")
+    print(f"")
+    print(f"[DONE] 版本已统一设置为 {version}+{build_number}")
     return 0
 
 

@@ -49,7 +49,7 @@
 - [x] **DeepSeek → Gemini 三级降级策略** (DeepSeek 优先 → Gemini 备用 → 本地离线) — 2026-02-22
 - [x] Gemini SSE 流式输出支持 (streamGenerateContent) — 2026-02-22
 - [x] **AI 图片识别代理方案** — Gemini 国内不可达，切换至阿里云 DashScope（通义千问 qwen-vl-max），后端代理 `/api/ai/analyze-image` — 2026-02-23
-- [x] **DashScope API Key 服务器配置** — `DASHSCOPE_API_KEY` 在 `/srv/huiyuyuan/.env` 中配置并验证图片识别通过 — 2026-02-23
+- [x] **DashScope API Key 服务器配置** — `DASHSCOPE_API_KEY` 在 `/srv/huiyuyuan/backend/.env` 中配置并验证图片识别通过 — 2026-02-23
 
 ### 🎭 主题与国际化
 - [x] 深色/浅色模式完整适配 (所有页面)

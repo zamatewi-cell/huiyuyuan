@@ -18,7 +18,7 @@
         ↓
 阿里云 ECS (47.112.98.191)
  ├─ /srv/huiyuyuan/backend/        ← FastAPI 后端源码
- ├─ /srv/huiyuyuan/.env            ← 生产环境变量
+ ├─ /srv/huiyuyuan/backend/.env    ← 生产环境变量
  ├─ /var/www/huiyuyuan/            ← Flutter Web 静态文件
  ├─ /etc/nginx/conf.d/huiyuyuan.conf
  └─ systemd: huiyuyuan-backend
@@ -131,7 +131,7 @@ cd d:\huiyuyuan_project
 |------|------|
 | `/srv/huiyuyuan/backend/` | 后端源码目录 |
 | `/srv/huiyuyuan/backend/venv/` | Python 虚拟环境 |
-| `/srv/huiyuyuan/.env` | 生产环境变量 |
+| `/srv/huiyuyuan/backend/.env` | 生产环境变量 |
 | `/srv/huiyuyuan/backend/uploads/` | 后端上传文件目录 |
 | `/var/www/huiyuyuan/` | Flutter Web 静态目录 |
 | `/etc/nginx/conf.d/huiyuyuan.conf` | 当前线上 Nginx 配置 |
@@ -193,7 +193,7 @@ Windows 本地可以直接用：
 | 后端启动失败 | `journalctl -u huiyuyuan-backend -n 100 --no-pager` |
 | Alembic 失败 | `cd /srv/huiyuyuan/backend && source venv/bin/activate && alembic current` |
 | 502 Bad Gateway | 检查 `huiyuyuan-backend` 是否运行、Nginx upstream 是否指向 `127.0.0.1:8000` |
-| HTTPS 可访问但接口报跨域 | 检查 `/srv/huiyuyuan/.env` 中 `ALLOWED_ORIGINS` |
+| HTTPS 可访问但接口报跨域 | 检查 `/srv/huiyuyuan/backend/.env` 中 `ALLOWED_ORIGINS` |
 | HTTPS 证书续期异常 | 检查 `/var/www/certbot/.well-known/acme-challenge/` 和 cron 配置 |
 
 ---

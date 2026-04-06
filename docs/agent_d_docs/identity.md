@@ -12,7 +12,7 @@ Agent D is responsible for server-side operations, release hardening, Nginx, Pos
 | Public domain | `xn--lsws2cdzg.top` / `汇玉源.top` |
 | SSH | `root@47.112.98.191` |
 | Backend path | `/srv/huiyuyuan/backend` |
-| Env file | `/srv/huiyuyuan/.env` |
+| Env file | `/srv/huiyuyuan/backend/.env` |
 | Frontend path | `/var/www/huiyuyuan` |
 | Upload path | `/srv/huiyuyuan/backend/uploads` |
 | Nginx conf | `/etc/nginx/conf.d/huiyuyuan.conf` |
