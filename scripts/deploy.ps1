@@ -241,8 +241,14 @@ try {
     if (($Target -eq "all" -or $Target -eq "web") -and (-not $SkipAnalyze -or -not $SkipBuild)) {
         Write-Step "Resolving Flutter dependencies"
         Push-Location $APP_DIR
-        $pubGetOutput = flutter pub get 2>&1 | Out-String
-        $pubGetExitCode = $LASTEXITCODE
+        $previousErrorActionPreference = $ErrorActionPreference
+        $ErrorActionPreference = "Continue"
+        try {
+            $pubGetOutput = flutter pub get 2>&1 | Out-String
+            $pubGetExitCode = $LASTEXITCODE
+        } finally {
+            $ErrorActionPreference = $previousErrorActionPreference
+        }
         Pop-Location
 
         if ($pubGetExitCode -ne 0) {
@@ -256,8 +262,14 @@ try {
     if (-not $SkipAnalyze -and ($Target -eq "all" -or $Target -eq "web")) {
         Write-Step "Running flutter analyze"
         Push-Location $APP_DIR
-        $analyzeOutput = flutter analyze --no-fatal-infos lib/ 2>&1 | Out-String
-        $analyzeExitCode = $LASTEXITCODE
+        $previousErrorActionPreference = $ErrorActionPreference
+        $ErrorActionPreference = "Continue"
+        try {
+            $analyzeOutput = flutter analyze --no-fatal-infos lib/ 2>&1 | Out-String
+            $analyzeExitCode = $LASTEXITCODE
+        } finally {
+            $ErrorActionPreference = $previousErrorActionPreference
+        }
         Pop-Location
 
         if ($analyzeExitCode -ne 0) {
@@ -271,10 +283,16 @@ try {
     if (-not $SkipBuild -and ($Target -eq "all" -or $Target -eq "web")) {
         Write-Step "Building Flutter Web"
         Push-Location $APP_DIR
-        $buildOutput = flutter build web --no-tree-shake-icons --release 2>&1 | Out-String
-        $buildExitCode = $LASTEXITCODE
-        $buildIndex = Test-Path "build\web\index.html"
-        $buildMainJs = Test-Path "build\web\main.dart.js"
+        $previousErrorActionPreference = $ErrorActionPreference
+        $ErrorActionPreference = "Continue"
+        try {
+            $buildOutput = flutter build web --no-tree-shake-icons --release 2>&1 | Out-String
+            $buildExitCode = $LASTEXITCODE
+            $buildIndex = Test-Path "build\web\index.html"
+            $buildMainJs = Test-Path "build\web\main.dart.js"
+        } finally {
+            $ErrorActionPreference = $previousErrorActionPreference
+        }
         Pop-Location
 
         if ($buildExitCode -ne 0 -or -not $buildIndex -or -not $buildMainJs) {
