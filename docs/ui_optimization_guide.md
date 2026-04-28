@@ -1,8 +1,8 @@
 # 汇玉源 UI "去 AI 化" 深度优化实操指南
 
-> **目标**：通过最小代码改动，消除界面的“AI 生成感”，提升品牌质感与视觉精细度。  
-> **适用人群**：前端开发工程师、UI 设计师  
-> **预计耗时**：3.5 小时  
+> **目标**：通过最小代码改动，消除界面的“AI 生成感”，提升品牌质感与视觉精细度。
+> **适用人群**：前端开发工程师、UI 设计师
+> **预计耗时**：3.5 小时
 > **最后更新**：2026-04-10
 
 ---
@@ -62,19 +62,19 @@ return Scaffold(
     children: [
       // 1. 底层：深色背景
       Container(color: JewelryColors.darkBackground),
-      
+
       // 2. 中层：SVG 纹理 (若隐若现)
       Positioned.fill(
         child: SvgPicture.asset(
           'assets/images/bg_waves.svg',
           fit: BoxFit.cover,
           colorFilter: ColorFilter.mode(
-            JewelryColors.emeraldGreen.withOpacity(0.05), 
+            JewelryColors.emeraldGreen.withOpacity(0.05),
             BlendMode.srcIn
           ),
         ),
       ),
-      
+
       // 3. 顶层：原有内容
       SafeArea(
         child: SingleChildScrollView(
@@ -207,13 +207,13 @@ class AppIcons {
   static const cart = PhosphorIcons.shoppingBagDuotone;
   static const profile = PhosphorIcons.userCircleDuotone;
   static const search = PhosphorIcons.magnifyingGlassBold;
-  
+
   // 功能
   static const favorite = PhosphorIcons.heartFill;
   static const location = PhosphorIcons.mapPinDuotone;
   static const notification = PhosphorIcons.bellSimpleRingingDuotone;
   static const settings = PhosphorIcons.gearSixDuotone;
-  
+
   // 状态
   static const check = PhosphorIcons.checkCircleFill;
   static const close = PhosphorIcons.xCircleDuotone;

@@ -6,7 +6,7 @@
             <certificates src="system" />
         </trust-anchors>
     </base-config>
-    
+
     <!-- 针对你的域名配置 -->
     <domain-config cleartextTrafficPermitted="false">
         <domain includeSubdomains="true">xn--lsws2cdzg.top</domain>

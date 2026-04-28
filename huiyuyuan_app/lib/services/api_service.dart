@@ -1,4 +1,4 @@
-﻿library;
+library;
 
 import 'dart:async';
 import 'dart:io'
@@ -741,7 +741,7 @@ class ApiService {
     debugPrint('[API_ERROR] Error: ${error.error}');
     debugPrint('[API_ERROR] Response Status: ${error.response?.statusCode}');
     debugPrint('[API_ERROR] Request URL: ${error.requestOptions.uri}');
-    
+
     String message;
     int code;
 

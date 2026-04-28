@@ -1,8 +1,8 @@
 # 汇玉源项目全景架构梳理报告
 
-> **生成日期**: 2026-04-10  
-> **版本**: v4.0  
-> **审查范围**: 完整代码库(前端 + 后端 + 部署 + 测试)  
+> **生成日期**: 2026-04-10
+> **版本**: v4.0
+> **审查范围**: 完整代码库(前端 + 后端 + 部署 + 测试)
 > **审查深度**: 架构级、模块级、代码级三层分析
 
 ---
@@ -228,7 +228,7 @@ class AuthNotifier extends AsyncNotifier<UserModel?> {
     final userData = await _storage.getUser();
     return userData != null ? UserModel.fromJson(userData) : null;
   }
-  
+
   Future<bool> loginAdmin(...) async {
     // 业务逻辑
   }
@@ -242,7 +242,7 @@ Initial State → build() → Load from Storage
   Success → AsyncValue.data(user) → UI显示已登录
      ↓
   Failure → AsyncValue.error(exception) → UI显示错误
-  
+
 User Action (login/logout)
      ↓
 Update state = AsyncValue.data(new_user)
@@ -258,7 +258,7 @@ class ApiResult<T> {
   final T? data;
   final String? message;
   final int? code;
-  
+
   factory ApiResult.success(T data, {String? message}) {...}
   factory ApiResult.error(String message, {int? code}) {...}
 }
@@ -496,13 +496,13 @@ async def add_security_headers(request: Request, call_next):
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
     response.headers["Permissions-Policy"] = "camera=(), microphone=()"
-    
+
     if request.url.path.startswith("/api/auth/"):
         response.headers["Cache-Control"] = "no-store"
-    
+
     if IS_PRODUCTION:
         response.headers["Strict-Transport-Security"] = "max-age=31536000"
-    
+
     return response
 ```
 
@@ -513,7 +513,7 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
         start_time = time.time()
         response = await call_next(request)
         duration_ms = (time.time() - start_time) * 1000
-        
+
         logger.info({
             "method": request.method,
             "path": request.url.path,
@@ -521,7 +521,7 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
             "duration_ms": round(duration_ms, 2),
             "client_ip": request.client.host
         })
-        
+
         return response
 ```
 
@@ -598,11 +598,11 @@ Future<void> addToCart(ProductModel product) async {
   // 1. Optimistic update
   final optimisticItems = [...state.items, CartItem(product: product)];
   state = state.copyWith(items: optimisticItems);
-  
+
   try {
     // 2. API call
     await backendService.addToCart(product.id);
-    
+
     // 3. Persist to storage
     await _storage.saveCart(optimisticItems);
   } catch (e) {
@@ -679,7 +679,7 @@ Future<String?> createChatCompletion({
     _lastError = 'DASHSCOPE_API_KEY not configured';
     return null;
   }
-  
+
   try {
     final response = await _dio.post(
       '${ApiConfig.dashScopeBaseUrl}/chat/completions',
@@ -694,7 +694,7 @@ Future<String?> createChatCompletion({
         'max_tokens': 2000,
       },
     );
-    
+
     final choices = response.data['choices'] as List;
     return choices[0]['message']['content'] as String;
   } catch (e) {
@@ -737,21 +737,21 @@ Flutter App                    Backend API               DashScope API
 ```python
 async def analyze_image(file: UploadFile) -> dict:
     import httpx
-    
+
     image_bytes = await file.read()
     if len(image_bytes) > 10 * 1024 * 1024:
         raise HTTPException(status_code=413, detail="图片不能超过10MB")
-    
+
     b64 = base64.b64encode(image_bytes).decode()
     mime = file.content_type or "image/jpeg"
     data_uri = f"data:{mime};base64,{b64}"
-    
+
     prompt = (
         "请分析这张珠宝图片,并严格返回JSON:\n"
         '{"description":"详细描述","material":"材质",'
         '"category":"分类","tags":["标签"],"quality_score":0.8}'
     )
-    
+
     async with httpx.AsyncClient(timeout=60) as client:
         response = await client.post(
             f"{DASHSCOPE_BASE_URL}/chat/completions",
@@ -768,7 +768,7 @@ async def analyze_image(file: UploadFile) -> dict:
                 "max_tokens": 1200,
             }
         )
-    
+
     payload = response.json()
     content = payload['choices'][0]['message']['content']
     return json.loads(content)
@@ -806,23 +806,23 @@ async def analyze_image(file: UploadFile) -> dict:
 // ai_prompt_service.dart
 String getOfflineResponse(String userMessage, {String language = 'zh_CN'}) {
   final lowerMsg = userMessage.toLowerCase();
-  
+
   if (lowerMsg.contains('你好') || lowerMsg.contains('hello')) {
     return t('ai_offline_greeting');
   }
-  
+
   if (lowerMsg.contains('价格') || lowerMsg.contains('多少钱')) {
     return t('ai_offline_price_query');
   }
-  
+
   if (lowerMsg.contains('真假') || lowerMsg.contains('鉴定')) {
     return t('ai_offline_authentication');
   }
-  
+
   if (lowerMsg.contains('保养') || lowerMsg.contains('清洗')) {
     return t('ai_offline_maintenance');
   }
-  
+
   return t('ai_offline_default');
 }
 ```
@@ -862,14 +862,14 @@ String getOfflineResponse(String userMessage, {String language = 'zh_CN'}) {
 async def refresh_token(refresh_token: str):
     # 验证refresh token
     payload = verify_refresh_token(refresh_token)
-    
+
     # 生成新的access token + 新的refresh token
     new_access = create_access_token(payload['sub'])
     new_refresh = create_refresh_token(payload['sub'])
-    
+
     # 使旧refresh token失效 (Redis黑名单)
     await redis.blacklist(refresh_token)
-    
+
     return {"access_token": new_access, "refresh_token": new_refresh}
 ```
 
@@ -884,15 +884,15 @@ async def refresh_token(refresh_token: str):
 # security.py
 def verify_access_token(token: str) -> dict:
     payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
-    
+
     # 检查会话是否有效
     user_id = payload['sub']
     current_sid = payload.get('sid')
-    
+
     stored_sid = redis.get(f"user_session:{user_id}")
     if stored_sid != current_sid:
         raise HTTPException(status_code=401, detail="会话已失效")
-    
+
     return payload
 ```
 
@@ -1011,11 +1011,11 @@ class SensitiveDataFilter(logging.Filter):
 async def rate_limit_dependency(request: Request):
     client_ip = request.client.host
     key = f"rate_limit:{client_ip}:{request.url.path}"
-    
+
     count = await redis.incr(key)
     if count == 1:
         await redis.expire(key, 60)  # 1分钟窗口
-    
+
     if count > 100:  # 每分钟最多100次请求
         raise HTTPException(status_code=429, detail="请求过于频繁")
 ```
@@ -1026,10 +1026,10 @@ async def rate_limit_dependency(request: Request):
 async def send_sms(phone: str):
     key = f"sms_limit:{phone}"
     last_sent = await redis.get(key)
-    
+
     if last_sent and (time.time() - float(last_sent)) < 60:
         raise HTTPException(status_code=429, detail="请稍后再试")
-    
+
     # 发送短信
     await aliyun_sms.send(phone, template_code, params)
     await redis.set(key, time.time(), ex=60)
@@ -1083,20 +1083,20 @@ test/
 // test/providers/auth_provider_test.dart
 void main() {
   late ProviderContainer container;
-  
+
   setUp(() {
     container = ProviderContainer();
   });
-  
+
   tearDown(() {
     container.dispose();
   });
-  
+
   test('初始状态应为null', () async {
     final authState = await container.read(authProvider.future);
     expect(authState, isNull);
   });
-  
+
   test('登录成功后更新状态', () async {
     final notifier = container.read(authProvider.notifier);
     final result = await notifier.loginAdmin(
@@ -1104,13 +1104,13 @@ void main() {
       'admin123',
       '8888',
     );
-    
+
     expect(result, isTrue);
     final user = await container.read(authProvider.future);
     expect(user, isNotNull);
     expect(user!.userType, UserType.admin);
   });
-  
+
   test('登录失败返回false', () async {
     final notifier = container.read(authProvider.notifier);
     final result = await notifier.loginAdmin(
@@ -1118,7 +1118,7 @@ void main() {
       'wrong_password',
       '0000',
     );
-    
+
     expect(result, isFalse);
     final user = await container.read(authProvider.future);
     expect(user, isNull);
@@ -1139,23 +1139,23 @@ void main() {
       imageUrl: 'https://example.com/jade.jpg',
       material: '翡翠A货',
     );
-    
+
     await tester.pumpWidget(
       MaterialApp(
         home: ProductCard(product: product),
       ),
     );
-    
+
     expect(find.text('翡翠手镯'), findsOneWidget);
     expect(find.text('¥2999.00'), findsOneWidget);
     expect(find.text('翡翠A货'), findsOneWidget);
     expect(find.byType(CachedNetworkImage), findsOneWidget);
   });
-  
+
   testWidgets('点击ProductCard触发回调', (tester) async {
     bool tapped = false;
     final product = ProductModel(...);
-    
+
     await tester.pumpWidget(
       MaterialApp(
         home: ProductCard(
@@ -1164,7 +1164,7 @@ void main() {
         ),
       ),
     );
-    
+
     await tester.tap(find.byType(ProductCard));
     expect(tapped, isTrue);
   });
@@ -1234,7 +1234,7 @@ def client(db_session):
             yield db_session
         finally:
             pass
-    
+
     app.dependency_overrides[get_db] = override_get_db
     with TestClient(app) as c:
         yield c
@@ -1250,7 +1250,7 @@ def test_login_success(client, db_session):
     # 准备测试数据
     from security import get_password_hash
     from models.user import User
-    
+
     admin = User(
         username="admin",
         phone="18925816362",
@@ -1260,7 +1260,7 @@ def test_login_success(client, db_session):
     )
     db_session.add(admin)
     db_session.commit()
-    
+
     # 发送登录请求
     response = client.post("/api/auth/login", json={
         "username": "18925816362",
@@ -1268,7 +1268,7 @@ def test_login_success(client, db_session):
         "captcha": "8888",
         "type": "admin"
     })
-    
+
     assert response.status_code == 200
     data = response.json()
     assert "access_token" in data
@@ -1283,7 +1283,7 @@ def test_login_invalid_credentials(client):
         "captcha": "0000",
         "type": "admin"
     })
-    
+
     assert response.status_code == 401
     assert "detail" in response.json()
 
@@ -1300,7 +1300,7 @@ def test_protected_route_without_token(client):
 def test_security_headers(client):
     """测试安全响应头"""
     response = client.get("/api/health")
-    
+
     assert response.headers["X-Frame-Options"] == "DENY"
     assert response.headers["X-Content-Type-Options"] == "nosniff"
     assert response.headers["Referrer-Policy"] == "strict-origin-when-cross-origin"
@@ -1308,7 +1308,7 @@ def test_security_headers(client):
 def test_auth_endpoints_no_cache(client):
     """测试认证端点禁用缓存"""
     response = client.post("/api/auth/login", json={...})
-    
+
     assert response.headers["Cache-Control"] == "no-store"
     assert response.headers["Pragma"] == "no-cache"
 
@@ -1318,7 +1318,7 @@ def test_cors_restricted_origins(client):
         "/api/products",
         headers={"Origin": "https://evil.com"}
     )
-    
+
     # 生产环境应拒绝未知来源
     assert "access-control-allow-origin" not in response.headers or \
            response.headers["access-control-allow-origin"] != "https://evil.com"
@@ -1395,31 +1395,31 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Set up Java 17
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
-      
+
       - name: Set up Flutter 3.32.0
         uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.32.0'
           cache: true
-      
+
       - name: Install dependencies
         run: flutter pub get
-      
+
       - name: Generate code
         run: dart run build_runner build --delete-conflicting-outputs
-      
+
       - name: Static analysis
         run: flutter analyze --fatal-infos
-      
+
       - name: Run tests
         run: flutter test --coverage
-      
+
       - name: Upload coverage
         if: github.ref == 'refs/heads/main'
         uses: actions/upload-artifact@v4
@@ -1437,7 +1437,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Deploy to ECS
         env:
           SERVER_HOST: ${{ secrets.SERVER_HOST }}
@@ -1446,23 +1446,23 @@ jobs:
         run: |
           echo "$SERVER_SSH_KEY" > key.pem
           chmod 600 key.pem
-          
+
           # SCP上传后端代码
           scp -i key.pem -r huiyuyuan_app/backend/ \
             $SERVER_USER@$SERVER_HOST:/srv/huiyuyuan/backend/
-          
+
           # SSH执行部署脚本
           ssh -i key.pem $SERVER_USER@$SERVER_HOST << 'EOF'
             cd /srv/huiyuyuan/backend
             source venv/bin/activate
             pip install -r requirements.txt
-            
+
             # Alembic数据库迁移
             alembic upgrade head
-            
+
             # 重启服务
             systemctl restart huiyuyuan-backend
-            
+
             # 健康检查 (最多重试5次)
             for i in {1..5}; do
               if curl -f http://127.0.0.1:8000/api/health; then
@@ -1485,19 +1485,19 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.32.0'
-      
+
       - name: Build Web
         env:
           DASHSCOPE_API_KEY: ${{ secrets.DASHSCOPE_API_KEY }}
         run: |
           cd huiyuyuan_app
           flutter build web --release
-      
+
       - name: Deploy to Nginx
         env:
           SERVER_HOST: ${{ secrets.SERVER_HOST }}
@@ -1505,10 +1505,10 @@ jobs:
         run: |
           echo "$SERVER_SSH_KEY" > key.pem
           chmod 600 key.pem
-          
+
           scp -i key.pem -r huiyuyuan_app/build/web/* \
             root@$SERVER_HOST:/var/www/huiyuyuan/
-          
+
           ssh -i key.pem root@$SERVER_HOST "nginx -t && systemctl reload nginx"
 ```
 
@@ -1598,7 +1598,7 @@ ssh root@47.112.98.191 "bash /opt/huiyuyuan/backup.sh"  # 立即备份
 ### 🔴 P0 - 严重问题 (必须立即修复)
 
 #### 1. 支付系统未接入真实渠道
-**现状**: 
+**现状**:
 - 所有支付均为Mock状态 (`wx_your_app_id`, `alipay_mock`)
 - 无法完成真实交易闭环
 - 订单状态手动确认,存在人为失误风险
@@ -1673,7 +1673,7 @@ signingConfigs {
     release {
         def keystoreProperties = new Properties()
         keystoreProperties.load(new FileInputStream(rootProject.file("key.properties")))
-        
+
         keyAlias keystoreProperties['keyAlias']
         keyPassword keystoreProperties['keyPassword']
         storeFile file(keystoreProperties['storeFile'])
@@ -1711,7 +1711,7 @@ await _prefs.setString('cart_items', jsonEncode(cartItems));
 Future<void> syncCartToCloud() async {
   final user = ref.read(authProvider).value;
   if (user == null) return;
-  
+
   await backendService.syncCart(
     userId: user.id,
     items: cartItems.map((item) => item.toJson()).toList(),
@@ -1744,15 +1744,15 @@ Future<List<CartItem>> loadCartFromCloud(String userId) async {
 ```
 1. 创建独立HTML页面
    docs/legal/privacy_policy.html
-   
+
 2. 部署到生产服务器
    scp privacy_policy.html root@47.112.98.191:/var/www/huiyuyuan/legal/
-   
+
 3. 更新App内链接
    // app_config.dart
-   static const String privacyPolicyUrl = 
+   static const String privacyPolicyUrl =
        'https://xn--lsws2cdzg.top/legal/privacy_policy.html';
-   
+
 4. 确保HTTPS可访问
    curl -I https://xn--lsws2cdzg.top/legal/privacy_policy.html
    # HTTP/2 200
@@ -1782,9 +1782,9 @@ import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
+
   await Firebase.initializeApp();
-  
+
   // 非Debug模式启用Crashlytics
   if (!kDebugMode) {
     FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterFatalError;
@@ -1793,7 +1793,7 @@ void main() async {
       return true;
     };
   }
-  
+
   runApp(MyApp());
 }
 ```
@@ -1816,37 +1816,37 @@ class NotificationRealtimeService {
   Timer? _reconnectTimer;
   int _reconnectAttempts = 0;
   static const int maxReconnectAttempts = 5;
-  
+
   Future<void> connect() async {
     try {
       _channel = IOWebSocketChannel.connect(
         Uri.parse('wss://${ApiConfig.productionHost}/ws/notifications'),
         headers: {'Authorization': 'Bearer $_token'},
       );
-      
+
       _reconnectAttempts = 0;
       _listenToMessages();
     } catch (e) {
       _scheduleReconnect();
     }
   }
-  
+
   void _scheduleReconnect() {
     if (_reconnectAttempts >= maxReconnectAttempts) {
       logger.warning('达到最大重连次数,停止重试');
       return;
     }
-    
+
     _reconnectAttempts++;
     final delay = Duration(seconds: pow(2, _reconnectAttempts).toInt());
-    
+
     _reconnectTimer?.cancel();
     _reconnectTimer = Timer(delay, () {
       logger.info('尝试第$_reconnectAttempts次重连...');
       connect();
     });
   }
-  
+
   void _listenToMessages() {
     _channel?.stream.listen(
       (message) {
@@ -1892,20 +1892,20 @@ class OSSService:
             'https://oss-cn-hangzhou.aliyuncs.com',
             'huiyuyuan-images'
         )
-    
+
     async def upload_image(self, file: UploadFile) -> str:
         """上传图片到OSS,返回公开URL"""
         object_name = f"products/{uuid.uuid4()}_{file.filename}"
-        
+
         self.bucket.put_object(
             object_name,
             file.file.read(),
             headers={'Content-Type': file.content_type}
         )
-        
+
         # 生成带签名的临时URL (私有Bucket)
         # url = self.bucket.sign_url('GET', object_name, 3600)
-        
+
         # 或使用公共读Bucket直接返回
         return f"https://huiyuyuan-images.oss-cn-hangzhou.aliyuncs.com/{object_name}"
 ```
@@ -1930,15 +1930,15 @@ from locust import HttpUser, task, between
 
 class ApiUser(HttpUser):
     wait_time = between(1, 3)
-    
+
     @task(3)
     def browse_products(self):
         self.client.get("/api/products?skip=0&limit=20")
-    
+
     @task(1)
     def view_product_detail(self):
         self.client.get("/api/products/prod_123")
-    
+
     @task(2)
     def search_products(self):
         self.client.get("/api/products/search?q=翡翠")
@@ -2006,12 +2006,12 @@ assert(ContrastRatio.between(
     - CPU/Memory/Disk使用率
     - 网络带宽
     - PostgreSQL连接数
-  
+
   应用层:
     - API响应时间P95/P99
     - 错误率 (5xx比例)
     - QPS峰值
-  
+
   业务层:
     - 日活跃用户(DAU)
     - 订单转化率
@@ -2040,17 +2040,17 @@ gantt
     支付宝SDK集成             :crit, p1_2, after p1_1, 3d
     支付回调验签              :crit, p1_3, after p1_2, 2d
     沙箱环境测试              :crit, p1_4, after p1_3, 2d
-    
+
     section 短信服务
     阿里云SMS资质申请         :crit, p1_5, 2026-04-11, 5d
     短信模板配置              :p1_6, after p1_5, 1d
     移除万能验证码            :crit, p1_7, after p1_6, 1d
-    
+
     section Android发布
     生成Keystore签名          :crit, p1_8, 2026-04-11, 1d
     配置Release构建           :p1_9, after p1_8, 1d
     ProGuard规则调优          :p1_10, after p1_9, 2d
-    
+
     section 合规性
     隐私政策页面部署          :crit, p1_11, 2026-04-11, 2d
     用户协议页面部署          :p1_12, after p1_11, 1d
@@ -2120,13 +2120,13 @@ gantt
    def recommend_products(user_id: str) -> List[Product]:
        # 分析用户浏览历史
        viewed_categories = get_user_viewed_categories(user_id)
-       
+
        # 查找相似用户
        similar_users = find_similar_users(user_id)
-       
+
        # 推荐他们喜欢但你没看过的商品
        recommendations = collaborative_filtering(similar_users, viewed_categories)
-       
+
        return recommendations[:10]
    ```
 
@@ -2140,10 +2140,10 @@ gantt
    # 使用CLIP模型提取特征向量
    def search_by_image(image_bytes: bytes) -> List[Product]:
        embedding = clip_model.encode_image(image_bytes)
-       
+
        # 向量相似度搜索 (Faiss)
        similar_indices = faiss_index.search(embedding, k=10)
-       
+
        return [products[i] for i in similar_indices]
    ```
 
@@ -2214,19 +2214,19 @@ gantt
 
 ### 项目优势
 
-✅ **架构清晰**: 前后端分离,模块化程度高  
-✅ **技术栈现代**: Flutter 3.27 + FastAPI + PostgreSQL  
-✅ **AI能力突出**: DashScope双模态(文本+视觉)  
-✅ **设计精美**: Liquid Glass毛玻璃风格,品牌辨识度高  
-✅ **测试扎实**: 657个测试用例覆盖核心逻辑  
-✅ **CI/CD完善**: GitHub Actions自动化部署  
+✅ **架构清晰**: 前后端分离,模块化程度高
+✅ **技术栈现代**: Flutter 3.27 + FastAPI + PostgreSQL
+✅ **AI能力突出**: DashScope双模态(文本+视觉)
+✅ **设计精美**: Liquid Glass毛玻璃风格,品牌辨识度高
+✅ **测试扎实**: 657个测试用例覆盖核心逻辑
+✅ **CI/CD完善**: GitHub Actions自动化部署
 
 ### 主要短板
 
-❌ **支付未接入**: 无法形成商业闭环  
-❌ **SMS资质缺失**: 用户注册功能受限  
-❌ **数据本地化**: 云端同步能力不足  
-❌ **监控薄弱**: 缺乏线上问题预警机制  
+❌ **支付未接入**: 无法形成商业闭环
+❌ **SMS资质缺失**: 用户注册功能受限
+❌ **数据本地化**: 云端同步能力不足
+❌ **监控薄弱**: 缺乏线上问题预警机制
 
 ### 总体评价
 
@@ -2242,6 +2242,6 @@ gantt
 
 ---
 
-**报告生成者**: GitHub Copilot (Claude Opus 4.6)  
-**审查日期**: 2026-04-10  
+**报告生成者**: GitHub Copilot (Claude Opus 4.6)
+**审查日期**: 2026-04-10
 **下次审查建议**: 完成Phase 1后进行复审

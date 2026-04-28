@@ -1,4 +1,4 @@
-﻿"""Orders router - DB-first with development-only in-memory fallback."""
+"""Orders router - DB-first with development-only in-memory fallback."""
 
 import json
 import logging
@@ -905,4 +905,3 @@ async def get_order_logistics(order_id: str, authorization: AuthorizationDep = N
         "status": order.status,
         "entries": order.logistics_entries,
     }
-
