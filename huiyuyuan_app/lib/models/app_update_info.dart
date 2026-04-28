@@ -6,6 +6,10 @@ class AppUpdateInfo {
     required this.minSupportedBuildNumber,
     required this.forceUpdate,
     required this.downloadUrl,
+    required this.downloadUrls,
+    required this.downloadSizeBytes,
+    required this.downloadSha256,
+    required this.downloadContentType,
     required this.releaseNotes,
     required this.publishedAt,
   });
@@ -16,6 +20,10 @@ class AppUpdateInfo {
   final int minSupportedBuildNumber;
   final bool forceUpdate;
   final String downloadUrl;
+  final List<String> downloadUrls;
+  final int? downloadSizeBytes;
+  final String downloadSha256;
+  final String downloadContentType;
   final List<String> releaseNotes;
   final DateTime? publishedAt;
 
@@ -29,6 +37,17 @@ class AppUpdateInfo {
             .where((item) => item.isNotEmpty)
             .toList()
         : <String>[];
+    final rawDownloadUrls = json['download_urls'];
+    final downloadUrls = rawDownloadUrls is List
+        ? rawDownloadUrls
+            .map((item) => item.toString().trim())
+            .where((item) => item.isNotEmpty)
+            .toList()
+        : <String>[];
+    final legacyDownloadUrl = (json['download_url'] ?? '').toString().trim();
+    final effectiveDownloadUrl = downloadUrls.isNotEmpty
+        ? downloadUrls.first
+        : legacyDownloadUrl;
 
     return AppUpdateInfo(
       platform: (json['platform'] ?? 'android').toString(),
@@ -38,7 +57,15 @@ class AppUpdateInfo {
       minSupportedBuildNumber:
           int.tryParse('${json['min_supported_build_number'] ?? 0}') ?? 0,
       forceUpdate: json['force_update'] == true,
-      downloadUrl: (json['download_url'] ?? '').toString(),
+      downloadUrl: effectiveDownloadUrl,
+      downloadUrls: downloadUrls.isNotEmpty
+          ? downloadUrls
+          : (legacyDownloadUrl.isEmpty ? <String>[] : <String>[legacyDownloadUrl]),
+      downloadSizeBytes:
+          int.tryParse('${json['download_size_bytes'] ?? ''}'),
+      downloadSha256: (json['download_sha256'] ?? '').toString().trim(),
+      downloadContentType:
+          (json['download_content_type'] ?? '').toString().trim(),
       releaseNotes: notes,
       publishedAt: DateTime.tryParse('${json['published_at'] ?? ''}'),
     );

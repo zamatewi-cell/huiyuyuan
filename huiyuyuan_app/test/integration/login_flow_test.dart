@@ -1,4 +1,4 @@
-﻿// 汇玉源 - 登录流程集成测试
+// 汇玉源 - 登录流程集成测试
 //
 // 测试场景:
 // 1. 管理员完整登录流程
@@ -17,7 +17,16 @@ import 'package:huiyuyuan/screens/login_screen.dart';
 import 'package:huiyuyuan/providers/auth_provider.dart';
 import 'package:huiyuyuan/models/user_model.dart';
 import 'package:huiyuyuan/config/api_config.dart';
+import 'package:huiyuyuan/config/local_debug_config.dart';
 import 'package:huiyuyuan/services/storage_service.dart';
+
+const Map<String, dynamic> _debugCredentialConfig = {
+  'ENABLE_LOCAL_CREDENTIAL_FALLBACK': true,
+  'ADMIN_PHONE': '18925816362',
+  'ADMIN_PASSWORD': 'admin123',
+  'ADMIN_AUTH_CODE': '8888',
+  'OPERATOR_PASSWORD': 'op123456',
+};
 
 void main() {
   late bool originalUseMockApi;
@@ -25,6 +34,7 @@ void main() {
   setUp(() async {
     originalUseMockApi = ApiConfig.useMockApi;
     ApiConfig.useMockApi = true;
+    LocalDebugConfig.instance.replaceValuesForTesting(_debugCredentialConfig);
     SharedPreferences.setMockInitialValues({});
     await StorageService().clearAll();
     // mock flutter_secure_storage
@@ -55,11 +65,12 @@ void main() {
         default:
           return null;
       }
-        });
+    });
   });
 
   tearDown(() {
     ApiConfig.useMockApi = originalUseMockApi;
+    LocalDebugConfig.instance.clearForTesting();
   });
 
   group('登录页面 UI 测试', () {
@@ -100,15 +111,15 @@ void main() {
       addTearDown(container.dispose);
 
       final authNotifier = container.read(authProvider.notifier);
-      
+
       final result = await authNotifier.loginAdmin(
-        '18937766669',
+        '18925816362',
         'admin123',
         '8888',
       );
-      
+
       expect(result, true);
-      
+
       final user = container.read(currentUserProvider);
       expect(user, isNotNull);
       expect(user!.userType, UserType.admin);
@@ -120,13 +131,13 @@ void main() {
       addTearDown(container.dispose);
 
       final authNotifier = container.read(authProvider.notifier);
-      
+
       final result = await authNotifier.loginAdmin(
         '13800138000',
         'admin123',
         '8888',
       );
-      
+
       expect(result, false);
     });
 
@@ -135,11 +146,11 @@ void main() {
       addTearDown(container.dispose);
 
       final authNotifier = container.read(authProvider.notifier);
-      
+
       final result = await authNotifier.loginOperator('1', 'op123456');
-      
+
       expect(result, true);
-      
+
       final user = container.read(currentUserProvider);
       expect(user, isNotNull);
       expect(user!.userType, UserType.operator);
@@ -149,10 +160,12 @@ void main() {
     test('操作员编号范围 1-10 应有效', () async {
       for (int i = 1; i <= 10; i++) {
         final container = ProviderContainer();
-        
-        final result = await container.read(authProvider.notifier).loginOperator('$i', 'op123456');
+
+        final result = await container
+            .read(authProvider.notifier)
+            .loginOperator('$i', 'op123456');
         expect(result, true, reason: '操作员 $i 应该能登录');
-        
+
         container.dispose();
         SharedPreferences.setMockInitialValues({});
       }
@@ -162,7 +175,9 @@ void main() {
       final container = ProviderContainer();
       addTearDown(container.dispose);
 
-      final result = await container.read(authProvider.notifier).loginOperator('0', 'op123456');
+      final result = await container
+          .read(authProvider.notifier)
+          .loginOperator('0', 'op123456');
       expect(result, false);
     });
 
@@ -170,7 +185,9 @@ void main() {
       final container = ProviderContainer();
       addTearDown(container.dispose);
 
-      final result = await container.read(authProvider.notifier).loginOperator('11', 'op123456');
+      final result = await container
+          .read(authProvider.notifier)
+          .loginOperator('11', 'op123456');
       expect(result, false);
     });
   });
@@ -181,14 +198,14 @@ void main() {
       addTearDown(container.dispose);
 
       final authNotifier = container.read(authProvider.notifier);
-      
+
       // 先登录
       await authNotifier.loginOperator('1', 'op123456');
       expect(container.read(isLoggedInProvider), true);
-      
+
       // 退出
       await authNotifier.logout();
-      
+
       expect(container.read(isLoggedInProvider), false);
       expect(container.read(currentUserProvider), isNull);
     });
@@ -198,13 +215,13 @@ void main() {
       addTearDown(container.dispose);
 
       final authNotifier = container.read(authProvider.notifier);
-      
+
       // 登录 -> 退出 -> 重新登录
       await authNotifier.loginOperator('1', 'op123456');
       await authNotifier.logout();
-      
+
       final result = await authNotifier.loginOperator('5', 'op123456');
-      
+
       expect(result, true);
       expect(container.read(currentUserProvider)?.operatorNumber, 5);
     });
@@ -238,7 +255,7 @@ void main() {
 
       // 等待初始化
       await Future.delayed(const Duration(milliseconds: 100));
-      
+
       final isLoggedIn = container.read(isLoggedInProvider);
       expect(isLoggedIn, false);
     });
@@ -247,8 +264,10 @@ void main() {
       final container = ProviderContainer();
       addTearDown(container.dispose);
 
-      await container.read(authProvider.notifier).loginOperator('1', 'op123456');
-      
+      await container
+          .read(authProvider.notifier)
+          .loginOperator('1', 'op123456');
+
       expect(container.read(isLoggedInProvider), true);
     });
 
@@ -256,8 +275,10 @@ void main() {
       final container = ProviderContainer();
       addTearDown(container.dispose);
 
-      await container.read(authProvider.notifier).loginAdmin('18937766669', 'admin123', '8888');
-      
+      await container
+          .read(authProvider.notifier)
+          .loginAdmin('18925816362', 'admin123', '8888');
+
       expect(container.read(isAdminProvider), true);
     });
 
@@ -265,8 +286,10 @@ void main() {
       final container = ProviderContainer();
       addTearDown(container.dispose);
 
-      await container.read(authProvider.notifier).loginOperator('1', 'op123456');
-      
+      await container
+          .read(authProvider.notifier)
+          .loginOperator('1', 'op123456');
+
       expect(container.read(isAdminProvider), false);
     });
 
@@ -274,8 +297,10 @@ void main() {
       final container = ProviderContainer();
       addTearDown(container.dispose);
 
-      await container.read(authProvider.notifier).loginOperator('7', 'op123456');
-      
+      await container
+          .read(authProvider.notifier)
+          .loginOperator('7', 'op123456');
+
       expect(container.read(operatorNumberProvider), 7);
     });
   });
@@ -286,8 +311,8 @@ void main() {
       addTearDown(container.dispose);
 
       final notifier = container.read(authProvider.notifier);
-      
-      await notifier.loginAdmin('18937766669', 'admin123', '8888');
+
+      await notifier.loginAdmin('18925816362', 'admin123', '8888');
       expect(notifier.isAdmin, true);
     });
 
@@ -296,8 +321,8 @@ void main() {
       addTearDown(container.dispose);
 
       final notifier = container.read(authProvider.notifier);
-      
-      await notifier.loginAdmin('18937766669', 'admin123', '8888');
+
+      await notifier.loginAdmin('18925816362', 'admin123', '8888');
       expect(notifier.isSuperAdmin, true);
     });
 
@@ -306,9 +331,9 @@ void main() {
       addTearDown(container.dispose);
 
       final notifier = container.read(authProvider.notifier);
-      
+
       await notifier.loginOperator('3', 'op123456');
-      
+
       final user = notifier.currentUser;
       expect(user, isNotNull);
       expect(user!.operatorNumber, 3);
@@ -319,7 +344,7 @@ void main() {
       addTearDown(container.dispose);
 
       final notifier = container.read(authProvider.notifier);
-      
+
       await notifier.loginOperator('8', 'op123456');
       expect(notifier.operatorNumber, 8);
     });

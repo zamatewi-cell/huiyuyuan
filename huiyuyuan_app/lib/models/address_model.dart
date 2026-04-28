@@ -117,10 +117,10 @@ class AddressModel {
 }
 
 enum AddressTag {
-  home('address_tag_home', '🏠'),
-  company('address_tag_company', '🏢'),
-  school('address_tag_school', '🏫'),
-  other('address_tag_other', '📍');
+  home('address_tag_home', '\u{1F3E0}'),
+  company('address_tag_company', '\u{1F3E2}'),
+  school('address_tag_school', '\u{1F3EB}'),
+  other('address_tag_other', '\u{1F4CD}');
 
   final String label;
   final String emoji;

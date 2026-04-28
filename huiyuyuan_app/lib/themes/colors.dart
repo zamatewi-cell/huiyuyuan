@@ -13,11 +13,23 @@ class JewelryColors {
   static const Color primary = Color(0xFF2E8B57);
   static const Color primaryLight = Color(0xFF3CB371);
   static const Color primaryDark = Color(0xFF228B22);
+  static const Color emeraldGlow = Color(0xFF8BF2B8);
+  static const Color emeraldLuster = Color(0xFF10B981);
+  static const Color emeraldShadow = Color(0xFF064E3B);
 
   /// 金色 - 强调色
   static const Color gold = Color(0xFFFFD700);
   static const Color goldLight = Color(0xFFFFE44D);
   static const Color goldDark = Color(0xFFDAA520);
+  static const Color champagneGold = Color(0xFFF4E4BC);
+  static const Color antiqueGold = Color(0xFFB8941F);
+
+  /// 2.0 暗色品牌底色 - 对应 Figma 的深潭翡翠视觉。
+  static const Color jadeBlack = Color(0xFF050706);
+  static const Color deepJade = Color(0xFF07110E);
+  static const Color jadeInk = Color(0xFF0B1F19);
+  static const Color jadeSurface = Color(0xFF102820);
+  static const Color jadeMist = Color(0xFFDDEADF);
 
   /// 别名 - 方便直接引用
   static const Color primaryGreen = primary;
@@ -47,11 +59,27 @@ class JewelryColors {
     end: Alignment.bottomRight,
   );
 
+  /// 翡翠抛光渐变 - 用于主按钮和高亮状态。
+  static const LinearGradient emeraldLusterGradient = LinearGradient(
+    colors: [Color(0xFF8BF2B8), Color(0xFF2E8B57), Color(0xFF064E3B)],
+    stops: [0.0, 0.46, 1.0],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
+
   /// 金色渐变 - 奢华感
   static const LinearGradient goldGradient = LinearGradient(
     colors: [Color(0xFFFFD700), Color(0xFFFFC107), Color(0xFFFF8C00)],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
+  );
+
+  /// 香槟金渐变 - 比纯金更克制，适合高端珠宝 UI。
+  static const LinearGradient champagneGradient = LinearGradient(
+    colors: [Color(0xFFF7F0DD), Color(0xFFD4AF37), Color(0xFFB8941F)],
+    stops: [0.0, 0.55, 1.0],
+    begin: Alignment.centerLeft,
+    end: Alignment.centerRight,
   );
 
   /// 钻石光辉渐变
@@ -68,11 +96,30 @@ class JewelryColors {
     end: Alignment.bottomCenter,
   );
 
+  /// 深潭翡翠背景 - 新 UI 基础底色。
+  static const LinearGradient jadeDepthGradient = LinearGradient(
+    colors: [Color(0xFF050706), Color(0xFF07110E), Color(0xFF12382D)],
+    stops: [0.0, 0.46, 1.0],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
+
   /// 玻璃态背景渐变
   static LinearGradient glassGradient = LinearGradient(
     colors: [
       Colors.white.withOpacity(0.25),
       Colors.white.withOpacity(0.15),
+    ],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
+
+  /// 深色玻璃态渐变 - 用于暗色高级卡片。
+  static LinearGradient liquidGlassGradient = LinearGradient(
+    colors: [
+      Colors.white.withOpacity(0.12),
+      Colors.white.withOpacity(0.055),
+      primary.withOpacity(0.05),
     ],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
@@ -232,6 +279,29 @@ class JewelryShadows {
       color: JewelryColors.primary.withOpacity(0.4),
       blurRadius: 20,
       spreadRadius: 2,
+    ),
+  ];
+
+  /// 深色玻璃卡片阴影 - 低亮边、深投影，避免廉价发光感。
+  static List<BoxShadow> liquidGlass = [
+    BoxShadow(
+      color: Colors.black.withOpacity(0.34),
+      blurRadius: 44,
+      offset: const Offset(0, 24),
+    ),
+    BoxShadow(
+      color: JewelryColors.primary.withOpacity(0.12),
+      blurRadius: 56,
+      offset: const Offset(0, 18),
+    ),
+  ];
+
+  /// 克制翡翠光晕 - 用于主行动按钮和状态焦点。
+  static List<BoxShadow> emeraldHalo = [
+    BoxShadow(
+      color: JewelryColors.emeraldGlow.withOpacity(0.18),
+      blurRadius: 28,
+      spreadRadius: 1,
     ),
   ];
 }

@@ -128,7 +128,8 @@ void main() {
         'time': '2026-03-23T10:00:00',
       });
 
-      expect(activity.tag, '订单');
+      expect(activity.tag, '支付');
+      expect(activity.resolvedTagKey, AdminActivityTags.orders);
       expect(activity.icon, 'payment');
       expect(activity.color, '#06B6D4');
       expect(activity.id, contains('order_paid'));

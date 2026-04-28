@@ -1,4 +1,4 @@
-﻿library;
+library;
 
 import 'package:huiyuyuan/l10n/string_extension.dart';
 
@@ -216,6 +216,103 @@ class PaymentOrder {
   }
 }
 
+class AdminPaymentRecord {
+  final String paymentId;
+  final String orderId;
+  final String userId;
+  final double amount;
+  final PaymentMethod method;
+  final PaymentStatus status;
+  final String? paymentAccountId;
+  final String? remark;
+  final String? voucherUrl;
+  final String? adminNote;
+  final String? confirmedBy;
+  final DateTime? confirmedAt;
+  final DateTime createdAt;
+  final DateTime? updatedAt;
+
+  const AdminPaymentRecord({
+    required this.paymentId,
+    required this.orderId,
+    required this.userId,
+    required this.amount,
+    required this.method,
+    required this.status,
+    this.paymentAccountId,
+    this.remark,
+    this.voucherUrl,
+    this.adminNote,
+    this.confirmedBy,
+    this.confirmedAt,
+    required this.createdAt,
+    this.updatedAt,
+  });
+
+  bool get canConfirm =>
+      status == PaymentStatus.pending ||
+      status == PaymentStatus.awaitingConfirmation ||
+      status == PaymentStatus.disputed;
+
+  bool get canMarkException => status == PaymentStatus.awaitingConfirmation;
+
+  factory AdminPaymentRecord.fromJson(Map<String, dynamic> json) {
+    return AdminPaymentRecord(
+      paymentId: jsonAsString(json['payment_id'] ?? json['id']),
+      orderId: jsonAsString(json['order_id']),
+      userId: jsonAsString(json['user_id']),
+      amount: jsonAsDouble(json['amount']),
+      method: paymentMethodFromValue(
+        json['payment_method'] ?? json['method'],
+        fallback: PaymentMethod.wechat,
+      ),
+      status: paymentStatusFromValue(
+        json['status'],
+        fallback: PaymentStatus.pending,
+      ),
+      paymentAccountId: jsonAsNullableString(json['payment_account_id']),
+      remark: jsonAsNullableString(json['remark']),
+      voucherUrl: jsonAsNullableString(json['voucher_url']),
+      adminNote: jsonAsNullableString(json['admin_note']),
+      confirmedBy: jsonAsNullableString(json['confirmed_by']),
+      confirmedAt: jsonAsNullableDateTime(json['confirmed_at']),
+      createdAt: jsonAsDateTime(json['created_at']),
+      updatedAt: jsonAsNullableDateTime(json['updated_at']),
+    );
+  }
+
+  AdminPaymentRecord copyWith({
+    PaymentStatus? status,
+    Object? adminNote = _paymentModelUnset,
+    Object? confirmedBy = _paymentModelUnset,
+    Object? confirmedAt = _paymentModelUnset,
+    DateTime? updatedAt,
+  }) {
+    return AdminPaymentRecord(
+      paymentId: paymentId,
+      orderId: orderId,
+      userId: userId,
+      amount: amount,
+      method: method,
+      status: status ?? this.status,
+      paymentAccountId: paymentAccountId,
+      remark: remark,
+      voucherUrl: voucherUrl,
+      adminNote: identical(adminNote, _paymentModelUnset)
+          ? this.adminNote
+          : adminNote as String?,
+      confirmedBy: identical(confirmedBy, _paymentModelUnset)
+          ? this.confirmedBy
+          : confirmedBy as String?,
+      confirmedAt: identical(confirmedAt, _paymentModelUnset)
+          ? this.confirmedAt
+          : confirmedAt as DateTime?,
+      createdAt: createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+    );
+  }
+}
+
 class WechatPayParams {
   final String appId;
   final String partnerId;
@@ -395,6 +492,42 @@ class OrderPaymentStatusResult {
       'payment_account_id': paymentAccountId,
       'payment_account': paymentAccount?.toMap(),
     };
+  }
+
+  OrderPaymentStatusResult copyWith({
+    PaymentStatus? status,
+    Object? paymentId = _paymentModelUnset,
+    Object? message = _paymentModelUnset,
+    Object? amount = _paymentModelUnset,
+    Object? method = _paymentModelUnset,
+    Object? paidAt = _paymentModelUnset,
+    Object? paymentAccountId = _paymentModelUnset,
+    Object? paymentAccount = _paymentModelUnset,
+  }) {
+    return OrderPaymentStatusResult(
+      status: status ?? this.status,
+      paymentId: identical(paymentId, _paymentModelUnset)
+          ? this.paymentId
+          : paymentId as String?,
+      message: identical(message, _paymentModelUnset)
+          ? this.message
+          : message as String?,
+      amount: identical(amount, _paymentModelUnset)
+          ? this.amount
+          : amount as double?,
+      method: identical(method, _paymentModelUnset)
+          ? this.method
+          : method as PaymentMethod?,
+      paidAt: identical(paidAt, _paymentModelUnset)
+          ? this.paidAt
+          : paidAt as DateTime?,
+      paymentAccountId: identical(paymentAccountId, _paymentModelUnset)
+          ? this.paymentAccountId
+          : paymentAccountId as String?,
+      paymentAccount: identical(paymentAccount, _paymentModelUnset)
+          ? this.paymentAccount
+          : paymentAccount as PaymentAccount?,
+    );
   }
 }
 

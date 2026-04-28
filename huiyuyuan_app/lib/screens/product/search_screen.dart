@@ -1,4 +1,4 @@
-﻿library;
+library;
 
 import 'package:flutter/material.dart';
 import '../../l10n/l10n_provider.dart';
@@ -119,7 +119,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
 
   Widget _buildSearchBar(bool isDark) {
     return Container(
-      padding: EdgeInsets.fromLTRB(8, 12, 16, 12),
+      padding: const EdgeInsets.fromLTRB(8, 12, 16, 12),
       decoration: BoxDecoration(
         color: isDark ? JewelryColors.darkSurface : Colors.white,
         boxShadow: [
@@ -143,7 +143,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
           Expanded(
             child: Container(
               height: 42,
-              padding: EdgeInsets.symmetric(horizontal: 14),
+              padding: const EdgeInsets.symmetric(horizontal: 14),
               decoration: BoxDecoration(
                 color: isDark
                     ? Colors.white.withOpacity(0.07)
@@ -152,9 +152,12 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
               ),
               child: Row(
                 children: [
-                  Icon(Icons.search_rounded,
-                      color: JewelryColors.textHint, size: 20),
-                  SizedBox(width: 8),
+                  const Icon(
+                    Icons.search_rounded,
+                    color: JewelryColors.textHint,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 8),
                   Expanded(
                     child: TextField(
                       controller: _searchController,
@@ -183,12 +186,12 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
               ),
             ),
           ),
-          SizedBox(width: 12),
+          const SizedBox(width: 12),
           GestureDetector(
             onTap: () => _performSearch(_searchController.text),
             child: Text(
               ref.tr('search'),
-              style: TextStyle(
+              style: const TextStyle(
                 color: JewelryColors.primary,
                 fontWeight: FontWeight.w600,
               ),
@@ -228,14 +231,14 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
     final catalogState = ref.watch(productCatalogProvider);
 
     return SingleChildScrollView(
-      padding: EdgeInsets.all(20),
+      padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           historyAsync.when(
             data: (history) {
               if (history.isEmpty) {
-                return SizedBox.shrink();
+                return const SizedBox.shrink();
               }
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -269,18 +272,18 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
                         .map((keyword) => _buildChip(keyword, isDark))
                         .toList(growable: false),
                   ),
-                  SizedBox(height: 24),
+                  const SizedBox(height: 24),
                 ],
               );
             },
-            loading: () => SizedBox.shrink(),
-            error: (_, __) => SizedBox.shrink(),
+            loading: () => const SizedBox.shrink(),
+            error: (_, __) => const SizedBox.shrink(),
           ),
           Text(ref.tr('search_hot'),
               style: TextStyle(
                   color: context.adaptiveTextPrimary,
                   fontWeight: FontWeight.w600)),
-          SizedBox(height: 12),
+          const SizedBox(height: 12),
           Wrap(
             spacing: 8,
             runSpacing: 8,
@@ -288,14 +291,14 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
                 .map((key) => _buildChip(key.tr, isDark, hot: true))
                 .toList(growable: false),
           ),
-          SizedBox(height: 28),
+          const SizedBox(height: 28),
           Text(ref.tr('search_discover'),
               style: TextStyle(
                   color: context.adaptiveTextPrimary,
                   fontWeight: FontWeight.w600)),
-          SizedBox(height: 12),
+          const SizedBox(height: 12),
           if (catalogState.isLoading && hotProducts.isEmpty)
-            Center(child: CircularProgressIndicator())
+            const Center(child: CircularProgressIndicator())
           else
             GridView.builder(
               shrinkWrap: true,
@@ -319,7 +322,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
     return GestureDetector(
       onTap: () => _selectKeyword(text),
       child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
           color: hot
               ? JewelryColors.primary.withOpacity(isDark ? 0.2 : 0.08)
@@ -357,7 +360,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
           children: [
             Expanded(
               child: ClipRRect(
-                borderRadius: BorderRadius.vertical(top: Radius.circular(14)),
+                borderRadius:
+                    const BorderRadius.vertical(top: Radius.circular(14)),
                 child: ProductImageView(
                   product: product,
                   imageUrl:
@@ -367,7 +371,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
               ),
             ),
             Padding(
-              padding: EdgeInsets.all(10),
+              padding: const EdgeInsets.all(10),
               child: Text(
                 product.titleL10n,
                 maxLines: 2,
@@ -393,16 +397,19 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
             height: 42,
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
-              padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               itemCount: categories.length,
               itemBuilder: (_, index) {
                 final category = categories[index];
                 final isSelected = category == searchState.filterCategory;
+                final categoryLabel = category == productCatalogAllCategory
+                    ? ref.tr('cat_all')
+                    : category;
                 return GestureDetector(
                   onTap: () => _searchNotifier.setFilterCategory(category),
                   child: Container(
-                    margin: EdgeInsets.symmetric(horizontal: 4),
-                    padding: EdgeInsets.symmetric(horizontal: 14),
+                    margin: const EdgeInsets.symmetric(horizontal: 4),
+                    padding: const EdgeInsets.symmetric(horizontal: 14),
                     decoration: BoxDecoration(
                       color: isSelected
                           ? JewelryColors.primary
@@ -413,7 +420,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
                     ),
                     child: Center(
                       child: Text(
-                        category,
+                        categoryLabel,
                         style: TextStyle(
                           color: isSelected
                               ? Colors.white
@@ -427,14 +434,14 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
             ),
           ),
           Padding(
-            padding: EdgeInsets.fromLTRB(16, 0, 16, 8),
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
             child: Row(
               children: [
                 Text(
                     ref.tr('search_result_count',
                         params: {'count': _filteredResults.length}),
                     style: TextStyle(color: Colors.grey[400], fontSize: 12)),
-                Spacer(),
+                const Spacer(),
                 _buildSortChip(
                     ref.tr('sort_comprehensive'), _SortType.relevance),
                 _buildSortChip(ref.tr('sort_price_asc'), _SortType.priceLow),
@@ -456,8 +463,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
     return GestureDetector(
       onTap: () => _searchNotifier.setSortType(type),
       child: Container(
-        margin: EdgeInsets.only(left: 8),
-        padding: EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        margin: const EdgeInsets.only(left: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
         decoration: BoxDecoration(
           color: selected
               ? JewelryColors.primary.withOpacity(0.12)
@@ -477,7 +484,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
 
   Widget _buildResultList(bool isDark, ProductSearchState searchState) {
     if (searchState.isSearching) {
-      return Center(child: CircularProgressIndicator());
+      return const Center(child: CircularProgressIndicator());
     }
     if (_filteredResults.isEmpty) {
       return Center(
@@ -485,7 +492,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(Icons.search_off_rounded, size: 64, color: Colors.grey[300]),
-            SizedBox(height: 16),
+            const SizedBox(height: 16),
             Text(ref.tr('search_empty'),
                 style: TextStyle(color: Colors.grey[400], fontSize: 16)),
           ],
@@ -494,7 +501,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
     }
 
     return ListView.builder(
-      padding: EdgeInsets.fromLTRB(16, 8, 16, 20),
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 20),
       itemCount: _filteredResults.length,
       itemBuilder: (_, index) =>
           _buildResultCard(_filteredResults[index], isDark, index),
@@ -510,8 +517,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
         ),
       ),
       child: Container(
-        margin: EdgeInsets.only(bottom: 12),
-        padding: EdgeInsets.all(12),
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           color: isDark ? JewelryColors.darkCard : Colors.white,
           borderRadius: BorderRadius.circular(14),
@@ -528,7 +535,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
                 height: 90,
               ),
             ),
-            SizedBox(width: 12),
+            const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -539,11 +546,11 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
                       style: TextStyle(
                           color: context.adaptiveTextPrimary,
                           fontWeight: FontWeight.w600)),
-                  SizedBox(height: 6),
+                  const SizedBox(height: 6),
                   Text(product.matL10n,
                       style: TextStyle(
                           color: context.adaptiveTextSecondary, fontSize: 12)),
-                  SizedBox(height: 10),
+                  const SizedBox(height: 10),
                   Row(
                     children: [
                       Text('¥${product.price.toInt()}',
@@ -551,7 +558,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
                               color: JewelryColors.price,
                               fontWeight: FontWeight.bold,
                               fontSize: 18)),
-                      Spacer(),
+                      const Spacer(),
                       Text(
                           ref.tr('search_paid_count',
                               params: {'count': product.salesCount}),

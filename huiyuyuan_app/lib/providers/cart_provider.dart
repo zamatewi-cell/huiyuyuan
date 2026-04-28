@@ -69,19 +69,17 @@ class CartNotifier extends StateNotifier<List<CartItemModel>> {
   /// 实际执行同步的私有方法
   Future<void> _syncToServer() async {
     try {
-      // 后端API同步
-      await _api.post(
-        ApiConfig.cart,
-        data: {
-          'items': state
-              .map((item) => {
-                    'product_id': item.product.id,
-                    'quantity': item.quantity,
-                    'selected_spec': item.selectedSpec,
-                  })
-              .toList(),
-        },
-      );
+      // 后端API期望单个CartItem对象，逐项同步
+      for (final item in state) {
+        await _api.post(
+          ApiConfig.cart,
+          data: {
+            'product_id': item.product.id,
+            'quantity': item.quantity,
+            'selected': item.isSelected,
+          },
+        );
+      }
     } catch (_) {
       // 同步失败不影响本地操作
     }

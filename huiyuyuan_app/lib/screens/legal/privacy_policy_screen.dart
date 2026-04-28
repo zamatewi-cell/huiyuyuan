@@ -1,169 +1,174 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../l10n/l10n_provider.dart';
 import '../../providers/app_settings_provider.dart';
 import '../../themes/colors.dart';
+import '../../widgets/common/glassmorphic_card.dart';
 
 class PrivacyPolicyScreen extends ConsumerWidget {
   const PrivacyPolicyScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bgColor = isDark ? const Color(0xFF0D0D1A) : const Color(0xFFFAF8FF);
-    final textColor = isDark ? Colors.white : JewelryColors.textPrimary;
-    final subColor = isDark ? Colors.white70 : Colors.black87;
-    final divColor = isDark ? Colors.white12 : Colors.black12;
     final content = _privacyContent(ref.watch(appSettingsProvider).language);
 
     return Scaffold(
-      backgroundColor: bgColor,
+      backgroundColor: JewelryColors.jadeBlack,
       appBar: AppBar(
-        backgroundColor: isDark ? const Color(0xFF1A1A2E) : Colors.white,
+        backgroundColor: JewelryColors.jadeBlack.withOpacity(0.84),
+        foregroundColor: JewelryColors.jadeMist,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(
+          icon: const Icon(
             Icons.arrow_back_ios_new,
-            color: isDark ? Colors.white : JewelryColors.textPrimary,
+            color: JewelryColors.jadeMist,
             size: 20,
           ),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Text(
-          ref.tr('settings_privacy'),
-          style: TextStyle(
-            color: textColor,
-            fontSize: 17,
-            fontWeight: FontWeight.w600,
+        title: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          decoration: BoxDecoration(
+            color: JewelryColors.deepJade.withOpacity(0.62),
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(
+              color: JewelryColors.champagneGold.withOpacity(0.14),
+            ),
+          ),
+          child: Text(
+            ref.tr('settings_privacy'),
+            style: const TextStyle(
+              color: JewelryColors.jadeMist,
+              fontSize: 17,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 0.35,
+            ),
           ),
         ),
         centerTitle: true,
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(1),
-          child: Divider(height: 1, color: divColor),
-        ),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: isDark
-                      ? const [Color(0xFF2A1F3D), Color(0xFF1A1A2E)]
-                      : [
-                          JewelryColors.primary.withOpacity(0.08),
-                          JewelryColors.primary.withOpacity(0.03),
-                        ],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: JewelryColors.primary.withOpacity(0.2),
-                ),
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    width: 48,
-                    height: 48,
-                    decoration: BoxDecoration(
-                      color: JewelryColors.primary.withOpacity(0.15),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      Icons.privacy_tip,
-                      color: JewelryColors.primary,
-                      size: 26,
-                    ),
-                  ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          content.cardTitle,
-                          style: TextStyle(
-                            color: textColor,
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
+      body: Stack(
+        children: [
+          const Positioned.fill(child: _PrivacyLegalBackdrop()),
+          SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                GlassmorphicCard(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(20),
+                  borderRadius: 26,
+                  blur: 16,
+                  opacity: 0.18,
+                  borderColor: JewelryColors.emeraldGlow.withOpacity(0.18),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 52,
+                        height: 52,
+                        decoration: BoxDecoration(
+                          color: JewelryColors.emeraldGlow.withOpacity(0.12),
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: JewelryColors.emeraldGlow.withOpacity(0.22),
                           ),
                         ),
-                        const SizedBox(height: 4),
-                        Text(
-                          content.updatedAt,
-                          style: TextStyle(
-                            color: subColor.withOpacity(0.6),
-                            fontSize: 12,
-                          ),
+                        child: const Icon(
+                          Icons.privacy_tip,
+                          color: JewelryColors.emeraldGlow,
+                          size: 27,
                         ),
-                      ],
-                    ),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              content.cardTitle,
+                              style: const TextStyle(
+                                color: JewelryColors.jadeMist,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              content.updatedAt,
+                              style: TextStyle(
+                                color: JewelryColors.jadeMist.withOpacity(0.52),
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 24),
-            Text(
-              content.intro,
-              style: TextStyle(color: subColor, fontSize: 14, height: 1.8),
-            ),
-            const SizedBox(height: 20),
-            for (final section in content.sections) ...[
-              _buildSection(
-                title: section.title,
-                icon: section.icon,
-                items: section.items,
-                isDark: isDark,
-                textColor: textColor,
-                subColor: subColor,
-                divColor: divColor,
-              ),
-              const SizedBox(height: 18),
-            ],
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(18),
-              decoration: BoxDecoration(
-                color:
-                    isDark ? Colors.white.withOpacity(0.05) : Colors.grey.shade50,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: divColor),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    content.contactTitle,
+                ),
+                const SizedBox(height: 18),
+                GlassmorphicCard(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(18),
+                  borderRadius: 22,
+                  blur: 14,
+                  opacity: 0.14,
+                  borderColor: JewelryColors.champagneGold.withOpacity(0.12),
+                  child: Text(
+                    content.intro,
                     style: TextStyle(
-                      color: textColor,
+                      color: JewelryColors.jadeMist.withOpacity(0.72),
                       fontSize: 14,
-                      fontWeight: FontWeight.bold,
+                      height: 1.8,
                     ),
                   ),
-                  const SizedBox(height: 10),
-                  for (var i = 0; i < content.contacts.length; i++) ...[
-                    _contactRow(
-                      content.contacts[i].icon,
-                      content.contacts[i].text,
-                      subColor,
-                    ),
-                    if (i != content.contacts.length - 1)
-                      const SizedBox(height: 6),
-                  ],
+                ),
+                const SizedBox(height: 20),
+                for (final section in content.sections) ...[
+                  _buildSection(
+                    title: section.title,
+                    icon: section.icon,
+                    items: section.items,
+                  ),
+                  const SizedBox(height: 18),
                 ],
-              ),
+                GlassmorphicCard(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(18),
+                  borderRadius: 22,
+                  blur: 14,
+                  opacity: 0.16,
+                  borderColor: JewelryColors.champagneGold.withOpacity(0.14),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        content.contactTitle,
+                        style: const TextStyle(
+                          color: JewelryColors.jadeMist,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      for (var i = 0; i < content.contacts.length; i++) ...[
+                        _contactRow(
+                          content.contacts[i].icon,
+                          content.contacts[i].text,
+                        ),
+                        if (i != content.contacts.length - 1)
+                          const SizedBox(height: 6),
+                      ],
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 40),
+              ],
             ),
-            const SizedBox(height: 40),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -172,35 +177,33 @@ class PrivacyPolicyScreen extends ConsumerWidget {
     required String title,
     required IconData icon,
     required List<_PolicyItem> items,
-    required bool isDark,
-    required Color textColor,
-    required Color subColor,
-    required Color divColor,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           children: [
-            Icon(icon, color: JewelryColors.primary, size: 18),
+            Icon(icon, color: JewelryColors.emeraldGlow, size: 18),
             const SizedBox(width: 8),
-            Text(
-              title,
-              style: TextStyle(
-                color: textColor,
-                fontSize: 15,
-                fontWeight: FontWeight.bold,
+            Expanded(
+              child: Text(
+                title,
+                style: const TextStyle(
+                  color: JewelryColors.jadeMist,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w900,
+                ),
               ),
             ),
           ],
         ),
         const SizedBox(height: 12),
-        Container(
-          decoration: BoxDecoration(
-            color: isDark ? Colors.white.withOpacity(0.04) : Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: divColor),
-          ),
+        GlassmorphicCard(
+          padding: EdgeInsets.zero,
+          borderRadius: 22,
+          blur: 14,
+          opacity: 0.14,
+          borderColor: JewelryColors.champagneGold.withOpacity(0.12),
           child: Column(
             children: items.asMap().entries.map((entry) {
               final isLast = entry.key == items.length - 1;
@@ -213,12 +216,12 @@ class PrivacyPolicyScreen extends ConsumerWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Container(
-                          width: 6,
-                          height: 6,
-                          margin: const EdgeInsets.only(top: 6, right: 10),
+                          width: 7,
+                          height: 7,
+                          margin: const EdgeInsets.only(top: 7, right: 10),
                           decoration: const BoxDecoration(
                             shape: BoxShape.circle,
-                            color: JewelryColors.primary,
+                            color: JewelryColors.emeraldGlow,
                           ),
                         ),
                         Expanded(
@@ -227,17 +230,18 @@ class PrivacyPolicyScreen extends ConsumerWidget {
                             children: [
                               Text(
                                 item.title,
-                                style: TextStyle(
-                                  color: textColor,
+                                style: const TextStyle(
+                                  color: JewelryColors.jadeMist,
                                   fontSize: 14,
-                                  fontWeight: FontWeight.w600,
+                                  fontWeight: FontWeight.w800,
                                 ),
                               ),
                               const SizedBox(height: 4),
                               Text(
                                 item.content,
                                 style: TextStyle(
-                                  color: subColor.withOpacity(0.75),
+                                  color:
+                                      JewelryColors.jadeMist.withOpacity(0.66),
                                   fontSize: 13,
                                   height: 1.6,
                                 ),
@@ -248,7 +252,11 @@ class PrivacyPolicyScreen extends ConsumerWidget {
                       ],
                     ),
                   ),
-                  if (!isLast) Divider(height: 1, color: divColor),
+                  if (!isLast)
+                    Divider(
+                      height: 1,
+                      color: JewelryColors.champagneGold.withOpacity(0.1),
+                    ),
                 ],
               );
             }).toList(),
@@ -258,18 +266,79 @@ class PrivacyPolicyScreen extends ConsumerWidget {
     );
   }
 
-  Widget _contactRow(IconData icon, String text, Color color) {
+  Widget _contactRow(IconData icon, String text) {
     return Row(
       children: [
-        Icon(icon, size: 16, color: JewelryColors.primary),
+        Icon(icon, size: 16, color: JewelryColors.emeraldGlow),
         const SizedBox(width: 8),
         Expanded(
           child: Text(
             text,
-            style: TextStyle(color: color, fontSize: 13, height: 1.5),
+            style: TextStyle(
+              color: JewelryColors.jadeMist.withOpacity(0.68),
+              fontSize: 13,
+              height: 1.5,
+            ),
           ),
         ),
       ],
+    );
+  }
+}
+
+class _PrivacyLegalBackdrop extends StatelessWidget {
+  const _PrivacyLegalBackdrop();
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration:
+          const BoxDecoration(gradient: JewelryColors.jadeDepthGradient),
+      child: Stack(
+        children: [
+          Positioned(
+            top: -150,
+            right: -120,
+            child: _PrivacyLegalGlowOrb(
+              size: 320,
+              color: JewelryColors.emeraldGlow.withOpacity(0.1),
+            ),
+          ),
+          Positioned(
+            left: -150,
+            bottom: 120,
+            child: _PrivacyLegalGlowOrb(
+              size: 290,
+              color: JewelryColors.champagneGold.withOpacity(0.08),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PrivacyLegalGlowOrb extends StatelessWidget {
+  const _PrivacyLegalGlowOrb({
+    required this.size,
+    required this.color,
+  });
+
+  final double size;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: color,
+        boxShadow: [
+          BoxShadow(color: color, blurRadius: 96, spreadRadius: 28),
+        ],
+      ),
     );
   }
 }
@@ -478,28 +547,23 @@ _PrivacyContent _privacyContent(AppLanguage language) {
             items: [
               _PolicyItem(
                 title: '註冊與帳號資訊',
-                content:
-                    '當您註冊或登入時，我們會處理手機號碼、使用者名稱、帳號類型以及必要的登入憑證資訊。',
+                content: '當您註冊或登入時，我們會處理手機號碼、使用者名稱、帳號類型以及必要的登入憑證資訊。',
               ),
               _PolicyItem(
                 title: '交易與收貨資訊',
-                content:
-                    '當您下單、收貨或申請售後服務時，我們會處理訂單資訊、收貨地址、聯絡人與支付相關記錄等必要資訊。',
+                content: '當您下單、收貨或申請售後服務時，我們會處理訂單資訊、收貨地址、聯絡人與支付相關記錄等必要資訊。',
               ),
               _PolicyItem(
                 title: '設備與日誌資訊',
-                content:
-                    '為保障服務穩定與安全，我們會記錄設備型號、系統版本、應用日誌、造訪時間、請求結果等運行資訊。',
+                content: '為保障服務穩定與安全，我們會記錄設備型號、系統版本、應用日誌、造訪時間、請求結果等運行資訊。',
               ),
               _PolicyItem(
                 title: '客服與回饋資訊',
-                content:
-                    '當您聯繫客服、提交回饋或發起爭議處理時，我們會保存溝通內容與處理結果。',
+                content: '當您聯繫客服、提交回饋或發起爭議處理時，我們會保存溝通內容與處理結果。',
               ),
               _PolicyItem(
                 title: '位置資訊',
-                content:
-                    '僅在您授權的前提下，我們才會處理位置資訊，用於門店推薦、附近服務等相關功能。',
+                content: '僅在您授權的前提下，我們才會處理位置資訊，用於門店推薦、附近服務等相關功能。',
               ),
             ],
           ),
@@ -509,28 +573,23 @@ _PrivacyContent _privacyContent(AppLanguage language) {
             items: [
               _PolicyItem(
                 title: '提供核心服務',
-                content:
-                    '資訊將用於完成帳號登入、商品展示、購買交易、訂單履約及售後處理等核心流程。',
+                content: '資訊將用於完成帳號登入、商品展示、購買交易、訂單履約及售後處理等核心流程。',
               ),
               _PolicyItem(
                 title: '安全與風控',
-                content:
-                    '我們會使用資訊識別異常登入、詐欺行為、介面濫用及其他可能危及平台安全的行為。',
+                content: '我們會使用資訊識別異常登入、詐欺行為、介面濫用及其他可能危及平台安全的行為。',
               ),
               _PolicyItem(
                 title: '個人化體驗',
-                content:
-                    '在符合法律規定的前提下，我們會基於瀏覽、收藏與搜尋行為持續優化推薦結果。',
+                content: '在符合法律規定的前提下，我們會基於瀏覽、收藏與搜尋行為持續優化推薦結果。',
               ),
               _PolicyItem(
                 title: '服務通知',
-                content:
-                    '我們會發送訂單狀態、帳號安全與重要規則更新等必要通知。',
+                content: '我們會發送訂單狀態、帳號安全與重要規則更新等必要通知。',
               ),
               _PolicyItem(
                 title: '統計與優化',
-                content:
-                    '我們會分析系統效能與功能使用情況，以持續提升產品品質與服務效率。',
+                content: '我們會分析系統效能與功能使用情況，以持續提升產品品質與服務效率。',
               ),
             ],
           ),
@@ -540,18 +599,15 @@ _PrivacyContent _privacyContent(AppLanguage language) {
             items: [
               _PolicyItem(
                 title: '不出售個人資訊',
-                content:
-                    '除法律法規另有規定外，我們不會向無關第三方出售您的個人資訊。',
+                content: '除法律法規另有規定外，我們不會向無關第三方出售您的個人資訊。',
               ),
               _PolicyItem(
                 title: '必要合作方',
-                content:
-                    '為完成支付、物流或訊息通知等服務，我們可能向必要合作方提供最小範圍資訊，並要求其履行保護義務。',
+                content: '為完成支付、物流或訊息通知等服務，我們可能向必要合作方提供最小範圍資訊，並要求其履行保護義務。',
               ),
               _PolicyItem(
                 title: '依法揭露',
-                content:
-                    '在符合法律法規、司法程序或監管要求的情況下，我們可能依法揭露相關資訊。',
+                content: '在符合法律法規、司法程序或監管要求的情況下，我們可能依法揭露相關資訊。',
               ),
             ],
           ),
@@ -561,23 +617,19 @@ _PrivacyContent _privacyContent(AppLanguage language) {
             items: [
               _PolicyItem(
                 title: '加密傳輸',
-                content:
-                    '應用與服務之間傳輸的敏感資料會使用加密通道，以降低傳輸過程中的風險。',
+                content: '應用與服務之間傳輸的敏感資料會使用加密通道，以降低傳輸過程中的風險。',
               ),
               _PolicyItem(
                 title: '權限控制',
-                content:
-                    '我們遵循最小權限原則，僅授權有業務需要的人員存取相關資料。',
+                content: '我們遵循最小權限原則，僅授權有業務需要的人員存取相關資料。',
               ),
               _PolicyItem(
                 title: '保存期限',
-                content:
-                    '除法律另有規定外，我們僅在實現處理目的所需的最短期間內保存您的資訊。',
+                content: '除法律另有規定外，我們僅在實現處理目的所需的最短期間內保存您的資訊。',
               ),
               _PolicyItem(
                 title: '安全監測',
-                content:
-                    '我們持續進行日誌審計、異常告警與安全檢查，並及時修復已識別的風險。',
+                content: '我們持續進行日誌審計、異常告警與安全檢查，並及時修復已識別的風險。',
               ),
             ],
           ),
@@ -587,23 +639,19 @@ _PrivacyContent _privacyContent(AppLanguage language) {
             items: [
               _PolicyItem(
                 title: '查詢與複製',
-                content:
-                    '在符合法律規定的情況下，您有權查詢我們持有的與您相關的個人資訊，並申請複製。',
+                content: '在符合法律規定的情況下，您有權查詢我們持有的與您相關的個人資訊，並申請複製。',
               ),
               _PolicyItem(
                 title: '更正與補充',
-                content:
-                    '若資訊不準確或不完整，您可在應用內更正，或聯絡客服協助處理。',
+                content: '若資訊不準確或不完整，您可在應用內更正，或聯絡客服協助處理。',
               ),
               _PolicyItem(
                 title: '刪除與註銷',
-                content:
-                    '在符合法律法規的情況下，您可申請刪除相關資訊或註銷帳號。',
+                content: '在符合法律法規的情況下，您可申請刪除相關資訊或註銷帳號。',
               ),
               _PolicyItem(
                 title: '撤回同意',
-                content:
-                    '對於基於授權同意處理的資訊，您可隨時撤回授權；撤回前已完成的處理不受影響。',
+                content: '對於基於授權同意處理的資訊，您可隨時撤回授權；撤回前已完成的處理不受影響。',
               ),
             ],
           ),
@@ -613,8 +661,7 @@ _PrivacyContent _privacyContent(AppLanguage language) {
             items: [
               _PolicyItem(
                 title: '年齡要求',
-                content:
-                    '若您為未成年人，請在監護人同意與指導下使用本平台。如發現存在違規收集未成年人資訊的情形，我們將及時處理。',
+                content: '若您為未成年人，請在監護人同意與指導下使用本平台。如發現存在違規收集未成年人資訊的情形，我們將及時處理。',
               ),
             ],
           ),
@@ -624,13 +671,11 @@ _PrivacyContent _privacyContent(AppLanguage language) {
             items: [
               _PolicyItem(
                 title: '更新通知',
-                content:
-                    '當本政策發生重大變更時，我們會透過應用內公告、彈窗或其他合理方式提醒您。',
+                content: '當本政策發生重大變更時，我們會透過應用內公告、彈窗或其他合理方式提醒您。',
               ),
               _PolicyItem(
                 title: '聯絡我們',
-                content:
-                    '若您對本政策或我們的資訊處理方式有疑問，請透過下方聯絡方式與我們聯繫。',
+                content: '若您對本政策或我們的資訊處理方式有疑問，請透過下方聯絡方式與我們聯繫。',
               ),
             ],
           ),
@@ -658,28 +703,23 @@ _PrivacyContent _privacyContent(AppLanguage language) {
             items: [
               _PolicyItem(
                 title: '注册与账号信息',
-                content:
-                    '当您注册或登录时，我们会处理手机号、用户名、用户类型以及必要的登录凭证信息。',
+                content: '当您注册或登录时，我们会处理手机号、用户名、用户类型以及必要的登录凭证信息。',
               ),
               _PolicyItem(
                 title: '交易与收货信息',
-                content:
-                    '当您下单、收货或申请售后服务时，我们会处理订单信息、收货地址、联系人、支付相关记录等必要信息。',
+                content: '当您下单、收货或申请售后服务时，我们会处理订单信息、收货地址、联系人、支付相关记录等必要信息。',
               ),
               _PolicyItem(
                 title: '设备与日志信息',
-                content:
-                    '为保障服务稳定与安全，我们会记录设备型号、系统版本、应用日志、访问时间、请求结果等运行信息。',
+                content: '为保障服务稳定与安全，我们会记录设备型号、系统版本、应用日志、访问时间、请求结果等运行信息。',
               ),
               _PolicyItem(
                 title: '客服与反馈信息',
-                content:
-                    '当您联系客户、提交反馈或发起争议处理时，我们会保存沟通内容与处理结果。',
+                content: '当您联系客户、提交反馈或发起争议处理时，我们会保存沟通内容与处理结果。',
               ),
               _PolicyItem(
                 title: '位置信息',
-                content:
-                    '仅在您授权的前提下，我们才会处理位置信息，用于门店推荐、附近服务等相关功能。',
+                content: '仅在您授权的前提下，我们才会处理位置信息，用于门店推荐、附近服务等相关功能。',
               ),
             ],
           ),
@@ -689,28 +729,23 @@ _PrivacyContent _privacyContent(AppLanguage language) {
             items: [
               _PolicyItem(
                 title: '提供核心服务',
-                content:
-                    '信息将用于完成账号登录、商品展示、购买交易、订单履约及售后处理等核心流程。',
+                content: '信息将用于完成账号登录、商品展示、购买交易、订单履约及售后处理等核心流程。',
               ),
               _PolicyItem(
                 title: '安全与风控',
-                content:
-                    '我们会使用信息识别异常登录、欺诈行为、接口滥用及其他可能危及平台安全的行为。',
+                content: '我们会使用信息识别异常登录、欺诈行为、接口滥用及其他可能危及平台安全的行为。',
               ),
               _PolicyItem(
                 title: '个性化体验',
-                content:
-                    '在符合法律规定的前提下，我们会基于浏览、收藏和搜索行为持续优化推荐结果。',
+                content: '在符合法律规定的前提下，我们会基于浏览、收藏和搜索行为持续优化推荐结果。',
               ),
               _PolicyItem(
                 title: '服务通知',
-                content:
-                    '我们会发送订单状态、账号安全与重要规则更新等必要通知。',
+                content: '我们会发送订单状态、账号安全与重要规则更新等必要通知。',
               ),
               _PolicyItem(
                 title: '统计与优化',
-                content:
-                    '我们会分析系统性能与功能使用情况，以持续提升产品质量与服务效率。',
+                content: '我们会分析系统性能与功能使用情况，以持续提升产品质量与服务效率。',
               ),
             ],
           ),
@@ -720,18 +755,15 @@ _PrivacyContent _privacyContent(AppLanguage language) {
             items: [
               _PolicyItem(
                 title: '不出售个人信息',
-                content:
-                    '除法律法规另有规定外，我们不会向无关第三方出售您的个人信息。',
+                content: '除法律法规另有规定外，我们不会向无关第三方出售您的个人信息。',
               ),
               _PolicyItem(
                 title: '必要合作方',
-                content:
-                    '为完成支付、物流或消息通知等服务，我们可能向必要合作方提供最小范围的信息，并要求其履行保护义务。',
+                content: '为完成支付、物流或消息通知等服务，我们可能向必要合作方提供最小范围的信息，并要求其履行保护义务。',
               ),
               _PolicyItem(
                 title: '依法披露',
-                content:
-                    '在符合法律法规、司法程序或监管要求的情况下，我们可能依法披露相关信息。',
+                content: '在符合法律法规、司法程序或监管要求的情况下，我们可能依法披露相关信息。',
               ),
             ],
           ),
@@ -741,23 +773,19 @@ _PrivacyContent _privacyContent(AppLanguage language) {
             items: [
               _PolicyItem(
                 title: '加密传输',
-                content:
-                    '应用与服务之间传输的敏感数据会通过加密通道保护，以降低传输过程中的风险。',
+                content: '应用与服务之间传输的敏感数据会通过加密通道保护，以降低传输过程中的风险。',
               ),
               _PolicyItem(
                 title: '权限控制',
-                content:
-                    '我们遵循最小权限原则，仅授权有业务需要的人员访问相关数据。',
+                content: '我们遵循最小权限原则，仅授权有业务需要的人员访问相关数据。',
               ),
               _PolicyItem(
                 title: '保存期限',
-                content:
-                    '除法律另有规定外，我们仅在实现处理目的所需的最短期限内保存您的信息。',
+                content: '除法律另有规定外，我们仅在实现处理目的所需的最短期限内保存您的信息。',
               ),
               _PolicyItem(
                 title: '安全监测',
-                content:
-                    '我们持续进行日志审计、异常告警与安全检查，并及时修复已识别的风险。',
+                content: '我们持续进行日志审计、异常告警与安全检查，并及时修复已识别的风险。',
               ),
             ],
           ),
@@ -767,23 +795,19 @@ _PrivacyContent _privacyContent(AppLanguage language) {
             items: [
               _PolicyItem(
                 title: '查询与复制',
-                content:
-                    '在符合法律规定的情况下，您有权查询我们持有的与您相关的个人信息，并申请复制。',
+                content: '在符合法律规定的情况下，您有权查询我们持有的与您相关的个人信息，并申请复制。',
               ),
               _PolicyItem(
                 title: '更正与补充',
-                content:
-                    '若信息不准确或不完整，您可在应用内更正，或联系客户协助处理。',
+                content: '若信息不准确或不完整，您可在应用内更正，或联系客户协助处理。',
               ),
               _PolicyItem(
                 title: '删除与注销',
-                content:
-                    '在符合法律法规的情况下，您可申请删除相关信息或注销账号。',
+                content: '在符合法律法规的情况下，您可申请删除相关信息或注销账号。',
               ),
               _PolicyItem(
                 title: '撤回同意',
-                content:
-                    '对于基于授权同意处理的信息，您可随时撤回授权；撤回前已完成的处理不受影响。',
+                content: '对于基于授权同意处理的信息，您可随时撤回授权；撤回前已完成的处理不受影响。',
               ),
             ],
           ),
@@ -793,8 +817,7 @@ _PrivacyContent _privacyContent(AppLanguage language) {
             items: [
               _PolicyItem(
                 title: '年龄要求',
-                content:
-                    '若您为未成年人，请在监护人同意和指导下使用本平台。如发现存在违规收集未成年人信息的情形，我们会及时处理。',
+                content: '若您为未成年人，请在监护人同意和指导下使用本平台。如发现存在违规收集未成年人信息的情形，我们会及时处理。',
               ),
             ],
           ),
@@ -804,13 +827,11 @@ _PrivacyContent _privacyContent(AppLanguage language) {
             items: [
               _PolicyItem(
                 title: '更新通知',
-                content:
-                    '当本政策发生重大变化时，我们会通过应用内公告、弹窗或其他合理方式提醒您。',
+                content: '当本政策发生重大变化时，我们会通过应用内公告、弹窗或其他合理方式提醒您。',
               ),
               _PolicyItem(
                 title: '联系我们',
-                content:
-                    '若您对本政策或我们的信息处理方式有疑问，请通过下方联系方式与我们联系。',
+                content: '若您对本政策或我们的信息处理方式有疑问，请通过下方联系方式与我们联系。',
               ),
             ],
           ),

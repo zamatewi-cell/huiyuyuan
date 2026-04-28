@@ -7,13 +7,41 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../config/api_config.dart';
 import '../providers/app_settings_provider.dart';
+import '../providers/auth_provider.dart';
 import '../models/inventory_model.dart';
-import '../models/product_model.dart';
+import '../models/user_model.dart';
 import 'product_catalog_provider.dart';
 import '../services/api_service.dart';
 
 const _kInventoryCacheKey = 'inventory_cache';
 const _kInventoryTxCacheKey = 'inventory_tx_cache';
+
+bool _canReadInventory(UserModel? user) {
+  if (user == null) {
+    return true;
+  }
+  if (user.isAdmin) {
+    return true;
+  }
+  if (user.userType != UserType.operator) {
+    return false;
+  }
+  return user.hasPermission('inventory_read') ||
+      user.hasPermission('inventory_write');
+}
+
+bool _canWriteInventory(UserModel? user) {
+  if (user == null) {
+    return true;
+  }
+  if (user.isAdmin) {
+    return true;
+  }
+  if (user.userType != UserType.operator) {
+    return false;
+  }
+  return user.hasPermission('inventory_write');
+}
 
 List<InventoryItem> _buildInventoryFromProducts(List<ProductModel> products) {
   return products.map((product) {
@@ -42,6 +70,12 @@ class InventoryNotifier extends StateNotifier<List<InventoryItem>> {
   final _api = ApiService();
 
   Future<void> _loadFromStorage() async {
+    final user = _ref.read(currentUserProvider);
+    if (!_canReadInventory(user)) {
+      state = const <InventoryItem>[];
+      return;
+    }
+
     try {
       final res = await _api.get(ApiConfig.inventory);
       if (res.success && res.data is List) {
@@ -56,6 +90,10 @@ class InventoryNotifier extends StateNotifier<List<InventoryItem>> {
           }
           return;
         }
+      }
+      if (res.code == 401 || res.code == 403) {
+        state = const <InventoryItem>[];
+        return;
       }
     } catch (_) {}
 
@@ -278,13 +316,20 @@ class InventoryNotifier extends StateNotifier<List<InventoryItem>> {
 }
 
 class InventoryTxNotifier extends StateNotifier<List<InventoryTransaction>> {
-  InventoryTxNotifier() : super([]) {
+  InventoryTxNotifier(this._ref) : super([]) {
     _loadTransactions();
   }
 
+  final Ref _ref;
   final _api = ApiService();
 
   Future<void> _loadTransactions() async {
+    final user = _ref.read(currentUserProvider);
+    if (!_canReadInventory(user)) {
+      state = const <InventoryTransaction>[];
+      return;
+    }
+
     try {
       final res = await _api.get(ApiConfig.inventoryTransactions);
       if (res.success && res.data is List) {
@@ -296,6 +341,10 @@ class InventoryTxNotifier extends StateNotifier<List<InventoryTransaction>> {
           state = txs;
           return;
         }
+      }
+      if (res.code == 401 || res.code == 403) {
+        state = const <InventoryTransaction>[];
+        return;
       }
     } catch (_) {}
 
@@ -324,6 +373,9 @@ class InventoryTxNotifier extends StateNotifier<List<InventoryTransaction>> {
   }
 
   void addTransaction(InventoryTransaction tx) {
+    if (!_canWriteInventory(_ref.read(currentUserProvider))) {
+      return;
+    }
     state = [tx, ...state];
     _saveToLocal();
     try {
@@ -349,7 +401,7 @@ final inventoryProvider =
 
 final inventoryTxProvider =
     StateNotifierProvider<InventoryTxNotifier, List<InventoryTransaction>>(
-  (ref) => InventoryTxNotifier(),
+  (ref) => InventoryTxNotifier(ref),
 );
 
 final inventoryStatsProvider = Provider<InventoryStats>((ref) {

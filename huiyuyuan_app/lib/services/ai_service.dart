@@ -214,6 +214,14 @@ class AIService {
       origin: origin,
     );
 
+    if (!isOnlineConfigured) {
+      return _promptService.buildOfflineDescription(
+        productName: productName,
+        material: material,
+        price: price,
+      );
+    }
+
     try {
       return await chat(
         userMessage: prompt,

@@ -1,4 +1,4 @@
-﻿/// HuiYuYuan internal inventory management screen.
+/// HuiYuYuan internal inventory management screen.
 library;
 
 import 'package:flutter/material.dart';
@@ -8,7 +8,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:intl/intl.dart';
 import '../../models/inventory_model.dart';
+import '../../models/user_model.dart';
 import '../../providers/app_settings_provider.dart';
+import '../../providers/auth_provider.dart';
 import '../../providers/inventory_provider.dart';
 import '../../themes/colors.dart';
 import 'package:huiyuyuan/l10n/string_extension.dart';
@@ -41,6 +43,93 @@ String _inventoryCategoryL10n(AppLanguage language, String category) {
   return ProductTranslator.translateCategory(language, canonical);
 }
 
+class _InventoryBackdrop extends StatelessWidget {
+  const _InventoryBackdrop();
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: const BoxDecoration(
+        gradient: JewelryColors.jadeDepthGradient,
+      ),
+      child: Stack(
+        children: [
+          Positioned(
+            top: -150,
+            right: -120,
+            child: _InventoryGlowOrb(
+              size: 340,
+              color: JewelryColors.emeraldGlow.withOpacity(0.1),
+            ),
+          ),
+          Positioned(
+            left: -150,
+            top: 360,
+            child: _InventoryGlowOrb(
+              size: 300,
+              color: JewelryColors.champagneGold.withOpacity(0.1),
+            ),
+          ),
+          Positioned.fill(
+            child: CustomPaint(
+              painter: _InventoryTracePainter(),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _InventoryGlowOrb extends StatelessWidget {
+  const _InventoryGlowOrb({required this.size, required this.color});
+
+  final double size;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: color,
+        boxShadow: [
+          BoxShadow(color: color, blurRadius: 96, spreadRadius: 30),
+        ],
+      ),
+    );
+  }
+}
+
+class _InventoryTracePainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 0.75
+      ..color = JewelryColors.champagneGold.withOpacity(0.035);
+
+    for (var i = 0; i < 7; i++) {
+      final y = size.height * (0.1 + i * 0.13);
+      final path = Path()..moveTo(-24, y);
+      path.cubicTo(
+        size.width * 0.2,
+        y - 30,
+        size.width * 0.72,
+        y + 34,
+        size.width + 24,
+        y,
+      );
+      canvas.drawPath(path, paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _InventoryTracePainter oldDelegate) => false;
+}
+
 class InventoryScreen extends ConsumerStatefulWidget {
   const InventoryScreen({super.key});
 
@@ -68,27 +157,104 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen>
 
   @override
   Widget build(BuildContext context) {
+    final user = ref.watch(currentUserProvider);
+    final canRead = _canReadInventory(user);
+    final canWrite = _canWriteInventory(user);
+
     return Scaffold(
-      backgroundColor: const Color(0xFF0D1B2A),
-      body: SafeArea(
+      backgroundColor: JewelryColors.jadeBlack,
+      body: Stack(
+        children: [
+          const Positioned.fill(child: _InventoryBackdrop()),
+          SafeArea(
+            child: canRead
+                ? Column(
+                    children: [
+                      _buildHeader(),
+                      _buildTabBar(),
+                      Expanded(
+                        child: TabBarView(
+                          controller: _tabController,
+                          children: [
+                            _buildOverviewTab(),
+                            _buildStockListTab(),
+                            _buildTransactionTab(),
+                          ],
+                        ),
+                      ),
+                    ],
+                  )
+                : _buildPermissionDeniedState(),
+          ),
+        ],
+      ),
+      floatingActionButton: canRead && canWrite ? _buildFAB() : null,
+    );
+  }
+
+  bool _canReadInventory(UserModel? user) {
+    if (user == null) {
+      return true;
+    }
+    if (user.isAdmin) {
+      return true;
+    }
+    if (user.userType != UserType.operator) {
+      return false;
+    }
+    return user.hasPermission('inventory_read') ||
+        user.hasPermission('inventory_write');
+  }
+
+  bool _canWriteInventory(UserModel? user) {
+    if (user == null) {
+      return true;
+    }
+    if (user.isAdmin) {
+      return true;
+    }
+    if (user.userType != UserType.operator) {
+      return false;
+    }
+    return user.hasPermission('inventory_write');
+  }
+
+  Widget _buildPermissionDeniedState() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 28),
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            _buildHeader(),
-            _buildTabBar(),
-            Expanded(
-              child: TabBarView(
-                controller: _tabController,
-                children: [
-                  _buildOverviewTab(),
-                  _buildStockListTab(),
-                  _buildTransactionTab(),
-                ],
+            Container(
+              width: 72,
+              height: 72,
+              decoration: BoxDecoration(
+                color: JewelryColors.deepJade.withOpacity(0.58),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: JewelryColors.champagneGold.withOpacity(0.12),
+                ),
+              ),
+              child: const Icon(
+                Icons.lock_outline_rounded,
+                color: JewelryColors.champagneGold,
+                size: 30,
+              ),
+            ),
+            const SizedBox(height: 18),
+            Text(
+              ref.tr('operator_permission_denied'),
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: JewelryColors.jadeMist,
+                fontSize: 15,
+                fontWeight: FontWeight.w900,
               ),
             ),
           ],
         ),
       ),
-      floatingActionButton: _buildFAB(),
     );
   }
 
@@ -103,15 +269,18 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen>
             width: 46,
             height: 46,
             decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFF06B6D4), Color(0xFF0EA5E9)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
+              gradient: JewelryColors.emeraldLusterGradient,
               borderRadius: BorderRadius.circular(14),
+              boxShadow: [
+                BoxShadow(
+                  color: JewelryColors.emeraldGlow.withOpacity(0.22),
+                  blurRadius: 18,
+                  offset: const Offset(0, 9),
+                ),
+              ],
             ),
             child: const Icon(Icons.warehouse_rounded,
-                color: Colors.white, size: 24),
+                color: JewelryColors.jadeBlack, size: 24),
           ),
           const SizedBox(width: 14),
           Expanded(
@@ -120,9 +289,9 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen>
               children: [
                 Text('admin_inventory_mgmt'.tr,
                     style: const TextStyle(
-                        color: Colors.white,
+                        color: JewelryColors.jadeMist,
                         fontSize: 18,
-                        fontWeight: FontWeight.bold)),
+                        fontWeight: FontWeight.w900)),
                 Text(
                   ref.tr(
                     'inventory_header_summary',
@@ -132,7 +301,8 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen>
                     },
                   ),
                   style: TextStyle(
-                      color: Colors.white.withOpacity(0.55), fontSize: 12),
+                      color: JewelryColors.jadeMist.withOpacity(0.56),
+                      fontSize: 12),
                 ),
               ],
             ),
@@ -158,13 +328,17 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen>
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.warning_rounded, color: Colors.white, size: 14),
+            const Icon(
+              Icons.warning_rounded,
+              color: JewelryColors.jadeMist,
+              size: 14,
+            ),
             const SizedBox(width: 4),
             Text(ref.tr('inventory_alert_badge', params: {'count': total}),
                 style: const TextStyle(
-                    color: Colors.white,
+                    color: JewelryColors.jadeMist,
                     fontSize: 12,
-                    fontWeight: FontWeight.w600)),
+                    fontWeight: FontWeight.w800)),
           ],
         ),
       ),
@@ -176,20 +350,22 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen>
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 14, 16, 0),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.06),
-        borderRadius: BorderRadius.circular(14),
+        color: JewelryColors.deepJade.withOpacity(0.5),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: JewelryColors.champagneGold.withOpacity(0.12),
+        ),
       ),
       child: TabBar(
         controller: _tabController,
         indicatorSize: TabBarIndicatorSize.tab,
         indicator: BoxDecoration(
-          gradient: const LinearGradient(
-              colors: [Color(0xFF06B6D4), Color(0xFF0EA5E9)]),
-          borderRadius: BorderRadius.circular(14),
+          gradient: JewelryColors.emeraldLusterGradient,
+          borderRadius: BorderRadius.circular(18),
         ),
-        labelColor: Colors.white,
-        unselectedLabelColor: Colors.white54,
-        labelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+        labelColor: JewelryColors.jadeBlack,
+        unselectedLabelColor: JewelryColors.jadeMist.withOpacity(0.58),
+        labelStyle: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13),
         dividerColor: Colors.transparent,
         tabs: [
           Tab(
@@ -892,6 +1068,10 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen>
 
   // Bottom sheet for stock in/out actions.
   void _showStockOperationSheet() {
+    if (!_canWriteInventory(ref.read(currentUserProvider))) {
+      _showSnack(ref.tr('operator_permission_denied'), isError: true);
+      return;
+    }
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -969,12 +1149,14 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen>
 
   // Bottom sheet for product inventory details.
   void _showItemDetailSheet(InventoryItem item) {
+    final canWrite = _canWriteInventory(ref.read(currentUserProvider));
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (_) => _ItemDetailSheet(
         item: item,
+        readOnly: !canWrite,
         onStockIn: () {
           Navigator.pop(context);
           _showStockOperationSheetForProduct(
@@ -996,6 +1178,10 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen>
 
   void _showStockOperationSheetForProduct(
       String productId, InventoryTxType type) {
+    if (!_canWriteInventory(ref.read(currentUserProvider))) {
+      _showSnack(ref.tr('operator_permission_denied'), isError: true);
+      return;
+    }
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -1388,12 +1574,14 @@ class _StockOperationSheetState extends ConsumerState<_StockOperationSheet> {
 // Product inventory detail sheet.
 class _ItemDetailSheet extends ConsumerWidget {
   final InventoryItem item;
+  final bool readOnly;
   final VoidCallback onStockIn;
   final VoidCallback onStockOut;
   final void Function(int newStock, String? note) onAdjust;
 
   const _ItemDetailSheet({
     required this.item,
+    this.readOnly = false,
     required this.onStockIn,
     required this.onStockOut,
     required this.onAdjust,
@@ -1461,100 +1649,120 @@ class _ItemDetailSheet extends ConsumerWidget {
             ],
           ),
           const SizedBox(height: 20),
-          // Quick actions.
-          Row(
-            children: [
-              Expanded(
-                child: _actionBtn('inventory_action_stock_in'.tr,
-                    const Color(0xFF34D399), onStockIn),
+          if (readOnly)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.06),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: Colors.white.withOpacity(0.08)),
               ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: _actionBtn('inventory_action_stock_out'.tr,
-                    const Color(0xFFEF4444), onStockOut),
+              child: Text(
+                ref.tr('operator_permission_denied'),
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Colors.white.withOpacity(0.82),
+                  fontSize: 12,
+                ),
               ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          // Stock adjustment.
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('inventory_adjustment_direct'.tr,
-                  style: TextStyle(
-                      color: Colors.white.withOpacity(0.55), fontSize: 12)),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  Expanded(
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.07),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: TextField(
-                        controller: adjController,
-                        keyboardType: TextInputType.number,
-                        style:
-                            const TextStyle(color: Colors.white, fontSize: 14),
-                        decoration: InputDecoration(
-                          hintText: 'inventory_target_stock_hint'.tr,
-                          hintStyle: const TextStyle(color: Colors.white38),
-                          border: InputBorder.none,
-                          contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 12, vertical: 10),
+            )
+          else ...[
+            // Quick actions.
+            Row(
+              children: [
+                Expanded(
+                  child: _actionBtn('inventory_action_stock_in'.tr,
+                      const Color(0xFF34D399), onStockIn),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: _actionBtn('inventory_action_stock_out'.tr,
+                      const Color(0xFFEF4444), onStockOut),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            // Stock adjustment.
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('inventory_adjustment_direct'.tr,
+                    style: TextStyle(
+                        color: Colors.white.withOpacity(0.55), fontSize: 12)),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.07),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: TextField(
+                          controller: adjController,
+                          keyboardType: TextInputType.number,
+                          style: const TextStyle(
+                              color: Colors.white, fontSize: 14),
+                          decoration: InputDecoration(
+                            hintText: 'inventory_target_stock_hint'.tr,
+                            hintStyle: const TextStyle(color: Colors.white38),
+                            border: InputBorder.none,
+                            contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 10),
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.07),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: TextField(
-                        controller: noteController,
-                        style:
-                            const TextStyle(color: Colors.white, fontSize: 14),
-                        decoration: InputDecoration(
-                          hintText: 'inventory_adjust_reason_hint'.tr,
-                          hintStyle: const TextStyle(color: Colors.white38),
-                          border: InputBorder.none,
-                          contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 12, vertical: 10),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.07),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: TextField(
+                          controller: noteController,
+                          style: const TextStyle(
+                              color: Colors.white, fontSize: 14),
+                          decoration: InputDecoration(
+                            hintText: 'inventory_adjust_reason_hint'.tr,
+                            hintStyle: const TextStyle(color: Colors.white38),
+                            border: InputBorder.none,
+                            contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 10),
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 10),
-                  ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF64748B),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10)),
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 12),
+                    const SizedBox(width: 10),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF64748B),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10)),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 12),
+                      ),
+                      onPressed: () {
+                        final n = int.tryParse(adjController.text);
+                        if (n != null && n >= 0) {
+                          onAdjust(
+                              n,
+                              noteController.text.isEmpty
+                                  ? null
+                                  : noteController.text);
+                        }
+                      },
+                      child: Text(ref.tr('confirm'),
+                          style: const TextStyle(
+                              color: Colors.white, fontSize: 13)),
                     ),
-                    onPressed: () {
-                      final n = int.tryParse(adjController.text);
-                      if (n != null && n >= 0) {
-                        onAdjust(
-                            n,
-                            noteController.text.isEmpty
-                                ? null
-                                : noteController.text);
-                      }
-                    },
-                    child: Text(ref.tr('confirm'),
-                        style:
-                            const TextStyle(color: Colors.white, fontSize: 13)),
-                  ),
-                ],
-              ),
-            ],
-          ),
+                  ],
+                ),
+              ],
+            ),
+          ],
         ],
       ),
     );

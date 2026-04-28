@@ -1,13 +1,108 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../config/api_config.dart';
 import '../../l10n/l10n_provider.dart';
-import '../../models/user_model.dart';
+import '../../models/order_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/review_service.dart';
 import '../../themes/colors.dart';
-import '../../themes/jewelry_theme.dart';
 import '../../widgets/common/glassmorphic_card.dart';
+import '../../widgets/common/resilient_network_image.dart';
+
+class _ReviewBackdrop extends StatelessWidget {
+  const _ReviewBackdrop();
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: const BoxDecoration(
+        gradient: JewelryColors.jadeDepthGradient,
+      ),
+      child: Stack(
+        children: [
+          Positioned(
+            top: -130,
+            right: -120,
+            child: _ReviewGlowOrb(
+              size: 330,
+              color: JewelryColors.emeraldGlow.withOpacity(0.1),
+            ),
+          ),
+          Positioned(
+            left: -140,
+            top: 250,
+            child: _ReviewGlowOrb(
+              size: 290,
+              color: JewelryColors.champagneGold.withOpacity(0.11),
+            ),
+          ),
+          Positioned.fill(
+            child: CustomPaint(
+              painter: _ReviewTracePainter(),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ReviewGlowOrb extends StatelessWidget {
+  const _ReviewGlowOrb({
+    required this.size,
+    required this.color,
+  });
+
+  final double size;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: color,
+        boxShadow: [
+          BoxShadow(
+            color: color,
+            blurRadius: 96,
+            spreadRadius: 30,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ReviewTracePainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 0.8
+      ..color = JewelryColors.champagneGold.withOpacity(0.04);
+
+    for (var i = 0; i < 6; i++) {
+      final y = size.height * (0.14 + i * 0.14);
+      final path = Path()..moveTo(-24, y);
+      path.cubicTo(
+        size.width * 0.18,
+        y + 34,
+        size.width * 0.7,
+        y - 34,
+        size.width + 24,
+        y,
+      );
+      canvas.drawPath(path, paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _ReviewTracePainter oldDelegate) => false;
+}
 
 class PublishReviewScreen extends ConsumerStatefulWidget {
   final OrderModel order;
@@ -89,7 +184,8 @@ class _PublishReviewScreenState extends ConsumerState<PublishReviewScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: isError ? Colors.red : Colors.green,
+        backgroundColor:
+            isError ? JewelryColors.error : JewelryColors.emeraldShadow,
       ),
     );
   }
@@ -106,22 +202,57 @@ class _PublishReviewScreenState extends ConsumerState<PublishReviewScreen> {
   Widget build(BuildContext context) {
     if (widget.order.productId.isEmpty) {
       return Scaffold(
-        body: Center(
-          child: Text(ref.tr('review_publish_no_product')),
+        backgroundColor: JewelryColors.jadeBlack,
+        body: Stack(
+          children: [
+            const Positioned.fill(child: _ReviewBackdrop()),
+            Center(
+              child: GlassmorphicCard(
+                margin: const EdgeInsets.all(24),
+                padding: const EdgeInsets.all(24),
+                borderRadius: 24,
+                blur: 16,
+                opacity: 0.18,
+                borderColor: JewelryColors.champagneGold.withOpacity(0.14),
+                child: Text(
+                  ref.tr('review_publish_no_product'),
+                  style: const TextStyle(
+                    color: JewelryColors.jadeMist,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
       );
     }
 
     return Scaffold(
-      backgroundColor: context.adaptiveBackground,
+      backgroundColor: JewelryColors.jadeBlack,
       appBar: AppBar(
-        title: Text(
-          ref.tr('review_publish_title'),
-          style: TextStyle(color: context.adaptiveTextPrimary),
+        title: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          decoration: BoxDecoration(
+            color: JewelryColors.deepJade.withOpacity(0.62),
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(
+              color: JewelryColors.champagneGold.withOpacity(0.14),
+            ),
+          ),
+          child: Text(
+            ref.tr('review_publish_title'),
+            style: const TextStyle(
+              color: JewelryColors.jadeMist,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 0.4,
+            ),
+          ),
         ),
-        backgroundColor: context.adaptiveSurface,
+        centerTitle: true,
+        backgroundColor: JewelryColors.jadeBlack.withOpacity(0.84),
         elevation: 0,
-        iconTheme: IconThemeData(color: context.adaptiveTextPrimary),
+        iconTheme: const IconThemeData(color: JewelryColors.jadeMist),
         actions: [
           TextButton(
             onPressed: _isSubmitting ? null : _submitReview,
@@ -129,150 +260,227 @@ class _PublishReviewScreenState extends ConsumerState<PublishReviewScreen> {
                 ? const SizedBox(
                     width: 16,
                     height: 16,
-                    child: CircularProgressIndicator(strokeWidth: 2),
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: JewelryColors.emeraldGlow,
+                    ),
                   )
                 : Text(
                     ref.tr('review_publish_submit'),
                     style: const TextStyle(
-                      color: JewelryColors.primary,
-                      fontWeight: FontWeight.bold,
+                      color: JewelryColors.emeraldGlow,
+                      fontWeight: FontWeight.w900,
                       fontSize: 16,
                     ),
                   ),
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            PremiumCard(
-              padding: const EdgeInsets.all(16),
-              borderRadius: 16,
-              backgroundColor: context.adaptiveSurface,
-              child: Row(
-                children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: SizedBox(
-                      width: 60,
-                      height: 60,
-                      child: widget.order.productImage != null &&
-                              widget.order.productImage!.isNotEmpty
-                          ? Image.network(
-                              widget.order.productImage!,
-                              fit: BoxFit.cover,
-                              errorBuilder: (_, __, ___) => Container(
-                                color: Colors.grey[200],
-                                child: const Icon(
-                                  Icons.shopping_bag,
-                                  color: Colors.grey,
+      body: Stack(
+        children: [
+          const Positioned.fill(child: _ReviewBackdrop()),
+          SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                GlassmorphicCard(
+                  padding: const EdgeInsets.all(16),
+                  borderRadius: 24,
+                  blur: 16,
+                  opacity: 0.18,
+                  borderColor: JewelryColors.champagneGold.withOpacity(0.14),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 64,
+                        height: 64,
+                        decoration: BoxDecoration(
+                          color: JewelryColors.deepJade.withOpacity(0.58),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color:
+                                JewelryColors.champagneGold.withOpacity(0.12),
+                          ),
+                        ),
+                        child: widget.order.productImage != null &&
+                                widget.order.productImage!.isNotEmpty
+                            ? ClipRRect(
+                                borderRadius: BorderRadius.circular(16),
+                                child: ResilientNetworkImage(
+                                  imageUrl: _resolveImageUrl(
+                                    widget.order.productImage!,
+                                  ),
+                                  width: 64,
+                                  height: 64,
+                                  fit: BoxFit.cover,
+                                  errorWidget: const Icon(
+                                    Icons.shopping_bag,
+                                    color: JewelryColors.emeraldGlow,
+                                  ),
                                 ),
-                              ),
-                            )
-                          : Container(
-                              color: Colors.grey[200],
-                              child: const Icon(
+                              )
+                            : const Icon(
                                 Icons.shopping_bag,
-                                color: Colors.grey,
+                                color: JewelryColors.emeraldGlow,
+                              ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              widget.order.localizedProductName,
+                              style: const TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w900,
+                                color: JewelryColors.jadeMist,
+                              ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              ref.tr('review_publish_spec_default'),
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: JewelryColors.jadeMist.withOpacity(0.58),
                               ),
                             ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 24),
+                GlassmorphicCard(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+                  borderRadius: 24,
+                  blur: 16,
+                  opacity: 0.18,
+                  borderColor: JewelryColors.champagneGold.withOpacity(0.14),
+                  child: Column(
+                    children: [
+                      Text(
+                        ref.tr('review_publish_match_desc'),
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w900,
+                          color: JewelryColors.jadeMist,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: List.generate(5, (index) {
+                          final isActive = index < _rating;
+                          return IconButton(
+                            icon: Icon(
+                              isActive
+                                  ? Icons.star_rounded
+                                  : Icons.star_border_rounded,
+                              color: isActive
+                                  ? JewelryColors.champagneGold
+                                  : JewelryColors.jadeMist.withOpacity(0.28),
+                              size: 38,
+                            ),
+                            onPressed: () {
+                              setState(() => _rating = index + 1);
+                            },
+                          );
+                        }),
+                      ),
+                      const SizedBox(height: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 7,
+                        ),
+                        decoration: BoxDecoration(
+                          color: JewelryColors.champagneGold.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(999),
+                          border: Border.all(
+                            color:
+                                JewelryColors.champagneGold.withOpacity(0.18),
+                          ),
+                        ),
+                        child: Text(
+                          _getRatingText(),
+                          style: const TextStyle(
+                            color: JewelryColors.champagneGold,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 24),
+                GlassmorphicCard(
+                  borderRadius: 24,
+                  blur: 16,
+                  opacity: 0.18,
+                  borderColor: JewelryColors.champagneGold.withOpacity(0.14),
+                  child: TextField(
+                    controller: _contentController,
+                    maxLines: 6,
+                    maxLength: 500,
+                    style: const TextStyle(
+                      color: JewelryColors.jadeMist,
+                      height: 1.45,
+                    ),
+                    decoration: InputDecoration(
+                      hintText: ref.tr('review_publish_placeholder'),
+                      hintStyle: TextStyle(
+                        color: JewelryColors.jadeMist.withOpacity(0.42),
+                      ),
+                      border: InputBorder.none,
+                      contentPadding: const EdgeInsets.all(16),
+                      counterStyle: TextStyle(
+                        color: JewelryColors.jadeMist.withOpacity(0.46),
+                      ),
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          widget.order.localizedProductName,
-                          style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.bold,
-                            color: context.adaptiveTextPrimary,
-                          ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          ref.tr('review_publish_spec_default'),
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: context.adaptiveTextSecondary,
-                          ),
-                        ),
-                      ],
+                ),
+                const SizedBox(height: 24),
+                GlassmorphicCard(
+                  padding: EdgeInsets.zero,
+                  borderRadius: 24,
+                  blur: 16,
+                  opacity: 0.18,
+                  borderColor: JewelryColors.champagneGold.withOpacity(0.14),
+                  child: SwitchListTile(
+                    title: Text(
+                      ref.tr('review_publish_anonymous'),
+                      style: const TextStyle(
+                        color: JewelryColors.jadeMist,
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
+                    subtitle: Text(
+                      ref.tr('review_publish_anonymous_hint'),
+                      style: TextStyle(
+                        color: JewelryColors.jadeMist.withOpacity(0.54),
+                      ),
+                    ),
+                    value: _isAnonymous,
+                    activeColor: JewelryColors.emeraldGlow,
+                    activeTrackColor:
+                        JewelryColors.emeraldGlow.withOpacity(0.3),
+                    onChanged: (value) {
+                      setState(() => _isAnonymous = value);
+                    },
                   ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 24),
-            Text(
-              ref.tr('review_publish_match_desc'),
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: context.adaptiveTextPrimary,
-              ),
-            ),
-            const SizedBox(height: 12),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: List.generate(5, (index) {
-                return IconButton(
-                  icon: Icon(
-                    index < _rating ? Icons.star : Icons.star_border,
-                    color:
-                        index < _rating ? JewelryColors.gold : Colors.grey[400],
-                    size: 36,
-                  ),
-                  onPressed: () {
-                    setState(() => _rating = index + 1);
-                  },
-                );
-              }),
-            ),
-            const SizedBox(height: 8),
-            Center(
-              child: Text(
-                _getRatingText(),
-                style: TextStyle(
-                  color: _rating >= 4 ? Colors.orange : Colors.grey,
-                  fontSize: 14,
                 ),
-              ),
+                const SizedBox(height: 24),
+              ],
             ),
-            const SizedBox(height: 24),
-            PremiumCard(
-              borderRadius: 16,
-              backgroundColor: context.adaptiveSurface,
-              child: TextField(
-                controller: _contentController,
-                maxLines: 6,
-                maxLength: 500,
-                decoration: InputDecoration(
-                  hintText: ref.tr('review_publish_placeholder'),
-                  hintStyle: TextStyle(color: context.adaptiveTextSecondary),
-                  border: InputBorder.none,
-                  contentPadding: const EdgeInsets.all(16),
-                ),
-              ),
-            ),
-            const SizedBox(height: 24),
-            SwitchListTile(
-              title: Text(ref.tr('review_publish_anonymous')),
-              subtitle: Text(ref.tr('review_publish_anonymous_hint')),
-              value: _isAnonymous,
-              activeColor: JewelryColors.primary,
-              onChanged: (value) {
-                setState(() => _isAnonymous = value);
-              },
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -293,4 +501,14 @@ class _PublishReviewScreenState extends ConsumerState<PublishReviewScreen> {
         return '';
     }
   }
+}
+
+String _resolveImageUrl(String rawUrl) {
+  if (rawUrl.startsWith('http://') || rawUrl.startsWith('https://')) {
+    return rawUrl;
+  }
+  if (rawUrl.startsWith('/')) {
+    return '${ApiConfig.apiUrl}$rawUrl';
+  }
+  return rawUrl;
 }

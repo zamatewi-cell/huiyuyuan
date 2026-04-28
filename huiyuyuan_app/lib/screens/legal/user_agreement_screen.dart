@@ -1,169 +1,175 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../l10n/l10n_provider.dart';
 import '../../providers/app_settings_provider.dart';
 import '../../themes/colors.dart';
+import '../../widgets/common/glassmorphic_card.dart';
 
 class UserAgreementScreen extends ConsumerWidget {
   const UserAgreementScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bgColor = isDark ? const Color(0xFF0D0D1A) : const Color(0xFFFAF8FF);
-    final textColor = isDark ? Colors.white : JewelryColors.textPrimary;
-    final subColor = isDark ? Colors.white70 : Colors.black87;
-    final divColor = isDark ? Colors.white12 : Colors.black12;
     final content = _agreementContent(ref.watch(appSettingsProvider).language);
 
     return Scaffold(
-      backgroundColor: bgColor,
+      backgroundColor: JewelryColors.jadeBlack,
       appBar: AppBar(
-        backgroundColor: isDark ? const Color(0xFF1A1A2E) : Colors.white,
+        backgroundColor: JewelryColors.jadeBlack.withOpacity(0.84),
+        foregroundColor: JewelryColors.jadeMist,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(
+          icon: const Icon(
             Icons.arrow_back_ios_new,
-            color: isDark ? Colors.white : JewelryColors.textPrimary,
+            color: JewelryColors.jadeMist,
             size: 20,
           ),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Text(
-          ref.tr('settings_agreement'),
-          style: TextStyle(
-            color: textColor,
-            fontSize: 17,
-            fontWeight: FontWeight.w600,
+        title: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          decoration: BoxDecoration(
+            color: JewelryColors.deepJade.withOpacity(0.62),
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(
+              color: JewelryColors.champagneGold.withOpacity(0.14),
+            ),
+          ),
+          child: Text(
+            ref.tr('settings_agreement'),
+            style: const TextStyle(
+              color: JewelryColors.jadeMist,
+              fontSize: 17,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 0.35,
+            ),
           ),
         ),
         centerTitle: true,
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(1),
-          child: Divider(height: 1, color: divColor),
-        ),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: isDark
-                      ? const [Color(0xFF2A1F3D), Color(0xFF1A1A2E)]
-                      : [
-                          JewelryColors.gold.withOpacity(0.08),
-                          JewelryColors.gold.withOpacity(0.03),
-                        ],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: JewelryColors.gold.withOpacity(0.25),
-                ),
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    width: 48,
-                    height: 48,
-                    decoration: BoxDecoration(
-                      color: JewelryColors.gold.withOpacity(0.15),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      Icons.description_rounded,
-                      color: JewelryColors.gold,
-                      size: 26,
-                    ),
-                  ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          content.cardTitle,
-                          style: TextStyle(
-                            color: textColor,
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
+      body: Stack(
+        children: [
+          const Positioned.fill(child: _AgreementLegalBackdrop()),
+          SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                GlassmorphicCard(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(20),
+                  borderRadius: 26,
+                  blur: 16,
+                  opacity: 0.18,
+                  borderColor: JewelryColors.champagneGold.withOpacity(0.2),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 52,
+                        height: 52,
+                        decoration: BoxDecoration(
+                          color: JewelryColors.champagneGold.withOpacity(0.12),
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color:
+                                JewelryColors.champagneGold.withOpacity(0.24),
                           ),
                         ),
-                        const SizedBox(height: 4),
-                        Text(
-                          content.updatedAt,
-                          style: TextStyle(
-                            color: subColor.withOpacity(0.6),
-                            fontSize: 12,
-                          ),
+                        child: const Icon(
+                          Icons.description_rounded,
+                          color: JewelryColors.champagneGold,
+                          size: 27,
                         ),
-                      ],
-                    ),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              content.cardTitle,
+                              style: const TextStyle(
+                                color: JewelryColors.jadeMist,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              content.updatedAt,
+                              style: TextStyle(
+                                color: JewelryColors.jadeMist.withOpacity(0.52),
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 24),
-            Text(
-              content.intro,
-              style: TextStyle(color: subColor, fontSize: 14, height: 1.8),
-            ),
-            const SizedBox(height: 20),
-            for (final section in content.sections) ...[
-              _buildSection(
-                title: section.title,
-                icon: section.icon,
-                items: section.items,
-                isDark: isDark,
-                textColor: textColor,
-                subColor: subColor,
-                divColor: divColor,
-              ),
-              const SizedBox(height: 18),
-            ],
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(18),
-              decoration: BoxDecoration(
-                color:
-                    isDark ? Colors.white.withOpacity(0.05) : Colors.grey.shade50,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: divColor),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    content.contactTitle,
+                ),
+                const SizedBox(height: 18),
+                GlassmorphicCard(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(18),
+                  borderRadius: 22,
+                  blur: 14,
+                  opacity: 0.14,
+                  borderColor: JewelryColors.champagneGold.withOpacity(0.12),
+                  child: Text(
+                    content.intro,
                     style: TextStyle(
-                      color: textColor,
+                      color: JewelryColors.jadeMist.withOpacity(0.72),
                       fontSize: 14,
-                      fontWeight: FontWeight.bold,
+                      height: 1.8,
                     ),
                   ),
-                  const SizedBox(height: 10),
-                  for (var i = 0; i < content.contacts.length; i++) ...[
-                    _contactRow(
-                      content.contacts[i].icon,
-                      content.contacts[i].text,
-                      subColor,
-                    ),
-                    if (i != content.contacts.length - 1)
-                      const SizedBox(height: 6),
-                  ],
+                ),
+                const SizedBox(height: 20),
+                for (final section in content.sections) ...[
+                  _buildSection(
+                    title: section.title,
+                    icon: section.icon,
+                    items: section.items,
+                  ),
+                  const SizedBox(height: 18),
                 ],
-              ),
+                GlassmorphicCard(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(18),
+                  borderRadius: 22,
+                  blur: 14,
+                  opacity: 0.16,
+                  borderColor: JewelryColors.champagneGold.withOpacity(0.14),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        content.contactTitle,
+                        style: const TextStyle(
+                          color: JewelryColors.jadeMist,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      for (var i = 0; i < content.contacts.length; i++) ...[
+                        _contactRow(
+                          content.contacts[i].icon,
+                          content.contacts[i].text,
+                        ),
+                        if (i != content.contacts.length - 1)
+                          const SizedBox(height: 6),
+                      ],
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 40),
+              ],
             ),
-            const SizedBox(height: 40),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -172,35 +178,33 @@ class UserAgreementScreen extends ConsumerWidget {
     required String title,
     required IconData icon,
     required List<_AgreementItem> items,
-    required bool isDark,
-    required Color textColor,
-    required Color subColor,
-    required Color divColor,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           children: [
-            Icon(icon, color: JewelryColors.gold, size: 18),
+            Icon(icon, color: JewelryColors.champagneGold, size: 18),
             const SizedBox(width: 8),
-            Text(
-              title,
-              style: TextStyle(
-                color: textColor,
-                fontSize: 15,
-                fontWeight: FontWeight.bold,
+            Expanded(
+              child: Text(
+                title,
+                style: const TextStyle(
+                  color: JewelryColors.jadeMist,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w900,
+                ),
               ),
             ),
           ],
         ),
         const SizedBox(height: 12),
-        Container(
-          decoration: BoxDecoration(
-            color: isDark ? Colors.white.withOpacity(0.04) : Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: divColor),
-          ),
+        GlassmorphicCard(
+          padding: EdgeInsets.zero,
+          borderRadius: 22,
+          blur: 14,
+          opacity: 0.14,
+          borderColor: JewelryColors.champagneGold.withOpacity(0.12),
           child: Column(
             children: items.asMap().entries.map((entry) {
               final isLast = entry.key == items.length - 1;
@@ -213,12 +217,12 @@ class UserAgreementScreen extends ConsumerWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Container(
-                          width: 6,
-                          height: 6,
-                          margin: const EdgeInsets.only(top: 6, right: 10),
+                          width: 7,
+                          height: 7,
+                          margin: const EdgeInsets.only(top: 7, right: 10),
                           decoration: const BoxDecoration(
                             shape: BoxShape.circle,
-                            color: JewelryColors.gold,
+                            color: JewelryColors.champagneGold,
                           ),
                         ),
                         Expanded(
@@ -227,17 +231,18 @@ class UserAgreementScreen extends ConsumerWidget {
                             children: [
                               Text(
                                 item.title,
-                                style: TextStyle(
-                                  color: textColor,
+                                style: const TextStyle(
+                                  color: JewelryColors.jadeMist,
                                   fontSize: 14,
-                                  fontWeight: FontWeight.w600,
+                                  fontWeight: FontWeight.w800,
                                 ),
                               ),
                               const SizedBox(height: 4),
                               Text(
                                 item.content,
                                 style: TextStyle(
-                                  color: subColor.withOpacity(0.75),
+                                  color:
+                                      JewelryColors.jadeMist.withOpacity(0.66),
                                   fontSize: 13,
                                   height: 1.6,
                                 ),
@@ -248,7 +253,11 @@ class UserAgreementScreen extends ConsumerWidget {
                       ],
                     ),
                   ),
-                  if (!isLast) Divider(height: 1, color: divColor),
+                  if (!isLast)
+                    Divider(
+                      height: 1,
+                      color: JewelryColors.champagneGold.withOpacity(0.1),
+                    ),
                 ],
               );
             }).toList(),
@@ -258,18 +267,79 @@ class UserAgreementScreen extends ConsumerWidget {
     );
   }
 
-  Widget _contactRow(IconData icon, String text, Color color) {
+  Widget _contactRow(IconData icon, String text) {
     return Row(
       children: [
-        Icon(icon, size: 16, color: JewelryColors.gold),
+        Icon(icon, size: 16, color: JewelryColors.champagneGold),
         const SizedBox(width: 8),
         Expanded(
           child: Text(
             text,
-            style: TextStyle(color: color, fontSize: 13, height: 1.5),
+            style: TextStyle(
+              color: JewelryColors.jadeMist.withOpacity(0.68),
+              fontSize: 13,
+              height: 1.5,
+            ),
           ),
         ),
       ],
+    );
+  }
+}
+
+class _AgreementLegalBackdrop extends StatelessWidget {
+  const _AgreementLegalBackdrop();
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration:
+          const BoxDecoration(gradient: JewelryColors.jadeDepthGradient),
+      child: Stack(
+        children: [
+          Positioned(
+            top: -150,
+            right: -120,
+            child: _AgreementLegalGlowOrb(
+              size: 320,
+              color: JewelryColors.champagneGold.withOpacity(0.09),
+            ),
+          ),
+          Positioned(
+            left: -150,
+            bottom: 120,
+            child: _AgreementLegalGlowOrb(
+              size: 290,
+              color: JewelryColors.emeraldGlow.withOpacity(0.08),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AgreementLegalGlowOrb extends StatelessWidget {
+  const _AgreementLegalGlowOrb({
+    required this.size,
+    required this.color,
+  });
+
+  final double size;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: color,
+        boxShadow: [
+          BoxShadow(color: color, blurRadius: 96, spreadRadius: 28),
+        ],
+      ),
     );
   }
 }
@@ -284,9 +354,11 @@ _AgreementContent _agreementContent(AppLanguage language) {
             'Welcome to Huiyuyuan Jewelry Intelligent Trading Platform. Please read this agreement carefully before you register, sign in, or use the platform. By registering, clicking agree, or continuing to use the platform, you are deemed to have read and accepted all terms below.',
         contactTitle: 'Contact Us',
         contacts: [
-          _ContactInfo(Icons.support_agent_rounded, 'Support hotline: 400-888-8888'),
+          _ContactInfo(
+              Icons.support_agent_rounded, 'Support hotline: 400-888-8888'),
           _ContactInfo(Icons.email_outlined, 'Email: service@huiyuyuan.com'),
-          _ContactInfo(Icons.gavel_rounded, 'Disputes are handled by a competent people’s court under PRC law'),
+          _ContactInfo(Icons.gavel_rounded,
+              'Disputes are handled by a competent people’s court under PRC law'),
         ],
         sections: [
           _AgreementSection(
@@ -415,8 +487,7 @@ _AgreementContent _agreementContent(AppLanguage language) {
               ),
               _AgreementItem(
                 title: '協議更新',
-                content:
-                    '平台可依業務發展、監管要求或產品調整更新本協議，並以合理方式提醒您。',
+                content: '平台可依業務發展、監管要求或產品調整更新本協議，並以合理方式提醒您。',
               ),
             ],
           ),
@@ -426,18 +497,15 @@ _AgreementContent _agreementContent(AppLanguage language) {
             items: [
               _AgreementItem(
                 title: '註冊要求',
-                content:
-                    '您應使用真實、合法、有效的資訊完成註冊，並具備相應民事行為能力。',
+                content: '您應使用真實、合法、有效的資訊完成註冊，並具備相應民事行為能力。',
               ),
               _AgreementItem(
                 title: '憑證保管',
-                content:
-                    '您應妥善保管帳號、密碼、驗證碼及其他身分憑證，並對帳號下的操作承擔責任。',
+                content: '您應妥善保管帳號、密碼、驗證碼及其他身分憑證，並對帳號下的操作承擔責任。',
               ),
               _AgreementItem(
                 title: '風險處理',
-                content:
-                    '如發現帳號被盜用、異常登入或其他安全風險，請儘速聯繫平台。',
+                content: '如發現帳號被盜用、異常登入或其他安全風險，請儘速聯繫平台。',
               ),
             ],
           ),
@@ -447,18 +515,15 @@ _AgreementContent _agreementContent(AppLanguage language) {
             items: [
               _AgreementItem(
                 title: '訂單確認',
-                content:
-                    '您完成必要下單流程後，訂單是否成立以系統最終確認結果為準。',
+                content: '您完成必要下單流程後，訂單是否成立以系統最終確認結果為準。',
               ),
               _AgreementItem(
                 title: '支付與履約',
-                content:
-                    '您應依頁面顯示方式完成付款。配送、簽收、退換貨與售後處理，依頁面規則、商品說明與適用法律執行。',
+                content: '您應依頁面顯示方式完成付款。配送、簽收、退換貨與售後處理，依頁面規則、商品說明與適用法律執行。',
               ),
               _AgreementItem(
                 title: '異常交易',
-                content:
-                    '對於涉嫌刷單、套現、惡意退款、詐欺或其他異常交易，平台有權暫停處理並進行核驗。',
+                content: '對於涉嫌刷單、套現、惡意退款、詐欺或其他異常交易，平台有權暫停處理並進行核驗。',
               ),
             ],
           ),
@@ -468,18 +533,15 @@ _AgreementContent _agreementContent(AppLanguage language) {
             items: [
               _AgreementItem(
                 title: '真實合法使用',
-                content:
-                    '您不得發布虛假資訊、冒用他人身分，或利用平台從事違法違規活動。',
+                content: '您不得發布虛假資訊、冒用他人身分，或利用平台從事違法違規活動。',
               ),
               _AgreementItem(
                 title: '禁止干擾與侵權',
-                content:
-                    '您不得使用腳本、爬蟲、外掛等方式干擾平台運行，也不得上傳或散播侵害他人合法權益的內容。',
+                content: '您不得使用腳本、爬蟲、外掛等方式干擾平台運行，也不得上傳或散播侵害他人合法權益的內容。',
               ),
               _AgreementItem(
                 title: 'AI 合規使用',
-                content:
-                    '使用 AI 功能時，您應審慎判斷生成內容，不得將其用於違法違規用途。',
+                content: '使用 AI 功能時，您應審慎判斷生成內容，不得將其用於違法違規用途。',
               ),
             ],
           ),
@@ -489,18 +551,15 @@ _AgreementContent _agreementContent(AppLanguage language) {
             items: [
               _AgreementItem(
                 title: '合理商業努力',
-                content:
-                    '平台會以合理商業努力維持服務品質，但不對超出合理控制範圍的結果作絕對保證。',
+                content: '平台會以合理商業努力維持服務品質，但不對超出合理控制範圍的結果作絕對保證。',
               ),
               _AgreementItem(
                 title: '帳號註銷與處理措施',
-                content:
-                    '您可依平台規則申請註銷帳號；若違反本協議或相關規則，平台可限制功能、暫停服務或終止帳號使用。',
+                content: '您可依平台規則申請註銷帳號；若違反本協議或相關規則，平台可限制功能、暫停服務或終止帳號使用。',
               ),
               _AgreementItem(
                 title: '適用法律',
-                content:
-                    '本協議適用中華人民共和國法律。爭議應先協商解決，協商不成的，提交有管轄權的人民法院處理。',
+                content: '本協議適用中華人民共和國法律。爭議應先協商解決，協商不成的，提交有管轄權的人民法院處理。',
               ),
             ],
           ),
@@ -530,8 +589,7 @@ _AgreementContent _agreementContent(AppLanguage language) {
               ),
               _AgreementItem(
                 title: '协议更新',
-                content:
-                    '平台可根据业务发展、监管要求或产品调整更新本协议，并以合理方式提醒您。',
+                content: '平台可根据业务发展、监管要求或产品调整更新本协议，并以合理方式提醒您。',
               ),
             ],
           ),
@@ -541,18 +599,15 @@ _AgreementContent _agreementContent(AppLanguage language) {
             items: [
               _AgreementItem(
                 title: '注册要求',
-                content:
-                    '您应使用真实、合法、有效的信息完成注册，并具备相应民事行为能力。',
+                content: '您应使用真实、合法、有效的信息完成注册，并具备相应民事行为能力。',
               ),
               _AgreementItem(
                 title: '凭证保管',
-                content:
-                    '您应妥善保管账号、密码、验证码及其他身份凭证，并对账号下的操作承担责任。',
+                content: '您应妥善保管账号、密码、验证码及其他身份凭证，并对账号下的操作承担责任。',
               ),
               _AgreementItem(
                 title: '风险处理',
-                content:
-                    '如发现账号被盗用、异常登录或其他安全风险，请尽快联系平台。',
+                content: '如发现账号被盗用、异常登录或其他安全风险，请尽快联系平台。',
               ),
             ],
           ),
@@ -562,18 +617,15 @@ _AgreementContent _agreementContent(AppLanguage language) {
             items: [
               _AgreementItem(
                 title: '订单确认',
-                content:
-                    '您完成必要下单流程后，订单是否成立以系统最终确认结果为准。',
+                content: '您完成必要下单流程后，订单是否成立以系统最终确认结果为准。',
               ),
               _AgreementItem(
                 title: '支付与履约',
-                content:
-                    '您应依页面显示方式完成付款。配送、签收、退换货与售后处理，依页面规则、商品说明与适用法律执行。',
+                content: '您应依页面显示方式完成付款。配送、签收、退换货与售后处理，依页面规则、商品说明与适用法律执行。',
               ),
               _AgreementItem(
                 title: '异常交易',
-                content:
-                    '对于涉嫌刷单、套现、恶意退款、欺诈或其他异常交易，平台有权暂停处理并进行核验。',
+                content: '对于涉嫌刷单、套现、恶意退款、欺诈或其他异常交易，平台有权暂停处理并进行核验。',
               ),
             ],
           ),
@@ -583,18 +635,15 @@ _AgreementContent _agreementContent(AppLanguage language) {
             items: [
               _AgreementItem(
                 title: '真实合法使用',
-                content:
-                    '您不得发布虚假信息、冒用他人身份，或利用平台从事违法违规活动。',
+                content: '您不得发布虚假信息、冒用他人身份，或利用平台从事违法违规活动。',
               ),
               _AgreementItem(
                 title: '禁止干扰与侵权',
-                content:
-                    '您不得使用脚本、爬虫、外挂等方式干扰平台运行，也不得上传或传播侵害他人合法权益的内容。',
+                content: '您不得使用脚本、爬虫、外挂等方式干扰平台运行，也不得上传或传播侵害他人合法权益的内容。',
               ),
               _AgreementItem(
                 title: 'AI 合规使用',
-                content:
-                    '使用 AI 功能时，您应审慎判断生成内容，不得将其用于违法违规用途。',
+                content: '使用 AI 功能时，您应审慎判断生成内容，不得将其用于违法违规用途。',
               ),
             ],
           ),
@@ -604,18 +653,15 @@ _AgreementContent _agreementContent(AppLanguage language) {
             items: [
               _AgreementItem(
                 title: '合理商业努力',
-                content:
-                    '平台会以合理商业努力维持服务质量，但不对超出合理控制范围的结果作绝对保证。',
+                content: '平台会以合理商业努力维持服务质量，但不对超出合理控制范围的结果作绝对保证。',
               ),
               _AgreementItem(
                 title: '账号注销与处理措施',
-                content:
-                    '您可依平台规则申请注销账号；若违反本协议或相关规则，平台可限制功能、暂停服务或终止账号使用。',
+                content: '您可依平台规则申请注销账号；若违反本协议或相关规则，平台可限制功能、暂停服务或终止账号使用。',
               ),
               _AgreementItem(
                 title: '适用法律',
-                content:
-                    '本协议适用中华人民共和国法律。争议应先协商解决，协商不成的，提交有管辖权的人民法院处理。',
+                content: '本协议适用中华人民共和国法律。争议应先协商解决，协商不成的，提交有管辖权的人民法院处理。',
               ),
             ],
           ),

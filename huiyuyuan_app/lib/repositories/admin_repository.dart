@@ -107,6 +107,40 @@ class AdminRepository {
     return _productService.deleteProduct(productId);
   }
 
+  Future<List<OperatorAccount>> getOperatorAccounts() async {
+    try {
+      final result = await _api.get<dynamic>(ApiConfig.adminOperators);
+      return _extractList(result, OperatorAccount.fromJson);
+    } catch (error) {
+      debugPrint('[AdminRepository] getOperatorAccounts failed: $error');
+      return const [];
+    }
+  }
+
+  Future<OperatorAccount?> updateOperatorAccount(
+    String operatorId,
+    OperatorAccountUpdateRequest request,
+  ) async {
+    try {
+      final result = await _api.put<dynamic>(
+        ApiConfig.adminOperator(operatorId),
+        data: request.toJson(),
+      );
+      final data = _extractMap(result);
+      if (data == null) {
+        return null;
+      }
+      final operator = data['operator'];
+      if (operator is Map || operator is Map<String, dynamic>) {
+        return OperatorAccount.fromJson(jsonAsMap(operator));
+      }
+      return OperatorAccount.fromJson(data);
+    } catch (error) {
+      debugPrint('[AdminRepository] updateOperatorAccount failed: $error');
+      return null;
+    }
+  }
+
   Future<OperatorReport?> getOperatorReport(int operatorId) async {
     try {
       final result = await _api.get<dynamic>(

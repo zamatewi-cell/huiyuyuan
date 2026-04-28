@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:huiyuyuan/models/notification_models.dart';
@@ -31,9 +31,9 @@ void main() {
             ),
           mainScreenPageBuilderProvider.overrideWith(
             (ref) => (role) => List<Widget>.generate(
-              5,
-              (index) => Center(child: Text('page-$index-${role.name}')),
-            ),
+                  5,
+                  (index) => Center(child: Text('page-$index-${role.name}')),
+                ),
           ),
         ],
         child: const MaterialApp(
@@ -96,6 +96,55 @@ void main() {
       expect(find.text('page-0-operator'), findsOneWidget);
     });
 
+    testWidgets('operator without AI and radar permissions stays on workbench',
+        (
+      tester,
+    ) async {
+      final operator = UserModel(
+        id: 'operator-locked',
+        username: 'Operator Locked',
+        phone: '13800138021',
+        userType: UserType.operator,
+        operatorNumber: 2,
+        permissions: const ['orders'],
+      );
+
+      await pumpMainScreen(
+        tester,
+        user: operator,
+        unreadCount: 1,
+      );
+
+      await tester.tap(find.text('AI助手'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('page-0-operator'), findsOneWidget);
+      expect(find.text('当前操作员没有此功能权限，请联系管理员开通。'), findsOneWidget);
+      expect(find.byIcon(Icons.lock_outline_rounded), findsWidgets);
+    });
+
+    testWidgets('operator with permissions can open AI page', (tester) async {
+      final operator = UserModel(
+        id: 'operator-open',
+        username: 'Operator Open',
+        phone: '13800138022',
+        userType: UserType.operator,
+        operatorNumber: 3,
+        permissions: const ['shop_radar', 'ai_assistant'],
+      );
+
+      await pumpMainScreen(
+        tester,
+        user: operator,
+        unreadCount: 0,
+      );
+
+      await tester.tap(find.text('AI助手'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('page-3-operator'), findsOneWidget);
+    });
+
     testWidgets('admin role reuses unread badge provider on profile tab', (
       tester,
     ) async {
@@ -119,7 +168,8 @@ void main() {
       expect(find.text('page-0-admin'), findsOneWidget);
     });
 
-    testWidgets('profile badge reacts to shared notification notifier updates', (
+    testWidgets('profile badge reacts to shared notification notifier updates',
+        (
       tester,
     ) async {
       final customer = UserModel(

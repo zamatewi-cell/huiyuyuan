@@ -60,6 +60,17 @@ class AdminService {
     return _repository.deleteProduct(productId);
   }
 
+  Future<List<OperatorAccount>> getOperatorAccounts() {
+    return _repository.getOperatorAccounts();
+  }
+
+  Future<OperatorAccount?> updateOperatorAccount(
+    String operatorId,
+    OperatorAccountUpdateRequest request,
+  ) {
+    return _repository.updateOperatorAccount(operatorId, request);
+  }
+
   Future<OperatorReport?> getOperatorReport(int operatorId) {
     return _repository.getOperatorReport(operatorId);
   }

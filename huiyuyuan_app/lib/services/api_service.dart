@@ -1,8 +1,16 @@
 ﻿library;
 
 import 'dart:async';
+import 'dart:io'
+    show
+        HandshakeException,
+        HttpClient,
+        HttpHeaders,
+        SocketException,
+        X509Certificate;
 
 import 'package:dio/dio.dart';
+import 'package:dio/io.dart';
 import 'package:flutter/foundation.dart';
 
 import '../config/api_config.dart';
@@ -14,9 +22,39 @@ const List<String> _connectionFailureErrorTerms = [
   'socketexception',
   'failed host lookup',
   'connection refused',
+  'connection reset by peer',
+  'connection terminated during handshake',
+  'handshakeexception',
   'network is unreachable',
   'timed out',
 ];
+
+const String _productionIpFallbackAttemptedKey =
+    'production_ip_fallback_attempted';
+const List<int> _productionIpFallbackCertSha1 = <int>[
+  216,
+  50,
+  75,
+  115,
+  143,
+  37,
+  74,
+  66,
+  204,
+  19,
+  190,
+  107,
+  75,
+  92,
+  134,
+  144,
+  12,
+  227,
+  10,
+  33,
+];
+const String _productionIpFallbackCertSubject = '/CN=xn--lsws2cdzg.top';
+const String _productionIpFallbackCertIssuer = '/C=US/O=Let\'s Encrypt/CN=R13';
 
 const List<String> _forbiddenDetailTermsZh = [
   '没有权限',
@@ -89,7 +127,60 @@ class ApiService {
 
   final StorageService _storage = StorageService();
 
+  // 临时测试模式：禁用SSL证书验证（仅用于DNS故障时的IP直连测试）
+  static const bool _allowSelfSignedCert = bool.fromEnvironment(
+    'ALLOW_SELF_SIGNED_CERT',
+    defaultValue: false,
+  );
+
   Dio get _client => _dio!;
+
+  Dio _buildDio() {
+    final dio = Dio(
+      BaseOptions(
+        baseUrl: ApiConfig.apiUrl,
+        connectTimeout: const Duration(milliseconds: ApiConfig.connectTimeout),
+        receiveTimeout: const Duration(milliseconds: ApiConfig.receiveTimeout),
+        sendTimeout: const Duration(milliseconds: ApiConfig.sendTimeout),
+        headers: ApiHeaders.basic,
+      ),
+    );
+
+    final adapter = dio.httpClientAdapter;
+    if (adapter is IOHttpClientAdapter) {
+      adapter.createHttpClient = _createPinnedHttpClient;
+    }
+
+    // 添加详细日志拦截器（用于调试网络连接问题）
+    dio.interceptors.add(LogInterceptor(
+      requestBody: true,
+      responseBody: true,
+      logPrint: (obj) => debugPrint('[API_LOG] $obj'),
+    ));
+
+    if (_allowSelfSignedCert) {
+      debugPrint(
+        'WARNING: Self-signed certificate validation DISABLED (TEST MODE ONLY)',
+      );
+    }
+
+    return dio;
+  }
+
+  static HttpClient _createPinnedHttpClient() {
+    final client = HttpClient();
+    client.badCertificateCallback = (
+      X509Certificate cert,
+      String host,
+      int port,
+    ) {
+      if (_allowSelfSignedCert) {
+        return true;
+      }
+      return trustsProductionIpFallbackCertificate(cert, host, port);
+    };
+    return client;
+  }
 
   Future<void> initialize() async {
     if (_initialized && _dio != null) {
@@ -109,16 +200,7 @@ class ApiService {
     final completer = Completer<void>();
     _initializingFuture = completer.future;
     try {
-      final dio = Dio(
-        BaseOptions(
-          baseUrl: ApiConfig.apiUrl,
-          connectTimeout: const Duration(milliseconds: ApiConfig.connectTimeout),
-          receiveTimeout: const Duration(milliseconds: ApiConfig.receiveTimeout),
-          sendTimeout: const Duration(milliseconds: ApiConfig.sendTimeout),
-          headers: ApiHeaders.basic,
-        ),
-      );
-
+      final dio = _buildDio();
       dio.interceptors.add(_createInterceptor());
       _dio = dio;
       await _loadToken();
@@ -148,6 +230,20 @@ class ApiService {
         handler.next(response);
       },
       onError: (error, handler) async {
+        if (shouldUseProductionIpFallbackFor(error)) {
+          try {
+            final retryResponse = await _retryWithProductionIp(
+              error.requestOptions,
+            );
+            handler.resolve(retryResponse);
+            return;
+          } on DioException catch (retryError) {
+            _logError(retryError);
+            handler.next(retryError);
+            return;
+          }
+        }
+
         if (error.response?.statusCode == 401 &&
             _refreshRetryCount < _maxRefreshRetries) {
           _refreshRetryCount++;
@@ -169,6 +265,118 @@ class ApiService {
         _logError(error);
         handler.next(error);
       },
+    );
+  }
+
+  @visibleForTesting
+  static bool shouldUseProductionIpFallbackFor(DioException error) {
+    if (kIsWeb) {
+      return false;
+    }
+
+    final requestOptions = error.requestOptions;
+    if (requestOptions.extra[_productionIpFallbackAttemptedKey] == true) {
+      return false;
+    }
+
+    final requestUri = requestOptions.uri;
+    if (requestUri.scheme != 'https' ||
+        requestUri.host != ApiConfig.productionHost) {
+      return false;
+    }
+
+    return _isRecoverableConnectionError(error);
+  }
+
+  @visibleForTesting
+  static bool trustsProductionIpFallbackCertificate(
+    X509Certificate cert,
+    String host,
+    int port,
+  ) {
+    if (host != ApiConfig.productionIpAddress || port != 443) {
+      return false;
+    }
+
+    if (!_matchesCertificateFingerprint(cert.sha1, _productionIpFallbackCertSha1)) {
+      return false;
+    }
+
+    if (cert.subject != _productionIpFallbackCertSubject ||
+        cert.issuer != _productionIpFallbackCertIssuer) {
+      return false;
+    }
+
+    final now = DateTime.now().toUtc();
+    final start = cert.startValidity.toUtc();
+    final end = cert.endValidity.toUtc();
+    return !now.isBefore(start) && !now.isAfter(end);
+  }
+
+  static bool _isRecoverableConnectionError(DioException error) {
+    if (error.type == DioExceptionType.connectionError) {
+      return true;
+    }
+
+    final rawError = error.error;
+    if (rawError is SocketException || rawError is HandshakeException) {
+      return true;
+    }
+
+    if (error.type != DioExceptionType.unknown) {
+      return false;
+    }
+
+    final normalized = rawError?.toString().trim().toLowerCase();
+    return normalized != null &&
+        normalized.isNotEmpty &&
+        _containsAny(normalized, _connectionFailureErrorTerms);
+  }
+
+  static bool _matchesCertificateFingerprint(
+    List<int> actual,
+    List<int> expected,
+  ) {
+    if (actual.length != expected.length) {
+      return false;
+    }
+
+    for (var i = 0; i < actual.length; i++) {
+      if (actual[i] != expected[i]) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  Future<Response<dynamic>> _retryWithProductionIp(
+    RequestOptions requestOptions,
+  ) {
+    final fallbackUri = requestOptions.uri.replace(
+      host: ApiConfig.productionIpAddress,
+    );
+    final headers = Map<String, dynamic>.from(requestOptions.headers);
+    headers[HttpHeaders.hostHeader] = ApiConfig.productionHost;
+    if (_token != null && !headers.containsKey(ApiHeaders.authorization)) {
+      headers[ApiHeaders.authorization] = 'Bearer $_token';
+    }
+
+    debugPrint(
+      '[API_RETRY] Falling back to ${fallbackUri.origin} for '
+      '${requestOptions.method} ${requestOptions.uri}',
+    );
+
+    return _client.fetch<dynamic>(
+      requestOptions.copyWith(
+        path: fallbackUri.toString(),
+        baseUrl: '',
+        queryParameters: const <String, dynamic>{},
+        headers: headers,
+        extra: {
+          ...requestOptions.extra,
+          _productionIpFallbackAttemptedKey: true,
+        },
+      ),
     );
   }
 
@@ -295,6 +503,29 @@ class ApiService {
     }
   }
 
+  Future<Response<dynamic>> postRaw(
+    String path, {
+    dynamic data,
+    Map<String, dynamic>? params,
+    Options? options,
+  }) async {
+    if (ApiConfig.useMockApi) {
+      throw DioException(
+        requestOptions: RequestOptions(path: path),
+        type: DioExceptionType.cancel,
+        error: 'api_mock_mode'.tr,
+      );
+    }
+    await _ensureInitialized();
+
+    return _client.post<dynamic>(
+      path,
+      data: data,
+      queryParameters: params,
+      options: options,
+    );
+  }
+
   Future<ApiResult<T>> put<T>(
     String path, {
     dynamic data,
@@ -405,6 +636,39 @@ class ApiService {
     }
   }
 
+  Future<ApiResult<Uint8List>> downloadBytes(
+    String path, {
+    Map<String, dynamic>? params,
+  }) async {
+    if (ApiConfig.useMockApi) {
+      return ApiResult.error('api_mock_mode'.tr, code: -1);
+    }
+    await _ensureInitialized();
+
+    try {
+      final response = await _client.get<dynamic>(
+        path,
+        queryParameters: params,
+        options: Options(responseType: ResponseType.bytes),
+      );
+      if (response.statusCode != 200 || response.data == null) {
+        return ApiResult.error(
+          'api_error_request_failed'.tr,
+          code: response.statusCode,
+        );
+      }
+
+      final bytes = _asUint8List(response.data);
+      if (bytes == null || bytes.isEmpty) {
+        return ApiResult.error('api_error_parse_failed'.tr);
+      }
+
+      return ApiResult.success(bytes);
+    } on DioException catch (error) {
+      return _handleError(error);
+    }
+  }
+
   ApiResult<T> _handleResponse<T>(
     Response<dynamic> response,
     T Function(dynamic)? fromJson,
@@ -445,7 +709,39 @@ class ApiService {
     );
   }
 
+  Uint8List? _asUint8List(dynamic data) {
+    if (data is Uint8List) {
+      return data;
+    }
+    if (data is List<int>) {
+      return Uint8List.fromList(data);
+    }
+    if (data is List) {
+      final bytes = <int>[];
+      for (final value in data) {
+        if (value is int) {
+          bytes.add(value);
+          continue;
+        }
+        if (value is num) {
+          bytes.add(value.toInt());
+          continue;
+        }
+        return null;
+      }
+      return Uint8List.fromList(bytes);
+    }
+    return null;
+  }
+
   ApiResult<T> _handleError<T>(DioException error) {
+    // 添加详细的错误日志用于调试
+    debugPrint('[API_ERROR] Type: ${error.type}');
+    debugPrint('[API_ERROR] Message: ${error.message}');
+    debugPrint('[API_ERROR] Error: ${error.error}');
+    debugPrint('[API_ERROR] Response Status: ${error.response?.statusCode}');
+    debugPrint('[API_ERROR] Request URL: ${error.requestOptions.uri}');
+    
     String message;
     int code;
 
@@ -562,7 +858,7 @@ class ApiService {
     return text;
   }
 
-  bool _containsAny(String text, Iterable<String> terms) {
+  static bool _containsAny(String text, Iterable<String> terms) {
     return terms.any(text.contains);
   }
 

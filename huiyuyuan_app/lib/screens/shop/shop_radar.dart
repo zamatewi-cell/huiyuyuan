@@ -1,4 +1,4 @@
-﻿/// HuiYuYuan shop radar for automated lead discovery.
+/// HuiYuYuan shop radar for automated lead discovery.
 ///
 /// Features:
 /// - automated platform scouting
@@ -17,6 +17,94 @@ import '../../services/ai_service.dart';
 import '../../services/api_service.dart';
 import '../../config/api_config.dart';
 import '../../themes/colors.dart';
+import '../../widgets/common/glassmorphic_card.dart';
+
+class _ShopRadarBackdrop extends StatelessWidget {
+  const _ShopRadarBackdrop();
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration:
+          const BoxDecoration(gradient: JewelryColors.jadeDepthGradient),
+      child: Stack(
+        children: [
+          Positioned(
+            top: -150,
+            right: -120,
+            child: _ShopRadarGlowOrb(
+              size: 340,
+              color: JewelryColors.emeraldGlow.withOpacity(0.1),
+            ),
+          ),
+          Positioned(
+            left: -150,
+            top: 320,
+            child: _ShopRadarGlowOrb(
+              size: 300,
+              color: JewelryColors.champagneGold.withOpacity(0.08),
+            ),
+          ),
+          Positioned.fill(
+            child: CustomPaint(painter: _ShopRadarTracePainter()),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ShopRadarGlowOrb extends StatelessWidget {
+  const _ShopRadarGlowOrb({
+    required this.size,
+    required this.color,
+  });
+
+  final double size;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: color,
+        boxShadow: [
+          BoxShadow(color: color, blurRadius: 100, spreadRadius: 30),
+        ],
+      ),
+    );
+  }
+}
+
+class _ShopRadarTracePainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 0.75
+      ..color = JewelryColors.champagneGold.withOpacity(0.035);
+
+    for (var i = 0; i < 7; i++) {
+      final y = size.height * (0.1 + i * 0.13);
+      final path = Path()..moveTo(-24, y);
+      path.cubicTo(
+        size.width * 0.2,
+        y - 30,
+        size.width * 0.72,
+        y + 34,
+        size.width + 24,
+        y,
+      );
+      canvas.drawPath(path, paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _ShopRadarTracePainter oldDelegate) => false;
+}
 
 /// Shop radar screen.
 class ShopRadar extends ConsumerStatefulWidget {
@@ -87,25 +175,30 @@ class _ShopRadarState extends ConsumerState<ShopRadar>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0D1B2A),
-      body: SafeArea(
-        child: Column(
-          children: [
-            // Top app bar.
-            _buildHeader(),
+      backgroundColor: JewelryColors.jadeBlack,
+      body: Stack(
+        children: [
+          const Positioned.fill(child: _ShopRadarBackdrop()),
+          SafeArea(
+            child: Column(
+              children: [
+                // Top app bar.
+                _buildHeader(),
 
-            // Radar scan hero.
-            _buildRadarSection(),
+                // Radar scan hero.
+                _buildRadarSection(),
 
-            // Filter controls.
-            _buildFilterBar(),
+                // Filter controls.
+                _buildFilterBar(),
 
-            // Shop list.
-            Expanded(
-              child: _buildShopList(),
+                // Shop list.
+                Expanded(
+                  child: _buildShopList(),
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -115,7 +208,7 @@ class _ShopRadarState extends ConsumerState<ShopRadar>
       padding: const EdgeInsets.all(16),
       child: Row(
         children: [
-          const Icon(Icons.radar, color: JewelryColors.gold, size: 28),
+          const Icon(Icons.radar, color: JewelryColors.champagneGold, size: 28),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -124,15 +217,15 @@ class _ShopRadarState extends ConsumerState<ShopRadar>
                 Text(
                   ref.tr('shop_radar_title'),
                   style: const TextStyle(
-                    color: Colors.white,
+                    color: JewelryColors.jadeMist,
                     fontSize: 20,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w900,
                   ),
                 ),
                 Text(
                   ref.tr('shop_radar_subtitle'),
                   style: TextStyle(
-                    color: Colors.white.withOpacity(0.6),
+                    color: JewelryColors.jadeMist.withOpacity(0.58),
                     fontSize: 12,
                   ),
                 ),
@@ -145,16 +238,27 @@ class _ShopRadarState extends ConsumerState<ShopRadar>
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               decoration: BoxDecoration(
-                gradient: _isScanning ? null : JewelryColors.primaryGradient,
-                color: _isScanning ? Colors.red.withOpacity(0.8) : null,
+                gradient:
+                    _isScanning ? null : JewelryColors.emeraldLusterGradient,
+                color:
+                    _isScanning ? JewelryColors.error.withOpacity(0.82) : null,
                 borderRadius: BorderRadius.circular(20),
+                boxShadow: _isScanning
+                    ? null
+                    : [
+                        BoxShadow(
+                          color: JewelryColors.emeraldGlow.withOpacity(0.24),
+                          blurRadius: 18,
+                          offset: const Offset(0, 8),
+                        ),
+                      ],
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(
                     _isScanning ? Icons.stop : Icons.play_arrow,
-                    color: Colors.white,
+                    color: JewelryColors.jadeBlack,
                     size: 18,
                   ),
                   const SizedBox(width: 6),
@@ -163,9 +267,9 @@ class _ShopRadarState extends ConsumerState<ShopRadar>
                         ? ref.tr('shop_radar_stop_scan')
                         : ref.tr('shop_radar_start_scan'),
                     style: const TextStyle(
-                      color: Colors.white,
+                      color: JewelryColors.jadeBlack,
                       fontSize: 13,
-                      fontWeight: FontWeight.w600,
+                      fontWeight: FontWeight.w900,
                     ),
                   ),
                 ],
@@ -178,23 +282,13 @@ class _ShopRadarState extends ConsumerState<ShopRadar>
   }
 
   Widget _buildRadarSection() {
-    return Container(
+    return GlassmorphicCard(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            JewelryColors.primary.withOpacity(0.15),
-            JewelryColors.gold.withOpacity(0.1),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: JewelryColors.primary.withOpacity(0.3),
-        ),
-      ),
+      borderRadius: 26,
+      blur: 16,
+      opacity: 0.18,
+      borderColor: JewelryColors.emeraldGlow.withOpacity(0.18),
       child: Row(
         children: [
           // Radar animation.
@@ -245,7 +339,8 @@ class _ShopRadarState extends ConsumerState<ShopRadar>
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       border: Border.all(
-                        color: JewelryColors.primary.withOpacity(0.3 - i * 0.1),
+                        color: JewelryColors.emeraldGlow
+                            .withOpacity(0.3 - i * 0.1),
                       ),
                     ),
                   )),
@@ -263,7 +358,7 @@ class _ShopRadarState extends ConsumerState<ShopRadar>
                       gradient: LinearGradient(
                         colors: [
                           Colors.transparent,
-                          JewelryColors.primary,
+                          JewelryColors.emeraldGlow,
                         ],
                       ),
                     ),
@@ -277,11 +372,13 @@ class _ShopRadarState extends ConsumerState<ShopRadar>
             height: 12,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: _isScanning ? JewelryColors.primary : Colors.grey,
+              color: _isScanning
+                  ? JewelryColors.emeraldGlow
+                  : JewelryColors.jadeMist.withOpacity(0.28),
               boxShadow: _isScanning
                   ? [
                       BoxShadow(
-                        color: JewelryColors.primary.withOpacity(0.5),
+                        color: JewelryColors.emeraldGlow.withOpacity(0.5),
                         blurRadius: 10,
                         spreadRadius: 2,
                       ),
@@ -302,7 +399,7 @@ class _ShopRadarState extends ConsumerState<ShopRadar>
           child: Text(
             label,
             style: TextStyle(
-              color: Colors.white.withOpacity(0.6),
+              color: JewelryColors.jadeMist.withOpacity(0.58),
               fontSize: 12,
             ),
           ),
@@ -310,16 +407,16 @@ class _ShopRadarState extends ConsumerState<ShopRadar>
         Text(
           value,
           style: const TextStyle(
-            color: JewelryColors.gold,
+            color: JewelryColors.champagneGold,
             fontSize: 20,
-            fontWeight: FontWeight.bold,
+            fontWeight: FontWeight.w900,
           ),
         ),
         const SizedBox(width: 4),
         Text(
           unit,
           style: TextStyle(
-            color: Colors.white.withOpacity(0.5),
+            color: JewelryColors.jadeMist.withOpacity(0.48),
             fontSize: 11,
           ),
         ),
@@ -357,20 +454,27 @@ class _ShopRadarState extends ConsumerState<ShopRadar>
               margin: const EdgeInsets.only(right: 10),
               padding: const EdgeInsets.symmetric(horizontal: 16),
               decoration: BoxDecoration(
-                gradient: isSelected ? JewelryColors.primaryGradient : null,
-                color: isSelected ? null : Colors.white.withOpacity(0.1),
+                gradient:
+                    isSelected ? JewelryColors.emeraldLusterGradient : null,
+                color: isSelected
+                    ? null
+                    : JewelryColors.jadeBlack.withOpacity(0.22),
                 borderRadius: BorderRadius.circular(20),
                 border: isSelected
                     ? null
-                    : Border.all(color: Colors.white.withOpacity(0.2)),
+                    : Border.all(
+                        color: JewelryColors.champagneGold.withOpacity(0.14),
+                      ),
               ),
               alignment: Alignment.center,
               child: Text(
                 _platformLabel(platform),
                 style: TextStyle(
-                  color: isSelected ? Colors.white : Colors.white70,
+                  color: isSelected
+                      ? JewelryColors.jadeBlack
+                      : JewelryColors.jadeMist.withOpacity(0.7),
                   fontSize: 13,
-                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                  fontWeight: isSelected ? FontWeight.w900 : FontWeight.w600,
                 ),
               ),
             ),
@@ -395,18 +499,15 @@ class _ShopRadarState extends ConsumerState<ShopRadar>
   }
 
   Widget _buildShopCard(ShopModel shop) {
-    return Container(
+    return GlassmorphicCard(
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.08),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: shop.isQualified
-              ? JewelryColors.primary.withOpacity(0.5)
-              : Colors.white.withOpacity(0.1),
-        ),
-      ),
+      borderRadius: 24,
+      blur: 16,
+      opacity: 0.17,
+      borderColor: shop.isQualified
+          ? JewelryColors.emeraldGlow.withOpacity(0.28)
+          : JewelryColors.champagneGold.withOpacity(0.12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -432,22 +533,30 @@ class _ShopRadarState extends ConsumerState<ShopRadar>
               if (shop.isInfluencer) ...[
                 const SizedBox(width: 8),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: JewelryColors.gold.withOpacity(0.2),
+                    color: JewelryColors.champagneGold.withOpacity(0.12),
                     borderRadius: BorderRadius.circular(6),
+                    border: Border.all(
+                      color: JewelryColors.champagneGold.withOpacity(0.2),
+                    ),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.live_tv, color: JewelryColors.gold, size: 12),
+                      const Icon(
+                        Icons.live_tv,
+                        color: JewelryColors.champagneGold,
+                        size: 12,
+                      ),
                       const SizedBox(width: 4),
                       Text(
                         ref.tr('shop_radar_influencer'),
                         style: const TextStyle(
-                          color: JewelryColors.gold,
+                          color: JewelryColors.champagneGold,
                           fontSize: 11,
-                          fontWeight: FontWeight.w600,
+                          fontWeight: FontWeight.w800,
                         ),
                       ),
                     ],
@@ -457,22 +566,28 @@ class _ShopRadarState extends ConsumerState<ShopRadar>
               const Spacer(),
               // AI score.
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
                   gradient: shop.aiPriority! >= 80
-                      ? JewelryColors.primaryGradient
+                      ? JewelryColors.emeraldLusterGradient
                       : null,
                   color: shop.aiPriority! >= 80
                       ? null
-                      : Colors.grey.withOpacity(0.3),
+                      : JewelryColors.jadeBlack.withOpacity(0.28),
                   borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: shop.aiPriority! >= 80
+                        ? Colors.transparent
+                        : JewelryColors.champagneGold.withOpacity(0.12),
+                  ),
                 ),
                 child: Text(
                   _formatAiScore(shop.aiPriority),
                   style: const TextStyle(
-                    color: Colors.white,
+                    color: JewelryColors.jadeMist,
                     fontSize: 11,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w900,
                   ),
                 ),
               ),
@@ -484,16 +599,16 @@ class _ShopRadarState extends ConsumerState<ShopRadar>
           Text(
             shop.name,
             style: const TextStyle(
-              color: Colors.white,
+              color: JewelryColors.jadeMist,
               fontSize: 16,
-              fontWeight: FontWeight.w600,
+              fontWeight: FontWeight.w900,
             ),
           ),
           const SizedBox(height: 4),
           Text(
             _shopMainBusinessLabel(shop.category),
             style: TextStyle(
-              color: Colors.white.withOpacity(0.6),
+              color: JewelryColors.jadeMist.withOpacity(0.58),
               fontSize: 12,
             ),
           ),
@@ -525,7 +640,8 @@ class _ShopRadarState extends ConsumerState<ShopRadar>
             children: [
               // Status chip.
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 decoration: BoxDecoration(
                   color: shop.contactStatus.color.withOpacity(0.2),
                   borderRadius: BorderRadius.circular(6),
@@ -545,22 +661,27 @@ class _ShopRadarState extends ConsumerState<ShopRadar>
                 GestureDetector(
                   onTap: () => _contactShop(shop),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     decoration: BoxDecoration(
-                      gradient: JewelryColors.primaryGradient,
+                      gradient: JewelryColors.emeraldLusterGradient,
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.edit, color: Colors.white, size: 14),
+                        const Icon(
+                          Icons.edit,
+                          color: JewelryColors.jadeBlack,
+                          size: 14,
+                        ),
                         const SizedBox(width: 6),
                         Text(
                           ref.tr('work_ai_script'),
                           style: const TextStyle(
-                            color: Colors.white,
+                            color: JewelryColors.jadeBlack,
                             fontSize: 12,
-                            fontWeight: FontWeight.w600,
+                            fontWeight: FontWeight.w900,
                           ),
                         ),
                       ],
@@ -571,15 +692,19 @@ class _ShopRadarState extends ConsumerState<ShopRadar>
                 GestureDetector(
                   onTap: () => _viewShopDetail(shop),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.1),
+                      color: JewelryColors.jadeBlack.withOpacity(0.22),
                       borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: JewelryColors.champagneGold.withOpacity(0.14),
+                      ),
                     ),
                     child: Text(
                       ref.tr('order_view_detail'),
-                      style: const TextStyle(
-                        color: Colors.white70,
+                      style: TextStyle(
+                        color: JewelryColors.jadeMist.withOpacity(0.72),
                         fontSize: 12,
                       ),
                     ),
@@ -661,16 +786,16 @@ class _ShopRadarState extends ConsumerState<ShopRadar>
           Text(
             value,
             style: const TextStyle(
-              color: Colors.white,
+              color: JewelryColors.jadeMist,
               fontSize: 14,
-              fontWeight: FontWeight.w600,
+              fontWeight: FontWeight.w900,
             ),
           ),
           const SizedBox(height: 2),
           Text(
             label,
             style: TextStyle(
-              color: Colors.white.withOpacity(0.5),
+              color: JewelryColors.jadeMist.withOpacity(0.5),
               fontSize: 10,
             ),
           ),
@@ -735,9 +860,21 @@ class _ShopRadarState extends ConsumerState<ShopRadar>
         maxChildSize: 0.95,
         minChildSize: 0.4,
         builder: (_, controller) => Container(
-          decoration: const BoxDecoration(
-            color: Color(0xFF0F172A),
-            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                JewelryColors.deepJade.withOpacity(0.98),
+                JewelryColors.jadeSurface.withOpacity(0.94),
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
+            border: Border(
+              top: BorderSide(
+                color: JewelryColors.champagneGold.withOpacity(0.16),
+              ),
+            ),
           ),
           child: ListView(
             controller: controller,
@@ -750,7 +887,7 @@ class _ShopRadarState extends ConsumerState<ShopRadar>
                   height: 4,
                   margin: const EdgeInsets.only(bottom: 20),
                   decoration: BoxDecoration(
-                    color: Colors.white24,
+                    color: JewelryColors.jadeMist.withOpacity(0.22),
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -762,10 +899,14 @@ class _ShopRadarState extends ConsumerState<ShopRadar>
                     width: 56,
                     height: 56,
                     decoration: BoxDecoration(
-                      gradient: JewelryColors.goldGradient,
+                      gradient: JewelryColors.champagneGradient,
                       borderRadius: BorderRadius.circular(16),
                     ),
-                    child: const Icon(Icons.store, color: Colors.black87, size: 28),
+                    child: const Icon(
+                      Icons.store,
+                      color: JewelryColors.jadeBlack,
+                      size: 28,
+                    ),
                   ),
                   const SizedBox(width: 14),
                   Expanded(
@@ -774,21 +915,26 @@ class _ShopRadarState extends ConsumerState<ShopRadar>
                       children: [
                         Text(shop.name,
                             style: const TextStyle(
-                                color: Colors.white,
+                                color: JewelryColors.jadeMist,
                                 fontSize: 20,
-                                fontWeight: FontWeight.bold)),
+                                fontWeight: FontWeight.w900)),
                         const SizedBox(height: 4),
                         Row(children: [
                           Container(
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 8, vertical: 2),
                             decoration: BoxDecoration(
-                              color: JewelryColors.primary.withOpacity(0.2),
+                              color:
+                                  JewelryColors.emeraldGlow.withOpacity(0.12),
                               borderRadius: BorderRadius.circular(6),
+                              border: Border.all(
+                                color:
+                                    JewelryColors.emeraldGlow.withOpacity(0.2),
+                              ),
                             ),
                             child: Text(_platformLabel(shop.platform),
                                 style: const TextStyle(
-                                    color: JewelryColors.primary,
+                                    color: JewelryColors.emeraldGlow,
                                     fontSize: 12)),
                           ),
                           const SizedBox(width: 8),
@@ -796,12 +942,18 @@ class _ShopRadarState extends ConsumerState<ShopRadar>
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 8, vertical: 2),
                             decoration: BoxDecoration(
-                              color: JewelryColors.gold.withOpacity(0.2),
+                              color:
+                                  JewelryColors.champagneGold.withOpacity(0.12),
                               borderRadius: BorderRadius.circular(6),
+                              border: Border.all(
+                                color: JewelryColors.champagneGold
+                                    .withOpacity(0.2),
+                              ),
                             ),
                             child: Text(_shopCategoryLabel(shop.category),
                                 style: const TextStyle(
-                                    color: JewelryColors.gold, fontSize: 12)),
+                                    color: JewelryColors.champagneGold,
+                                    fontSize: 12)),
                           ),
                         ]),
                       ],
@@ -819,9 +971,12 @@ class _ShopRadarState extends ConsumerState<ShopRadar>
                       ref.tr('shop_radar_rating'),
                       shop.rating.toStringAsFixed(1),
                       Icons.star,
-                      JewelryColors.gold),
-                  _buildDetailStat(ref.tr('shop_radar_followers'),
-                      '${shop.followers}', Icons.people, JewelryColors.primary),
+                      JewelryColors.champagneGold),
+                  _buildDetailStat(
+                      ref.tr('shop_radar_followers'),
+                      '${shop.followers}',
+                      Icons.people,
+                      JewelryColors.emeraldGlow),
                   _buildDetailStat(
                       ref.tr('shop_radar_conversion_rate'),
                       '${(shop.conversionRate * 100).toStringAsFixed(1)}%',
@@ -854,25 +1009,27 @@ class _ShopRadarState extends ConsumerState<ShopRadar>
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.05),
+                  color: JewelryColors.jadeBlack.withOpacity(0.22),
                   borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: Colors.white.withOpacity(0.1)),
+                  border: Border.all(
+                    color: JewelryColors.champagneGold.withOpacity(0.12),
+                  ),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(ref.tr('shop_radar_contact_status'),
                         style: const TextStyle(
-                            color: Colors.white,
+                            color: JewelryColors.jadeMist,
                             fontSize: 16,
-                            fontWeight: FontWeight.w600)),
+                            fontWeight: FontWeight.w900)),
                     const SizedBox(height: 10),
                     Text(
                       _contactStatusLabel(shop.contactStatus),
                       style: TextStyle(
                         color: shop.contactStatus.name == 'cooperated'
                             ? JewelryColors.success
-                            : JewelryColors.gold,
+                            : JewelryColors.champagneGold,
                         fontSize: 14,
                       ),
                     ),
@@ -887,7 +1044,7 @@ class _ShopRadarState extends ConsumerState<ShopRadar>
                           },
                         ),
                         style: TextStyle(
-                          color: Colors.white.withOpacity(0.5),
+                          color: JewelryColors.jadeMist.withOpacity(0.5),
                           fontSize: 12,
                         ),
                       ),
@@ -910,8 +1067,9 @@ class _ShopRadarState extends ConsumerState<ShopRadar>
                       icon: const Icon(Icons.auto_awesome, size: 18),
                       label: Text(ref.tr('shop_radar_generate_script')),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: JewelryColors.primary,
-                        foregroundColor: Colors.white,
+                        backgroundColor: JewelryColors.emeraldLuster,
+                        foregroundColor: JewelryColors.jadeBlack,
+                        elevation: 0,
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12)),
@@ -925,8 +1083,11 @@ class _ShopRadarState extends ConsumerState<ShopRadar>
                       icon: const Icon(Icons.close, size: 18),
                       label: Text(ref.tr('close')),
                       style: OutlinedButton.styleFrom(
-                        foregroundColor: Colors.white70,
-                        side: const BorderSide(color: Colors.white24),
+                        foregroundColor:
+                            JewelryColors.jadeMist.withOpacity(0.72),
+                        side: BorderSide(
+                          color: JewelryColors.champagneGold.withOpacity(0.18),
+                        ),
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12)),
@@ -959,13 +1120,14 @@ class _ShopRadarState extends ConsumerState<ShopRadar>
             const SizedBox(height: 6),
             Text(value,
                 style: const TextStyle(
-                    color: Colors.white,
+                    color: JewelryColors.jadeMist,
                     fontSize: 16,
-                    fontWeight: FontWeight.bold)),
+                    fontWeight: FontWeight.w900)),
             const SizedBox(height: 2),
             Text(label,
                 style: TextStyle(
-                    color: Colors.white.withOpacity(0.6), fontSize: 11)),
+                    color: JewelryColors.jadeMist.withOpacity(0.6),
+                    fontSize: 11)),
           ],
         ),
       ),
@@ -1018,11 +1180,19 @@ class _AIDialogueDialogState extends ConsumerState<_AIDialogueDialog> {
       child: Container(
         padding: const EdgeInsets.all(24),
         decoration: BoxDecoration(
-          color: const Color(0xFF1E1E2E),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: JewelryColors.primary.withOpacity(0.3),
+          gradient: LinearGradient(
+            colors: [
+              JewelryColors.deepJade.withOpacity(0.98),
+              JewelryColors.jadeSurface.withOpacity(0.94),
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
           ),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(
+            color: JewelryColors.champagneGold.withOpacity(0.16),
+          ),
+          boxShadow: JewelryShadows.liquidGlass,
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -1030,20 +1200,26 @@ class _AIDialogueDialogState extends ConsumerState<_AIDialogueDialog> {
           children: [
             Row(
               children: [
-                const Icon(Icons.smart_toy, color: JewelryColors.primary),
+                const Icon(
+                  Icons.smart_toy,
+                  color: JewelryColors.emeraldGlow,
+                ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     ref.tr('shop_radar_ai_dialog_title'),
                     style: const TextStyle(
-                      color: Colors.white,
+                      color: JewelryColors.jadeMist,
                       fontSize: 18,
-                      fontWeight: FontWeight.bold,
+                      fontWeight: FontWeight.w900,
                     ),
                   ),
                 ),
                 IconButton(
-                  icon: const Icon(Icons.close, color: Colors.white54),
+                  icon: Icon(
+                    Icons.close,
+                    color: JewelryColors.jadeMist.withOpacity(0.54),
+                  ),
                   onPressed: () => Navigator.pop(context),
                 ),
               ],
@@ -1055,7 +1231,7 @@ class _AIDialogueDialogState extends ConsumerState<_AIDialogueDialog> {
                 params: {'name': widget.shop.name},
               ),
               style: TextStyle(
-                color: Colors.white.withOpacity(0.7),
+                color: JewelryColors.jadeMist.withOpacity(0.68),
                 fontSize: 13,
               ),
             ),
@@ -1063,21 +1239,26 @@ class _AIDialogueDialogState extends ConsumerState<_AIDialogueDialog> {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.05),
+                color: JewelryColors.jadeBlack.withOpacity(0.28),
                 borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: JewelryColors.champagneGold.withOpacity(0.12),
+                ),
               ),
               child: _isLoading
                   ? Center(
                       child: Column(
                         children: [
                           const CircularProgressIndicator(
-                            color: JewelryColors.primary,
+                            color: JewelryColors.emeraldGlow,
                           ),
                           const SizedBox(height: 12),
                           Text(
                             TranslatorGlobal.instance
                                 .translate('ai_generating_script'),
-                            style: const TextStyle(color: Colors.white54),
+                            style: TextStyle(
+                              color: JewelryColors.jadeMist.withOpacity(0.54),
+                            ),
                           ),
                         ],
                       ),
@@ -1085,7 +1266,7 @@ class _AIDialogueDialogState extends ConsumerState<_AIDialogueDialog> {
                   : Text(
                       _dialogue,
                       style: const TextStyle(
-                        color: Colors.white,
+                        color: JewelryColors.jadeMist,
                         fontSize: 14,
                         height: 1.6,
                       ),
@@ -1101,8 +1282,10 @@ class _AIDialogueDialogState extends ConsumerState<_AIDialogueDialog> {
                       icon: const Icon(Icons.refresh, size: 18),
                       label: Text(ref.tr('shop_radar_regenerate')),
                       style: OutlinedButton.styleFrom(
-                        foregroundColor: JewelryColors.primary,
-                        side: const BorderSide(color: JewelryColors.primary),
+                        foregroundColor: JewelryColors.emeraldGlow,
+                        side: const BorderSide(
+                          color: JewelryColors.emeraldGlow,
+                        ),
                         padding: const EdgeInsets.symmetric(vertical: 12),
                       ),
                     ),
@@ -1117,8 +1300,9 @@ class _AIDialogueDialogState extends ConsumerState<_AIDialogueDialog> {
                       icon: const Icon(Icons.send, size: 18),
                       label: Text(ref.tr('shop_radar_copy_and_send')),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: JewelryColors.primary,
-                        foregroundColor: Colors.white,
+                        backgroundColor: JewelryColors.emeraldLuster,
+                        foregroundColor: JewelryColors.jadeBlack,
+                        elevation: 0,
                         padding: const EdgeInsets.symmetric(vertical: 12),
                       ),
                     ),

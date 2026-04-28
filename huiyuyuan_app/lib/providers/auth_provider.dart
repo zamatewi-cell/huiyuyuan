@@ -37,7 +37,7 @@ class AuthNotifier extends AsyncNotifier<UserModel?> {
 
   /// 管理员登录
   ///
-  /// [phone] 手机号 (固定为 18937766669)
+  /// [phone] 手机号 (固定为 18925816362)
   /// [password] 密码
   /// [authCode] 管理员验证码
   Future<bool> loginAdmin(
@@ -89,7 +89,7 @@ class AuthNotifier extends AsyncNotifier<UserModel?> {
         return true;
       }
       // API 返回失败时，Debug 模式今回退到本地凯据验证（包含测试环境 HTTP 400 的情况）
-      if (AppConfig.allowLocalCredentialFallback) {
+      if (AppConfig.allowLocalAdminCredentialFallback) {
         return _localAdminFallback(phone, password, authCode);
       }
       lastLoginError =
@@ -97,7 +97,7 @@ class AuthNotifier extends AsyncNotifier<UserModel?> {
       return false;
     } catch (e) {
       // 网络异常 也回退到本地 Debug 验证
-      if (AppConfig.allowLocalCredentialFallback) {
+      if (AppConfig.allowLocalAdminCredentialFallback) {
         return _localAdminFallback(phone, password, authCode);
       }
       lastLoginError = _t('login_error_network');
@@ -204,14 +204,14 @@ class AuthNotifier extends AsyncNotifier<UserModel?> {
         return true;
       }
       // API失败 —— Debug 下回退本地验证
-      if (AppConfig.allowLocalCredentialFallback) {
+      if (AppConfig.allowLocalOperatorCredentialFallback) {
         return _localOperatorFallback(operatorNumber, password);
       }
       lastLoginError =
           _localizeAuthMessage(res.message, 'login_error_account_or_password');
       return false;
     } catch (e) {
-      if (AppConfig.allowLocalCredentialFallback) {
+      if (AppConfig.allowLocalOperatorCredentialFallback) {
         return _localOperatorFallback(operatorNumber, password);
       }
       lastLoginError = _t('login_error_network');
@@ -235,6 +235,12 @@ class AuthNotifier extends AsyncNotifier<UserModel?> {
       userType: UserType.operator,
       token: mockToken,
       operatorNumber: opNum,
+      permissions: const [
+        'shop_radar',
+        'ai_assistant',
+        'orders',
+        'inventory_read',
+      ],
     );
     try {
       await _storage.saveToken(mockToken);
@@ -696,8 +702,7 @@ class AuthNotifier extends AsyncNotifier<UserModel?> {
   Future<bool> removeDevice(String fingerprint) async {
     try {
       final api = ApiService();
-      final res = await api.delete(
-          '${ApiConfig.authDevices}/$fingerprint');
+      final res = await api.delete('${ApiConfig.authDevices}/$fingerprint');
       return res.success == true;
     } catch (e) {
       debugPrint('[Auth] 移除设备失败: $e');
@@ -709,8 +714,7 @@ class AuthNotifier extends AsyncNotifier<UserModel?> {
   Future<Map<String, dynamic>> logoutOtherDevices() async {
     try {
       final api = ApiService();
-      final res =
-          await api.post('${ApiConfig.authDevices}/logout-others');
+      final res = await api.post('${ApiConfig.authDevices}/logout-others');
       if (res.success) {
         return {
           'success': true,

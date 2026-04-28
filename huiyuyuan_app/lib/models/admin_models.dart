@@ -213,6 +213,7 @@ String _activityIcon(String type) {
 }
 
 class OperatorReport {
+  final String operatorUserId;
   final int operatorId;
   final String operatorName;
   final int contactShops;
@@ -222,6 +223,7 @@ class OperatorReport {
   final double orderAmount;
 
   const OperatorReport({
+    this.operatorUserId = '',
     required this.operatorId,
     required this.operatorName,
     required this.contactShops,
@@ -233,6 +235,7 @@ class OperatorReport {
 
   factory OperatorReport.fromJson(Map<String, dynamic> json) {
     return OperatorReport(
+      operatorUserId: jsonAsString(json['operator_user_id']),
       operatorId: jsonAsInt(json['operator_id']),
       operatorName: jsonAsString(json['operator_name']),
       contactShops: jsonAsInt(json['contact_shops']),
@@ -241,6 +244,84 @@ class OperatorReport {
       aiUsageCount: jsonAsInt(json['ai_usage_count']),
       orderAmount: jsonAsDouble(json['order_amount']),
     );
+  }
+}
+
+class OperatorAccount {
+  final String id;
+  final String username;
+  final String? phone;
+  final int? operatorNumber;
+  final bool isActive;
+  final List<String> permissions;
+  final OperatorReport? report;
+
+  const OperatorAccount({
+    required this.id,
+    required this.username,
+    this.phone,
+    this.operatorNumber,
+    this.isActive = true,
+    this.permissions = const <String>[],
+    this.report,
+  });
+
+  factory OperatorAccount.fromJson(Map<String, dynamic> json) {
+    final reportMap = jsonAsNullableMap(json['report']);
+    return OperatorAccount(
+      id: jsonAsString(json['id']),
+      username: jsonAsString(json['username']),
+      phone: jsonAsNullableString(json['phone']),
+      operatorNumber: jsonAsNullableInt(json['operator_number']),
+      isActive: jsonAsBool(json['is_active'], fallback: true),
+      permissions: jsonAsStringList(json['permissions']),
+      report: reportMap == null ? null : OperatorReport.fromJson(reportMap),
+    );
+  }
+
+  OperatorAccount copyWith({
+    String? username,
+    String? phone,
+    int? operatorNumber,
+    bool? isActive,
+    List<String>? permissions,
+    OperatorReport? report,
+  }) {
+    return OperatorAccount(
+      id: id,
+      username: username ?? this.username,
+      phone: phone ?? this.phone,
+      operatorNumber: operatorNumber ?? this.operatorNumber,
+      isActive: isActive ?? this.isActive,
+      permissions: permissions ?? this.permissions,
+      report: report ?? this.report,
+    );
+  }
+}
+
+class OperatorAccountUpdateRequest {
+  const OperatorAccountUpdateRequest({
+    this.username,
+    this.phone,
+    this.isActive,
+    this.password,
+    this.permissions,
+  });
+
+  final String? username;
+  final String? phone;
+  final bool? isActive;
+  final String? password;
+  final List<String>? permissions;
+
+  Map<String, dynamic> toJson() {
+    return {
+      if (username != null) 'username': username,
+      if (phone != null) 'phone': phone,
+      if (isActive != null) 'is_active': isActive,
+      if (password != null && password!.isNotEmpty) 'password': password,
+      if (permissions != null) 'permissions': permissions,
+    };
   }
 }
 

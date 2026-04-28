@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import '../../models/product_model.dart';
 import '../../l10n/l10n_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -6,7 +6,6 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../../providers/cart_provider.dart';
 import '../../models/cart_item_model.dart';
 import '../../l10n/product_translator.dart';
-import '../../themes/jewelry_theme.dart';
 import '../../themes/colors.dart';
 import '../../widgets/common/glassmorphic_card.dart';
 import 'dart:ui';
@@ -15,6 +14,98 @@ import 'package:huiyuyuan/l10n/string_extension.dart';
 
 // 向后兼容：旧代码如果 import cart_screen.dart 获取 cartProvider 仍然可用
 export '../../providers/cart_provider.dart' show cartProvider;
+
+class _CartBackdrop extends StatelessWidget {
+  const _CartBackdrop();
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: const BoxDecoration(
+        gradient: JewelryColors.jadeDepthGradient,
+      ),
+      child: Stack(
+        children: [
+          Positioned(
+            top: -150,
+            right: -120,
+            child: _CartGlowOrb(
+              size: 330,
+              color: JewelryColors.emeraldGlow.withOpacity(0.11),
+            ),
+          ),
+          Positioned(
+            left: -140,
+            bottom: 120,
+            child: _CartGlowOrb(
+              size: 280,
+              color: JewelryColors.champagneGold.withOpacity(0.1),
+            ),
+          ),
+          Positioned.fill(
+            child: CustomPaint(
+              painter: _CartSilkPainter(),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CartGlowOrb extends StatelessWidget {
+  const _CartGlowOrb({
+    required this.size,
+    required this.color,
+  });
+
+  final double size;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: color,
+        boxShadow: [
+          BoxShadow(
+            color: color,
+            blurRadius: 100,
+            spreadRadius: 34,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CartSilkPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 0.7
+      ..color = JewelryColors.champagneGold.withOpacity(0.035);
+
+    for (var i = 0; i < 7; i++) {
+      final y = size.height * (0.13 + i * 0.13);
+      final path = Path()..moveTo(-24, y);
+      path.quadraticBezierTo(
+        size.width * 0.5,
+        y + (i.isEven ? 28 : -24),
+        size.width + 24,
+        y,
+      );
+      canvas.drawPath(path, paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _CartSilkPainter oldDelegate) => false;
+}
 
 /// 购物车页面
 class CartScreen extends ConsumerStatefulWidget {
@@ -40,22 +131,55 @@ class _CartScreenState extends ConsumerState<CartScreen> {
     final cartNotifier = ref.read(cartProvider.notifier);
 
     return Scaffold(
-      backgroundColor: context.adaptiveBackground,
+      backgroundColor: JewelryColors.jadeBlack,
       appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(56),
+        preferredSize: const Size.fromHeight(72),
         child: ClipRRect(
           child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+            filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
             child: AppBar(
-              backgroundColor: context.adaptiveSurface.withOpacity(0.85),
+              backgroundColor: JewelryColors.jadeBlack.withOpacity(0.82),
               elevation: 0,
               centerTitle: true,
-              title: Text(
-                '${ref.tr('cart_title')} (${cartItems.length})',
-                style: TextStyle(
-                  color: context.adaptiveTextPrimary,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 0.5,
+              iconTheme: const IconThemeData(color: JewelryColors.jadeMist),
+              title: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 8,
+                ),
+                decoration: BoxDecoration(
+                  color: JewelryColors.deepJade.withOpacity(0.6),
+                  borderRadius: BorderRadius.circular(999),
+                  border: Border.all(
+                    color: JewelryColors.champagneGold.withOpacity(0.14),
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 24,
+                      height: 24,
+                      decoration: BoxDecoration(
+                        gradient: JewelryColors.emeraldLusterGradient,
+                        borderRadius: BorderRadius.circular(9),
+                      ),
+                      child: const Icon(
+                        Icons.shopping_bag_outlined,
+                        color: JewelryColors.jadeBlack,
+                        size: 15,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      '${ref.tr('cart_title')} (${cartItems.length})',
+                      style: const TextStyle(
+                        color: JewelryColors.jadeMist,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ],
                 ),
               ),
               actions: [
@@ -63,30 +187,44 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                   TextButton(
                     onPressed: () => _showClearDialog(cartNotifier),
                     child: Text('cart_clear'.tr,
-                        style: TextStyle(color: context.adaptiveTextSecondary)),
+                        style: TextStyle(
+                          color: JewelryColors.jadeMist.withOpacity(0.62),
+                          fontWeight: FontWeight.w700,
+                        )),
                   ),
               ],
             ),
           ),
         ),
       ),
-      body: cartItems.isEmpty
-          ? _buildEmptyCart()
-          : Column(
-              children: [
-                Expanded(
-                  child: ListView.builder(
-                    physics: const BouncingScrollPhysics(),
-                    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    itemCount: cartItems.length,
-                    itemBuilder: (context, index) {
-                      return _buildCartItem(cartItems[index], cartNotifier);
-                    },
-                  ),
+      body: Stack(
+        children: [
+          const Positioned.fill(child: _CartBackdrop()),
+          cartItems.isEmpty
+              ? _buildEmptyCart()
+              : Column(
+                  children: [
+                    Expanded(
+                      child: ListView.builder(
+                        physics: const BouncingScrollPhysics(),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
+                        itemCount: cartItems.length,
+                        itemBuilder: (context, index) {
+                          return _buildCartItem(
+                            cartItems[index],
+                            cartNotifier,
+                          );
+                        },
+                      ),
+                    ),
+                    _buildBottomBar(cartNotifier),
+                  ],
                 ),
-                _buildBottomBar(cartNotifier),
-              ],
-            ),
+        ],
+      ),
     );
   }
 
@@ -96,46 +234,54 @@ class _CartScreenState extends ConsumerState<CartScreen> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Container(
-            padding: EdgeInsets.all(24),
+            padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
-              color: JewelryColors.primary.withOpacity(0.05),
+              color: JewelryColors.deepJade.withOpacity(0.68),
               shape: BoxShape.circle,
+              border: Border.all(
+                color: JewelryColors.champagneGold.withOpacity(0.14),
+              ),
+              boxShadow: JewelryShadows.liquidGlass,
             ),
             child: Icon(
               Icons.shopping_cart_outlined,
               size: 80,
-              color: JewelryColors.primary.withOpacity(0.5),
+              color: JewelryColors.champagneGold.withOpacity(0.62),
             ),
           ),
-          SizedBox(height: 24),
+          const SizedBox(height: 24),
           Text(
             ref.tr('cart_empty'),
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 18,
-              color: context.adaptiveTextPrimary,
-              fontWeight: FontWeight.w600,
+              color: JewelryColors.jadeMist,
+              fontWeight: FontWeight.w900,
             ),
           ),
-          SizedBox(height: 8),
+          const SizedBox(height: 8),
           Text(
             ref.tr('cart_empty_subtitle'),
-            style: TextStyle(fontSize: 14, color: context.adaptiveTextHint),
+            style: TextStyle(
+              fontSize: 14,
+              color: JewelryColors.jadeMist.withOpacity(0.48),
+            ),
           ),
-          SizedBox(height: 32),
+          const SizedBox(height: 32),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: JewelryColors.primary,
-              foregroundColor: Colors.white,
-              padding: EdgeInsets.symmetric(horizontal: 32, vertical: 12),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(24)),
+              backgroundColor: JewelryColors.emeraldLuster,
+              foregroundColor: JewelryColors.jadeBlack,
+              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+              shape: const RoundedRectangleBorder(
+                borderRadius: BorderRadius.all(Radius.circular(24)),
+              ),
               elevation: 0,
             ),
             onPressed: () {
               Navigator.popUntil(context, (route) => route.isFirst);
             },
             child: Text(ref.tr('browse_products'),
-                style: TextStyle(fontWeight: FontWeight.w600)),
+                style: const TextStyle(fontWeight: FontWeight.w600)),
           ),
         ],
       ),
@@ -155,19 +301,21 @@ class _CartScreenState extends ConsumerState<CartScreen> {
       direction: DismissDirection.endToStart,
       background: Container(
         alignment: Alignment.centerRight,
-        padding: EdgeInsets.only(right: 20),
+        padding: const EdgeInsets.only(right: 20),
         decoration: BoxDecoration(
-          color: Colors.red,
-          borderRadius: BorderRadius.circular(12),
+          color: JewelryColors.error.withOpacity(0.78),
+          borderRadius: BorderRadius.circular(20),
         ),
-        child: Icon(Icons.delete, color: Colors.white),
+        child: const Icon(Icons.delete, color: Colors.white),
       ),
       onDismissed: (_) => notifier.removeItem(product.id),
-      child: PremiumCard(
-        margin: EdgeInsets.only(bottom: 12),
-        padding: EdgeInsets.all(12),
+      child: GlassmorphicCard(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(12),
         borderRadius: 20,
-        backgroundColor: context.adaptiveSurface,
+        blur: 18,
+        opacity: 0.17,
+        borderColor: JewelryColors.champagneGold.withOpacity(0.13),
         child: Row(
           children: [
             // 商品图片
@@ -176,8 +324,18 @@ class _CartScreenState extends ConsumerState<CartScreen> {
               height: 88,
               clipBehavior: Clip.antiAlias,
               decoration: BoxDecoration(
-                color: JewelryColors.primary.withOpacity(0.05),
-                borderRadius: BorderRadius.circular(16),
+                gradient: LinearGradient(
+                  colors: [
+                    JewelryColors.emeraldGlow.withOpacity(0.14),
+                    JewelryColors.deepJade.withOpacity(0.82),
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(
+                  color: JewelryColors.champagneGold.withOpacity(0.12),
+                ),
               ),
               child: imageUrl != null && imageUrl.startsWith("http")
                   ? CachedNetworkImage(
@@ -187,10 +345,10 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                   : Icon(
                       Icons.diamond_outlined,
                       size: 40,
-                      color: _getMaterialColor(material).withOpacity(0.5),
+                      color: _getMaterialColor(material).withOpacity(0.78),
                     ),
             ),
-            SizedBox(width: 16),
+            const SizedBox(width: 16),
             // 商品信息
             Expanded(
               child: Column(
@@ -200,20 +358,22 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                     name,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                      color: context.adaptiveTextPrimary,
+                      fontWeight: FontWeight.w900,
+                      color: JewelryColors.jadeMist,
                       height: 1.3,
                     ),
                   ),
-                  SizedBox(height: 6),
+                  const SizedBox(height: 6),
                   Text(
                     material,
                     style: TextStyle(
-                        fontSize: 12, color: context.adaptiveTextSecondary),
+                      fontSize: 12,
+                      color: JewelryColors.jadeMist.withOpacity(0.52),
+                    ),
                   ),
-                  SizedBox(height: 12),
+                  const SizedBox(height: 12),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -221,16 +381,20 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                         '¥${price.toInt()}',
                         style: const TextStyle(
                           fontSize: 18,
-                          fontWeight: FontWeight.w700,
-                          color: JewelryColors.price,
+                          fontWeight: FontWeight.w900,
+                          color: JewelryColors.champagneGold,
                           fontFamily: 'Roboto',
                         ),
                       ),
                       // 数量选择器
                       Container(
                         decoration: BoxDecoration(
-                          color: context.adaptiveBackground,
+                          color: JewelryColors.jadeBlack.withOpacity(0.38),
                           borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color:
+                                JewelryColors.champagneGold.withOpacity(0.12),
+                          ),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
@@ -242,23 +406,25 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                                   : null,
                               borderRadius: BorderRadius.circular(20),
                               child: Container(
-                                padding: EdgeInsets.all(6),
+                                padding: const EdgeInsets.all(6),
                                 child: Icon(
                                   Icons.remove,
                                   size: 16,
                                   color: quantity > 1
-                                      ? context.adaptiveTextPrimary
-                                      : context.adaptiveTextHint,
+                                      ? JewelryColors.jadeMist
+                                      : JewelryColors.jadeMist
+                                          .withOpacity(0.28),
                                 ),
                               ),
                             ),
                             Container(
-                              padding: EdgeInsets.symmetric(horizontal: 8),
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 8),
                               child: Text(
                                 '$quantity',
-                                style: TextStyle(
+                                style: const TextStyle(
                                   fontWeight: FontWeight.w600,
-                                  color: context.adaptiveTextPrimary,
+                                  color: JewelryColors.jadeMist,
                                 ),
                               ),
                             ),
@@ -267,10 +433,9 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                                   product.id, quantity + 1),
                               borderRadius: BorderRadius.circular(20),
                               child: Container(
-                                padding: EdgeInsets.all(6),
-                                child: Icon(Icons.add,
-                                    size: 16,
-                                    color: context.adaptiveTextPrimary),
+                                padding: const EdgeInsets.all(6),
+                                child: const Icon(Icons.add,
+                                    size: 16, color: JewelryColors.jadeMist),
                               ),
                             ),
                           ],
@@ -289,9 +454,9 @@ class _CartScreenState extends ConsumerState<CartScreen> {
 
   Widget _buildBottomBar(CartNotifier notifier) {
     return ClipRRect(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
         child: Container(
           padding: EdgeInsets.only(
             left: 20,
@@ -302,12 +467,24 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                 : 16,
           ),
           decoration: BoxDecoration(
-            color: context.adaptiveSurface.withOpacity(0.9),
+            gradient: LinearGradient(
+              colors: [
+                JewelryColors.deepJade.withOpacity(0.9),
+                JewelryColors.jadeBlack.withOpacity(0.96),
+              ],
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+            ),
+            border: Border(
+              top: BorderSide(
+                color: JewelryColors.champagneGold.withOpacity(0.12),
+              ),
+            ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                blurRadius: 20,
-                offset: const Offset(0, -5),
+                color: JewelryColors.jadeBlack.withOpacity(0.34),
+                blurRadius: 26,
+                offset: const Offset(0, -10),
               ),
             ],
           ),
@@ -320,27 +497,29 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                   Text(
                     ref.tr('cart_total'),
                     style: TextStyle(
-                        fontSize: 12, color: context.adaptiveTextSecondary),
+                      fontSize: 12,
+                      color: JewelryColors.jadeMist.withOpacity(0.58),
+                    ),
                   ),
                   Text(
                     '¥${notifier.totalAmount.toInt()}',
                     style: const TextStyle(
                       fontSize: 24,
-                      fontWeight: FontWeight.w700,
-                      color: JewelryColors.price,
+                      fontWeight: FontWeight.w900,
+                      color: JewelryColors.champagneGold,
                       fontFamily: 'Roboto',
                     ),
                   ),
                 ],
               ),
-              Spacer(),
+              const Spacer(),
               // 结算按钮
               Container(
                 width: 140,
                 decoration: BoxDecoration(
-                  gradient: JewelryColors.primaryGradient,
+                  gradient: JewelryColors.emeraldLusterGradient,
                   borderRadius: BorderRadius.circular(24),
-                  boxShadow: JewelryShadows.light,
+                  boxShadow: JewelryShadows.emeraldHalo,
                 ),
                 child: ElevatedButton(
                   onPressed:
@@ -348,22 +527,23 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.transparent,
                     shadowColor: Colors.transparent,
-                    padding: EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(24)),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: const RoundedRectangleBorder(
+                      borderRadius: BorderRadius.all(Radius.circular(24)),
+                    ),
                     elevation: 0,
                   ),
                   child: _isProcessingApi
-                      ? SizedBox(
+                      ? const SizedBox(
                           width: 20,
                           height: 20,
                           child: CircularProgressIndicator(
-                              strokeWidth: 2, color: Colors.white))
+                              strokeWidth: 2, color: JewelryColors.jadeBlack))
                       : Text(ref.tr('cart_checkout'),
-                          style: TextStyle(
+                          style: const TextStyle(
                               fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.white)),
+                              fontWeight: FontWeight.w900,
+                              color: JewelryColors.jadeBlack)),
                 ),
               ),
             ],
@@ -376,21 +556,21 @@ class _CartScreenState extends ConsumerState<CartScreen> {
   Color _getMaterialColor(String material) {
     final canonicalMaterial = ProductTranslator.canonicalMaterial(material);
     if (canonicalMaterial == '和田玉') {
-      return Color(0xFFF5F5DC);
+      return const Color(0xFFF5F5DC);
     } else if (canonicalMaterial == '缅甸翡翠') {
-      return Color(0xFF32CD32);
+      return const Color(0xFF32CD32);
     } else if (canonicalMaterial == '南红玛瑙') {
-      return Color(0xFFFF6347);
+      return const Color(0xFFFF6347);
     } else if (canonicalMaterial == '紫水晶') {
-      return Color(0xFF9370DB);
+      return const Color(0xFF9370DB);
     } else if (canonicalMaterial == '红宝石') {
       return Colors.red;
     } else if (canonicalMaterial == '蓝宝石') {
       return Colors.blue;
     } else if (canonicalMaterial == '黄金') {
-      return Color(0xFFFFD700);
+      return const Color(0xFFFFD700);
     } else {
-      return Color(0xFF2E8B57);
+      return const Color(0xFF2E8B57);
     }
   }
 
@@ -398,12 +578,25 @@ class _CartScreenState extends ConsumerState<CartScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
+        backgroundColor: JewelryColors.deepJade,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         title: Text('cart_clear_title'.tr),
-        content: Text('cart_clear_confirm'.tr),
+        titleTextStyle: const TextStyle(
+          color: JewelryColors.jadeMist,
+          fontSize: 18,
+          fontWeight: FontWeight.w900,
+        ),
+        content: Text(
+          'cart_clear_confirm'.tr,
+          style: TextStyle(color: JewelryColors.jadeMist.withOpacity(0.68)),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text(ref.tr('cancel')),
+            child: Text(
+              ref.tr('cancel'),
+              style: TextStyle(color: JewelryColors.jadeMist.withOpacity(0.56)),
+            ),
           ),
           ElevatedButton(
             onPressed: () {

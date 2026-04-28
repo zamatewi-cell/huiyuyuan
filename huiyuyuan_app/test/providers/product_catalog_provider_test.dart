@@ -51,7 +51,7 @@ void main() {
       );
       expect(
         container.read(productCatalogCategoriesProvider),
-        ['全部', 'bracelet', 'pendant'],
+        [productCatalogAllCategory, '手链', '吊坠'],
       );
     });
 

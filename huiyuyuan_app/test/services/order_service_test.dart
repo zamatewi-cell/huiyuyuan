@@ -1,4 +1,4 @@
-﻿// 汇玉源 - 订单服务测试
+// 汇玉源 - 订单服务测试
 //
 // 测试内容:
 // - 订单创建
@@ -112,18 +112,18 @@ void main() {
   group('OrderNotifier 测试', () {
     test('初始化时应加载模拟订单', () async {
       container.read(orderProvider.notifier);
-      
+
       await Future.delayed(const Duration(milliseconds: 100));
-      
+
       final orders = container.read(orderProvider);
       expect(orders.isNotEmpty, true);
     });
 
     test('创建订单应成功', () async {
       final orderNotifier = container.read(orderProvider.notifier);
-      
+
       await Future.delayed(const Duration(milliseconds: 100));
-      
+
       final order = await orderNotifier.createOrder(
         productId: 'PROD-NEW-001',
         productName: '新商品测试',
@@ -141,11 +141,11 @@ void main() {
 
     test('创建订单后列表应包含新订单', () async {
       final orderNotifier = container.read(orderProvider.notifier);
-      
+
       await Future.delayed(const Duration(milliseconds: 100));
-      
+
       final initialCount = container.read(orderProvider).length;
-      
+
       await orderNotifier.createOrder(
         productId: 'PROD-NEW-002',
         productName: '测试商品2',
@@ -159,9 +159,9 @@ void main() {
 
     test('更新订单状态应成功', () async {
       final orderNotifier = container.read(orderProvider.notifier);
-      
+
       await Future.delayed(const Duration(milliseconds: 100));
-      
+
       final order = await orderNotifier.createOrder(
         productId: 'PROD-UPDATE-001',
         productName: '状态更新测试',
@@ -184,9 +184,9 @@ void main() {
 
     test('更新不存在的订单应返回false', () async {
       final orderNotifier = container.read(orderProvider.notifier);
-      
+
       await Future.delayed(const Duration(milliseconds: 100));
-      
+
       final result = await orderNotifier.updateOrderStatus(
         'NON_EXISTENT_ORDER',
         OrderStatus.paid,
@@ -197,9 +197,9 @@ void main() {
 
     test('取消订单应成功', () async {
       final orderNotifier = container.read(orderProvider.notifier);
-      
+
       await Future.delayed(const Duration(milliseconds: 100));
-      
+
       final order = await orderNotifier.createOrder(
         productId: 'PROD-CANCEL-001',
         productName: '取消测试',
@@ -217,9 +217,9 @@ void main() {
 
     test('获取订单详情应返回正确订单', () async {
       final orderNotifier = container.read(orderProvider.notifier);
-      
+
       await Future.delayed(const Duration(milliseconds: 100));
-      
+
       final orders = container.read(orderProvider);
       if (orders.isNotEmpty) {
         final order = orderNotifier.getOrder(orders.first.id);
@@ -230,19 +230,20 @@ void main() {
 
     test('获取不存在的订单应返回null', () async {
       final orderNotifier = container.read(orderProvider.notifier);
-      
+
       await Future.delayed(const Duration(milliseconds: 100));
-      
+
       final order = orderNotifier.getOrder('NON_EXISTENT');
       expect(order, isNull);
     });
 
     test('按状态筛选订单应正确', () async {
       final orderNotifier = container.read(orderProvider.notifier);
-      
+
       await Future.delayed(const Duration(milliseconds: 100));
-      
-      final pendingOrders = orderNotifier.getOrdersByStatus(OrderStatus.pending);
+
+      final pendingOrders =
+          orderNotifier.getOrdersByStatus(OrderStatus.pending);
       final paidOrders = orderNotifier.getOrdersByStatus(OrderStatus.paid);
 
       for (final order in pendingOrders) {
@@ -255,11 +256,11 @@ void main() {
 
     test('刷新订单列表应成功', () async {
       final orderNotifier = container.read(orderProvider.notifier);
-      
+
       await Future.delayed(const Duration(milliseconds: 100));
-      
+
       await orderNotifier.refresh();
-      
+
       final orders = container.read(orderProvider);
       expect(orders.isNotEmpty, true);
     });
@@ -268,7 +269,7 @@ void main() {
   group('orderStatsProvider 测试', () {
     test('订单统计应正确计算', () async {
       await Future.delayed(const Duration(milliseconds: 200));
-      
+
       final stats = container.read(orderStatsProvider);
 
       expect(stats.containsKey('total'), true);
@@ -281,9 +282,9 @@ void main() {
 
     test('订单总数应等于各状态之和', () async {
       await Future.delayed(const Duration(milliseconds: 200));
-      
+
       final stats = container.read(orderStatsProvider);
-      
+
       final total = stats['total'] as int;
       final pending = stats['pending'] as int;
       final paid = stats['paid'] as int;
@@ -295,10 +296,10 @@ void main() {
 
     test('总金额应为非负数', () async {
       await Future.delayed(const Duration(milliseconds: 200));
-      
+
       final stats = container.read(orderStatsProvider);
       final totalAmount = stats['totalAmount'] as double;
-      
+
       expect(totalAmount, greaterThanOrEqualTo(0));
     });
   });
@@ -306,9 +307,9 @@ void main() {
   group('订单状态流转测试', () {
     test('待支付 -> 已支付 应成功', () async {
       final orderNotifier = container.read(orderProvider.notifier);
-      
+
       await Future.delayed(const Duration(milliseconds: 100));
-      
+
       final order = await orderNotifier.createOrder(
         productId: 'PROD-FLOW-001',
         productName: '流程测试1',
@@ -317,16 +318,16 @@ void main() {
       );
 
       await orderNotifier.updateOrderStatus(order!.id, OrderStatus.paid);
-      
+
       final updated = orderNotifier.getOrder(order.id);
       expect(updated!.status, OrderStatus.paid);
     });
 
     test('已支付 -> 已发货 应成功', () async {
       final orderNotifier = container.read(orderProvider.notifier);
-      
+
       await Future.delayed(const Duration(milliseconds: 100));
-      
+
       final order = await orderNotifier.createOrder(
         productId: 'PROD-FLOW-002',
         productName: '流程测试2',
@@ -336,16 +337,16 @@ void main() {
 
       await orderNotifier.updateOrderStatus(order!.id, OrderStatus.paid);
       await orderNotifier.updateOrderStatus(order.id, OrderStatus.shipped);
-      
+
       final updated = orderNotifier.getOrder(order.id);
       expect(updated!.status, OrderStatus.shipped);
     });
 
     test('已发货 -> 已签收 应成功', () async {
       final orderNotifier = container.read(orderProvider.notifier);
-      
+
       await Future.delayed(const Duration(milliseconds: 100));
-      
+
       final order = await orderNotifier.createOrder(
         productId: 'PROD-FLOW-003',
         productName: '流程测试3',
@@ -356,7 +357,7 @@ void main() {
       await orderNotifier.updateOrderStatus(order!.id, OrderStatus.paid);
       await orderNotifier.updateOrderStatus(order.id, OrderStatus.shipped);
       await orderNotifier.updateOrderStatus(order.id, OrderStatus.delivered);
-      
+
       final updated = orderNotifier.getOrder(order.id);
       expect(updated!.status, OrderStatus.delivered);
     });
@@ -365,9 +366,9 @@ void main() {
   group('边界情况测试', () {
     test('创建订单时数量可以为0', () async {
       final orderNotifier = container.read(orderProvider.notifier);
-      
+
       await Future.delayed(const Duration(milliseconds: 100));
-      
+
       final order = await orderNotifier.createOrder(
         productId: 'PROD-ZERO-QTY',
         productName: '零数量测试',
@@ -381,9 +382,9 @@ void main() {
 
     test('创建订单时金额可以为0', () async {
       final orderNotifier = container.read(orderProvider.notifier);
-      
+
       await Future.delayed(const Duration(milliseconds: 100));
-      
+
       final order = await orderNotifier.createOrder(
         productId: 'PROD-ZERO-AMT',
         productName: '零金额测试',
@@ -396,9 +397,9 @@ void main() {
 
     test('订单ID应唯一', () async {
       final orderNotifier = container.read(orderProvider.notifier);
-      
+
       await Future.delayed(const Duration(milliseconds: 100));
-      
+
       final order1 = await orderNotifier.createOrder(
         productId: 'PROD-UNIQUE-001',
         productName: '唯一测试1',
@@ -420,9 +421,9 @@ void main() {
 
     test('大金额订单应能创建', () async {
       final orderNotifier = container.read(orderProvider.notifier);
-      
+
       await Future.delayed(const Duration(milliseconds: 100));
-      
+
       final order = await orderNotifier.createOrder(
         productId: 'PROD-LARGE-AMT',
         productName: '大金额测试',
@@ -437,9 +438,9 @@ void main() {
   group('操作员关联测试', () {
     test('订单可以关联操作员', () async {
       final orderNotifier = container.read(orderProvider.notifier);
-      
+
       await Future.delayed(const Duration(milliseconds: 100));
-      
+
       final order = await orderNotifier.createOrder(
         productId: 'PROD-OP-001',
         productName: '操作员测试',
@@ -449,6 +450,55 @@ void main() {
       );
 
       expect(order!.operatorId, 'operator_1');
+    });
+  });
+
+  group('支付处理权限测试', () {
+    test('模拟确认到账会同步支付记录状态', () async {
+      final orderNotifier = container.read(orderProvider.notifier);
+
+      await Future.delayed(const Duration(milliseconds: 100));
+
+      final order = await orderNotifier.createOrder(
+        productId: 'PROD-PAY-001',
+        productName: '支付测试',
+        quantity: 1,
+        amount: 299.0,
+      );
+      expect(order, isNotNull);
+
+      final confirmed = await orderNotifier.confirmPayment(order!.id);
+      final updated = orderNotifier.getOrder(order.id);
+
+      expect(confirmed, isTrue);
+      expect(updated!.status, OrderStatus.paid);
+      expect(updated.paymentRecordStatus, 'confirmed');
+      expect(updated.paymentConfirmedAt, isNotNull);
+    });
+
+    test('模拟标记支付异常会写入异常备注', () async {
+      final orderNotifier = container.read(orderProvider.notifier);
+
+      await Future.delayed(const Duration(milliseconds: 100));
+
+      final order = await orderNotifier.createOrder(
+        productId: 'PROD-PAY-002',
+        productName: '异常支付测试',
+        quantity: 1,
+        amount: 399.0,
+      );
+      expect(order, isNotNull);
+
+      final flagged = await orderNotifier.markPaymentException(
+        order!.id,
+        paymentId: 'PAY-FLAG-001',
+        reason: '凭证金额与订单不一致',
+      );
+      final updated = orderNotifier.getOrder(order.id);
+
+      expect(flagged, isTrue);
+      expect(updated!.paymentRecordStatus, 'disputed');
+      expect(updated.paymentAdminNote, '凭证金额与订单不一致');
     });
   });
 }

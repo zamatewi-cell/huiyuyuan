@@ -45,30 +45,14 @@ class _PromotionalBannerState extends ConsumerState<PromotionalBanner> {
           tag: ref.tr('promo_tag_limited'),
           title: ref.tr('promo_banner_welfare'),
           subtitle: ref.tr('promo_banner_welfare_desc'),
-          gradient: const LinearGradient(
-            colors: [
-              Color(0xFF2E8B57),
-              Color(0xFF3CB371),
-              Color(0xFF50C878),
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
+          gradient: JewelryColors.emeraldLusterGradient,
           icon: Icons.diamond_outlined,
         ),
         _BannerData(
           tag: ref.tr('home_new'),
           title: ref.tr('promo_banner_jade'),
           subtitle: ref.tr('promo_banner_jade_desc'),
-          gradient: const LinearGradient(
-            colors: [
-              Color(0xFFDAA520),
-              Color(0xFFFFD700),
-              Color(0xFFFFC107),
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
+          gradient: JewelryColors.champagneGradient,
           icon: Icons.auto_awesome_outlined,
         ),
         _BannerData(
@@ -77,9 +61,9 @@ class _PromotionalBannerState extends ConsumerState<PromotionalBanner> {
           subtitle: ref.tr('promo_banner_ai_desc'),
           gradient: const LinearGradient(
             colors: [
-              Color(0xFF17A2B8),
-              Color(0xFF20C997),
-              Color(0xFF6EDCD9),
+              Color(0xFF07110E),
+              Color(0xFF12382D),
+              Color(0xFF2E8B57),
             ],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
@@ -92,9 +76,9 @@ class _PromotionalBannerState extends ConsumerState<PromotionalBanner> {
           subtitle: ref.tr('promo_banner_member_desc'),
           gradient: const LinearGradient(
             colors: [
-              Color(0xFFE53935),
-              Color(0xFFFF6B6B),
-              Color(0xFFFF8A80),
+              Color(0xFF1F0E0C),
+              Color(0xFF7A2E25),
+              Color(0xFFD4AF37),
             ],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
@@ -140,14 +124,14 @@ class _PromotionalBannerState extends ConsumerState<PromotionalBanner> {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 160,
+      height: 168,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
         child: Column(
           children: [
             Expanded(
               child: ClipRRect(
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(24),
                 child: NotificationListener<ScrollNotification>(
                   onNotification: (n) {
                     if (n is ScrollStartNotification) _stopAutoPlay();
@@ -176,8 +160,8 @@ class _PromotionalBannerState extends ConsumerState<PromotionalBanner> {
                   height: 6,
                   decoration: BoxDecoration(
                     color: active
-                        ? JewelryColors.primary
-                        : JewelryColors.primary.withOpacity(0.2),
+                        ? JewelryColors.champagneGold
+                        : JewelryColors.champagneGold.withOpacity(0.18),
                     borderRadius: BorderRadius.circular(3),
                   ),
                 );
@@ -200,17 +184,34 @@ class _BannerPage extends ConsumerWidget {
     return Container(
       decoration: BoxDecoration(
         gradient: data.gradient,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: JewelryColors.champagneGold.withOpacity(0.14),
+        ),
         boxShadow: [
           BoxShadow(
-            color: data.gradient.colors.first.withOpacity(0.35),
-            blurRadius: 15,
-            offset: const Offset(0, 8),
+            color: Colors.black.withOpacity(0.32),
+            blurRadius: 28,
+            offset: const Offset(0, 16),
           ),
         ],
       ),
       child: Stack(
         children: [
+          Positioned.fill(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.white.withOpacity(0.06),
+                    Colors.black.withOpacity(0.22),
+                  ],
+                ),
+              ),
+            ),
+          ),
           // Decorative circles.
           Positioned(
             right: -30,
@@ -220,7 +221,9 @@ class _BannerPage extends ConsumerWidget {
               height: 140,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: Colors.white.withOpacity(0.1),
+                border: Border.all(
+                  color: JewelryColors.champagneGold.withOpacity(0.16),
+                ),
               ),
             ),
           ),
@@ -232,7 +235,7 @@ class _BannerPage extends ConsumerWidget {
               height: 70,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: Colors.white.withOpacity(0.08),
+                color: Colors.white.withOpacity(0.055),
               ),
             ),
           ),
@@ -243,7 +246,8 @@ class _BannerPage extends ConsumerWidget {
             bottom: 0,
             child: Center(
               child: Icon(data.icon,
-                  size: 56, color: Colors.white.withOpacity(0.18)),
+                  size: 60,
+                  color: JewelryColors.champagneGold.withOpacity(0.18)),
             ),
           ),
           // Copy block.
@@ -257,15 +261,19 @@ class _BannerPage extends ConsumerWidget {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
-                    color: JewelryColors.gold,
-                    borderRadius: BorderRadius.circular(12),
+                    color: JewelryColors.deepJade.withOpacity(0.68),
+                    borderRadius: BorderRadius.circular(999),
+                    border: Border.all(
+                      color: JewelryColors.champagneGold.withOpacity(0.2),
+                    ),
                   ),
                   child: Text(
                     data.tag,
-                    style: const TextStyle(
-                      color: Colors.black87,
+                    style: TextStyle(
+                      color: JewelryColors.champagneGold.withOpacity(0.92),
                       fontSize: 11,
-                      fontWeight: FontWeight.bold,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.5,
                     ),
                   ),
                 ),
@@ -273,9 +281,9 @@ class _BannerPage extends ConsumerWidget {
                 Text(
                   data.title,
                   style: const TextStyle(
-                    color: Colors.white,
+                    color: JewelryColors.jadeMist,
                     fontSize: 22,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w900,
                     height: 1.2,
                   ),
                 ),
@@ -283,8 +291,9 @@ class _BannerPage extends ConsumerWidget {
                 Text(
                   data.subtitle,
                   style: TextStyle(
-                    color: Colors.white.withOpacity(0.8),
+                    color: JewelryColors.jadeMist.withOpacity(0.72),
                     fontSize: 13,
+                    height: 1.35,
                   ),
                 ),
               ],

@@ -26,7 +26,12 @@ class ApiConfig {
     return productionUrl;
   }
 
-  static const String productionUrl = 'https://xn--lsws2cdzg.top';
+  static const String productionHost = 'xn--lsws2cdzg.top';
+  static const String productionIpAddress = '47.112.98.191';
+
+  // 默认走域名，原生 App 仅在 TLS 握手异常时回退到固定生产 IP。
+  static const String productionUrl = 'https://$productionHost';
+  static const String productionIpFallbackUrl = 'https://$productionIpAddress';
 
   static const bool isProduction = false;
 
@@ -89,6 +94,7 @@ class ApiConfig {
   static String orderDetail(String id) => '/api/orders/$id';
   static String orderPay(String id) => '${orderDetail(id)}/pay';
   static String orderPayStatus(String id) => '${orderDetail(id)}/pay-status';
+  static String paymentCancel(String id) => '/api/payments/$id/cancel';
   static const String checkout = '/api/orders/checkout';
 
   static const String userProfile = '/api/users/profile';
@@ -137,7 +143,14 @@ class ApiConfig {
       '/api/admin/orders/$orderId/confirm-payment';
   static String adminShipOrder(String orderId) =>
       '/api/admin/orders/$orderId/ship';
+  static const String adminPaymentReconciliation =
+      '/api/payments/admin/reconciliation';
+  static String adminConfirmPaymentRecord(String paymentId) =>
+      '/api/payments/admin/$paymentId/confirm';
+  static String adminDisputePayment(String paymentId) =>
+      '/api/payments/admin/$paymentId/dispute';
   static const String adminOperators = '/api/admin/operators';
+  static String adminOperator(String id) => '/api/admin/operators/$id';
   static String adminOperatorReport(int operatorId) =>
       '/api/admin/operators/$operatorId/report';
   static const String adminOperatorReports = '/api/admin/operators/reports';

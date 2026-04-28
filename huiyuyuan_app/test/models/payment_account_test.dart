@@ -3,7 +3,7 @@ import 'package:huiyuyuan/models/payment_account.dart';
 
 void main() {
   group('PaymentAccount', () {
-    test('typeName returns localized labels', () {
+    test('typeName returns localization keys', () {
       const bank = PaymentAccount(
         id: '1',
         name: 'A',
@@ -15,8 +15,8 @@ void main() {
         type: PaymentType.alipay,
       );
 
-      expect(bank.typeName, '银行卡');
-      expect(alipay.typeName, '支付宝');
+      expect(bank.typeName, 'payment_type_bank');
+      expect(alipay.typeName, 'payment_type_alipay');
     });
 
     test('toCreateMap uses backend snake_case fields', () {

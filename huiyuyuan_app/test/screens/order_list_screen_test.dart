@@ -1,4 +1,4 @@
-﻿// Widget Test - OrderListScreen
+// Widget Test - OrderListScreen
 //
 // 5 cases: renders with TabBar, has 5 tabs, shows scaffold,
 // initialTab parameter works, no overflow
@@ -55,7 +55,7 @@ void main() {
   Widget buildTestWidget({int initialTab = 0}) {
     return ProviderScope(
       overrides: [
-        orderProvider.overrideWith((ref) => OrderNotifier()),
+        orderProvider.overrideWith((ref) => OrderNotifier(ref)),
       ],
       child: MaterialApp(
         home: OrderListScreen(initialTab: initialTab),
@@ -63,8 +63,7 @@ void main() {
     );
   }
 
-  testWidgets('OrderListScreen renders scaffold',
-      (WidgetTester tester) async {
+  testWidgets('OrderListScreen renders scaffold', (WidgetTester tester) async {
     await tester.pumpWidget(buildTestWidget());
     await tester.pump(const Duration(milliseconds: 300));
 

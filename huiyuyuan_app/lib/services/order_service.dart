@@ -13,6 +13,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/user_model.dart';
 import '../models/json_parsing.dart';
 import '../config/api_config.dart';
+import '../providers/auth_provider.dart';
 import 'api_service.dart';
 import 'package:huiyuyuan/l10n/translator_global.dart';
 
@@ -34,11 +35,29 @@ class OrderNotifier extends StateNotifier<List<OrderModel>> {
 
   final Ref _ref;
 
+  bool _hasOperatorOrderAccess(UserModel? user) {
+    if (user == null || user.userType != UserType.operator) {
+      return true;
+    }
+    return user.hasPermission('orders') ||
+        user.hasPermission('order_manage') ||
+        user.hasPermission('payment_reconcile') ||
+        user.hasPermission('payment_exception_mark');
+  }
+
+  bool _isPermissionDenied(int? code) => code == 401 || code == 403;
+
   /// Loads the order list.
   Future<void> _loadOrders() async {
     _ref.read(orderLoadedProvider.notifier).state = false;
+    final user = _ref.read(currentUserProvider);
 
     try {
+      if (!_hasOperatorOrderAccess(user)) {
+        state = const <OrderModel>[];
+        return;
+      }
+
       if (ApiConfig.useMockApi) {
         state = _buildMockOrders();
         return;
@@ -51,6 +70,10 @@ class OrderNotifier extends StateNotifier<List<OrderModel>> {
           state = result.data!
               .map((json) => OrderModel.fromJson(jsonAsMap(json)))
               .toList();
+          return;
+        }
+        if (_isPermissionDenied(result.code)) {
+          state = const <OrderModel>[];
           return;
         }
       } catch (e) {
@@ -81,6 +104,7 @@ class OrderNotifier extends StateNotifier<List<OrderModel>> {
     String? recipientName,
     String? recipientPhone,
     String? shippingAddress,
+    String? addressId,
     double shippingFee = 0,
     double discount = 0,
     String? remark,
@@ -110,48 +134,45 @@ class OrderNotifier extends StateNotifier<List<OrderModel>> {
 
     try {
       final api = ApiService();
+      final requestData = {
+        'items': [
+          {
+            'product_id': productId ?? '',
+            'quantity': quantity,
+          },
+        ],
+        'address_id': addressId ?? '',
+        'payment_method': paymentMethod?.name ?? 'wechat',
+        if (remark != null) 'remark': remark,
+      };
+      debugPrint('[OrderService] 创建订单请求: $requestData');
+
       final result = await api.post<Map<String, dynamic>>(
         ApiConfig.orders,
-        data: {
-          'product_id': productId ?? '',
-          'product_name': productName,
-          'quantity': quantity,
-          'amount': amount,
-          'product_image': productImage,
-          'payment_method': paymentMethod?.name,
-          'recipient_name': recipientName,
-          'recipient_phone': recipientPhone,
-          'shipping_address': shippingAddress,
-          'operator_id': operatorId,
-        },
+        data: requestData,
       );
+
+      debugPrint(
+        '[OrderService] 创建订单响应: '
+        'success=${result.success}, '
+        'data=${result.data}, '
+        'message=${result.message}, '
+        'code=${result.code}',
+      );
+
       if (result.success && result.data != null) {
         final json = result.data!;
-        final order = OrderModel(
-          id: jsonAsString(
-            json['id'],
-            fallback: 'ORD${DateTime.now().millisecondsSinceEpoch}',
-          ),
-          productId: productId ?? '',
-          productName: productName,
-          quantity: quantity,
-          amount: amount,
-          productImage: productImage,
-          paymentMethod: paymentMethod ?? PaymentMethod.wechat,
-          recipientName: recipientName,
-          recipientPhone: recipientPhone,
-          shippingAddress: shippingAddress,
-          status: OrderStatus.pending,
-          createdAt: jsonAsDateTime(json['created_at']),
-          operatorId: jsonAsNullableString(json['operator_id']) ?? operatorId,
-        );
+        final order = OrderModel.fromJson(json);
         state = [order, ...state];
         return order;
+      } else {
+        debugPrint('[OrderService] 订单创建失败详情: ${result.message}');
+        throw Exception(result.message ?? '创建订单失败');
       }
     } catch (e) {
-      debugPrint('[OrderService] 创建订单失败: $e');
+      debugPrint('[OrderService] 创建订单异常: $e');
+      rethrow;
     }
-    return null;
   }
 
   /// Updates an order status.
@@ -232,11 +253,14 @@ class OrderNotifier extends StateNotifier<List<OrderModel>> {
     if (index < 0) return false;
     if (state[index].status != OrderStatus.pending) return false;
 
+    final confirmedAt = DateTime.now();
     final updatedOrder = state[index].copyWith(
       status: OrderStatus.paid,
       paymentMethod: method ?? PaymentMethod.wechat,
       paymentId: 'PAY${DateTime.now().millisecondsSinceEpoch}',
-      paidAt: DateTime.now(),
+      paidAt: confirmedAt,
+      paymentRecordStatus: 'confirmed',
+      paymentConfirmedAt: confirmedAt,
     );
     state = [
       ...state.sublist(0, index),
@@ -377,6 +401,46 @@ class OrderNotifier extends StateNotifier<List<OrderModel>> {
     }
 
     return simulatePayment(orderId);
+  }
+
+  Future<bool> markPaymentException(
+    String orderId, {
+    required String paymentId,
+    required String reason,
+  }) async {
+    final index = state.indexWhere((o) => o.id == orderId);
+    if (index < 0) return false;
+    if (state[index].status != OrderStatus.pending) return false;
+
+    if (!ApiConfig.useMockApi) {
+      try {
+        final api = ApiService();
+        final result = await api.post<Map<String, dynamic>>(
+          ApiConfig.adminDisputePayment(paymentId),
+          params: {'reason': reason},
+        );
+        if (!result.success) {
+          debugPrint('[OrderService] 标记支付异常 API 失败: ${result.message}');
+          return false;
+        }
+        await _loadOrders();
+        return true;
+      } catch (e) {
+        debugPrint('[OrderService] 标记支付异常异常: $e');
+        return false;
+      }
+    }
+
+    final updatedOrder = state[index].copyWith(
+      paymentRecordStatus: 'disputed',
+      paymentAdminNote: reason,
+    );
+    state = [
+      ...state.sublist(0, index),
+      updatedOrder,
+      ...state.sublist(index + 1),
+    ];
+    return true;
   }
 
   /// Requests a refund and syncs with the backend when available.

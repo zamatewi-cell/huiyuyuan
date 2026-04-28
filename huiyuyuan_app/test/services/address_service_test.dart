@@ -499,9 +499,9 @@ void main() {
     });
 
     test('AddressTag label 和 emoji 应正确', () {
-      expect(AddressTag.home.label, '家');
+      expect(AddressTag.home.label, 'address_tag_home');
       expect(AddressTag.home.emoji, '🏠');
-      expect(AddressTag.company.label, '公司');
+      expect(AddressTag.company.label, 'address_tag_company');
       expect(AddressTag.company.emoji, '🏢');
     });
   });

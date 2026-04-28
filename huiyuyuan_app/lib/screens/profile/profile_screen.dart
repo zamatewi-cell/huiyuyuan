@@ -9,6 +9,7 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -16,6 +17,7 @@ import '../../config/app_config.dart';
 import '../../l10n/app_strings.dart';
 import '../../l10n/l10n_provider.dart';
 import '../../l10n/string_extension.dart';
+import '../../models/app_update_download_state.dart';
 import '../../models/user_model.dart';
 import '../../providers/app_settings_provider.dart';
 import '../../providers/auth_provider.dart';
@@ -35,6 +37,98 @@ import '../notification/notification_screen.dart';
 import '../order/order_list_screen.dart';
 import '../payment_management_screen.dart';
 
+class _ProfileBackdrop extends StatelessWidget {
+  const _ProfileBackdrop();
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: const BoxDecoration(
+        gradient: JewelryColors.jadeDepthGradient,
+      ),
+      child: Stack(
+        children: [
+          Positioned(
+            top: -140,
+            right: -120,
+            child: _ProfileGlowOrb(
+              size: 320,
+              color: JewelryColors.emeraldGlow.withOpacity(0.12),
+            ),
+          ),
+          Positioned(
+            top: 220,
+            left: -130,
+            child: _ProfileGlowOrb(
+              size: 280,
+              color: JewelryColors.champagneGold.withOpacity(0.1),
+            ),
+          ),
+          Positioned.fill(
+            child: CustomPaint(
+              painter: _ProfileLatticePainter(),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ProfileGlowOrb extends StatelessWidget {
+  const _ProfileGlowOrb({
+    required this.size,
+    required this.color,
+  });
+
+  final double size;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: color,
+        boxShadow: [
+          BoxShadow(
+            color: color,
+            blurRadius: 100,
+            spreadRadius: 30,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ProfileLatticePainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..strokeWidth = 0.7
+      ..style = PaintingStyle.stroke
+      ..color = JewelryColors.champagneGold.withOpacity(0.035);
+
+    for (var i = 0; i < 9; i++) {
+      final y = size.height * (0.08 + i * 0.115);
+      final path = Path()..moveTo(-20, y);
+      path.quadraticBezierTo(
+        size.width * 0.34,
+        y + (i.isEven ? 18 : -18),
+        size.width + 20,
+        y + (i.isEven ? -10 : 10),
+      );
+      canvas.drawPath(path, paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _ProfileLatticePainter oldDelegate) => false;
+}
+
 /// Profile screen.
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
@@ -43,241 +137,249 @@ class ProfileScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(currentUserProvider);
     final isAdmin = ref.watch(isAdminProvider);
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final unreadNotifications = ref.watch(notificationUnreadCountProvider);
 
     return Scaffold(
-      backgroundColor:
-          isDark ? const Color(0xFF0D1B2A) : const Color(0xFFF5F7FA),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          child: Column(
-            children: [
-              // Account summary card.
-              _buildUserCard(
-                context,
-                ref,
-                _resolveDisplayName(ref, user, isAdmin),
-                user,
-                isAdmin,
-              ),
+      backgroundColor: JewelryColors.jadeBlack,
+      body: Stack(
+        children: [
+          const Positioned.fill(child: _ProfileBackdrop()),
+          SafeArea(
+            child: SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              child: Column(
+                children: [
+                  // Account summary card.
+                  _buildUserCard(
+                    context,
+                    ref,
+                    _resolveDisplayName(ref, user, isAdmin),
+                    user,
+                    isAdmin,
+                  ),
 
-              // Account stats card.
-              _buildAssetsCard(context, ref),
+                  // Account stats card.
+                  _buildAssetsCard(context, ref),
 
-              // Quick order entry points.
-              _buildOrderSection(context, ref),
+                  // Quick order entry points.
+                  _buildOrderSection(context, ref),
 
-              // Shortcut menu.
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildSectionTitle(ref.tr('profile_account_mgmt')),
-                    _buildMenuItem(
-                      ref,
-                      icon: Icons.favorite,
-                      title: ref.tr('profile_favorites'),
-                      subtitle: ref.tr('profile_favorites_desc'),
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const FavoriteListScreen(),
-                          ),
-                        );
-                      },
-                    ),
-                    _buildMenuItem(
-                      ref,
-                      icon: Icons.location_on,
-                      title: ref.tr('profile_address'),
-                      subtitle: ref.tr('profile_address_desc'),
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const AddressListScreen(),
-                          ),
-                        );
-                      },
-                    ),
-                    _buildMenuItem(
-                      ref,
-                      icon: Icons.history,
-                      title: ref.tr('profile_history'),
-                      subtitle: ref.tr('profile_history_desc'),
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const BrowseHistoryScreen(),
-                          ),
-                        );
-                      },
-                    ),
-                    _buildMenuItem(
-                      ref,
-                      icon: Icons.account_balance_wallet,
-                      title: ref.tr('profile_payment'),
-                      subtitle: ref.tr('profile_payment_desc'),
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) =>
-                                const PaymentManagementScreen(),
-                          ),
-                        );
-                      },
-                    ),
-                    _buildMenuItem(
-                      ref,
-                      icon: Icons.lock_reset,
-                      title: _ProfileAccountCopy.changePasswordTitle(context),
-                      subtitle:
-                          _ProfileAccountCopy.changePasswordSubtitle(context),
-                      onTap: () => _showChangePasswordDialog(context, ref),
-                    ),
-                    _buildMenuItem(
-                      ref,
-                      icon: Icons.devices,
-                      title: ref.tr('security_device_manage'),
-                      subtitle: ref.tr('security_device_list'),
-                      onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const DeviceManagementScreen(),
-                        ),
-                      ),
-                    ),
-                    _buildMenuItem(
-                      ref,
-                      icon: Icons.notifications,
-                      title: ref.tr('profile_reminder'),
-                      subtitle: ref.tr('profile_reminder_desc'),
-                      iconWidget: NotificationBadgeIcon(
-                        icon: Icons.notifications,
-                        count: unreadNotifications,
-                        color: JewelryColors.primary,
-                        size: 20,
-                      ),
-                      onTap: () => _showReminderSettings(context),
-                    ),
-
-                    const SizedBox(height: 20),
-                    _buildSectionTitle(ref.tr('profile_function_settings')),
-
-                    _buildMenuItem(
-                      ref,
-                      icon: Icons.language,
-                      title: ref.tr('settings_language'),
-                      trailing: _getLanguageLabel(
-                          ref, ref.watch(appSettingsProvider).language),
-                      onTap: () => _showLanguageDialog(context, ref),
-                    ),
-                    _buildMenuItem(
-                      ref,
-                      icon: Icons.dark_mode,
-                      title: ref.tr('settings_dark_mode'),
-                      trailing: _getThemeModeLabel(
-                          ref, ref.watch(appSettingsProvider).themeMode),
-                      onTap: () => _showDarkModeDialog(context, ref),
-                    ),
-                    _buildMenuItem(
-                      ref,
-                      icon: Icons.storage,
-                      title: ref.tr('settings_cache'),
-                      trailing:
-                          '${ref.watch(appSettingsProvider).cacheSize.toStringAsFixed(1)} MB',
-                      onTap: () => _showClearCacheDialog(context, ref),
-                    ),
-                    _buildMenuItem(
-                      ref,
-                      icon: Icons.system_update_alt,
-                      title: _ProfileAccountCopy.updateTitle(context),
-                      subtitle: _ProfileAccountCopy.updateSubtitle(context),
-                      trailing: 'v${AppConfig.appVersion}',
-                      onTap: () => _checkForUpdatesManually(context),
-                    ),
-
-                    const SizedBox(height: 20),
-                    _buildSectionTitle(ref.tr('profile_about')),
-
-                    _buildMenuItem(
-                      ref,
-                      icon: Icons.privacy_tip,
-                      title: ref.tr('settings_privacy'),
-                      onTap: () => _showPrivacyPolicy(context, ref),
-                    ),
-                    _buildMenuItem(
-                      ref,
-                      icon: Icons.description,
-                      title: ref.tr('settings_agreement'),
-                      onTap: () => _showUserAgreement(context, ref),
-                    ),
-                    _buildMenuItem(
-                      ref,
-                      icon: Icons.info,
-                      title: ref.tr('settings_about'),
-                      trailing: 'v${AppConfig.appVersion}',
-                      onTap: () => _showAboutDialog(context, ref),
-                    ),
-
-                    const SizedBox(height: 30),
-
-                    // Sign-out actions.
-                    _buildLogoutButton(context, ref),
-                    if (user?.isCustomer ?? false) ...[
-                      const SizedBox(height: 12),
-                      _buildDeactivateButton(context, ref),
-                    ],
-
-                    const SizedBox(height: 30),
-
-                    // Compliance footer.
-                    Center(
-                      child: Column(
-                        children: [
-                          Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                Icons.shield,
-                                size: 14,
-                                color: (isDark ? Colors.white : Colors.black)
-                                    .withOpacity(0.3),
+                  // Shortcut menu.
+                  Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildSectionTitle(ref.tr('profile_account_mgmt')),
+                        _buildMenuItem(
+                          ref,
+                          icon: Icons.favorite,
+                          title: ref.tr('profile_favorites'),
+                          subtitle: ref.tr('profile_favorites_desc'),
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    const FavoriteListScreen(),
                               ),
-                              const SizedBox(width: 6),
+                            );
+                          },
+                        ),
+                        _buildMenuItem(
+                          ref,
+                          icon: Icons.location_on,
+                          title: ref.tr('profile_address'),
+                          subtitle: ref.tr('profile_address_desc'),
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const AddressListScreen(),
+                              ),
+                            );
+                          },
+                        ),
+                        _buildMenuItem(
+                          ref,
+                          icon: Icons.history,
+                          title: ref.tr('profile_history'),
+                          subtitle: ref.tr('profile_history_desc'),
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    const BrowseHistoryScreen(),
+                              ),
+                            );
+                          },
+                        ),
+                        _buildMenuItem(
+                          ref,
+                          icon: Icons.account_balance_wallet,
+                          title: ref.tr('profile_payment'),
+                          subtitle: ref.tr('profile_payment_desc'),
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    const PaymentManagementScreen(),
+                              ),
+                            );
+                          },
+                        ),
+                        _buildMenuItem(
+                          ref,
+                          icon: Icons.lock_reset,
+                          title:
+                              _ProfileAccountCopy.changePasswordTitle(context),
+                          subtitle: _ProfileAccountCopy.changePasswordSubtitle(
+                              context),
+                          onTap: () => _showChangePasswordDialog(context, ref),
+                        ),
+                        _buildMenuItem(
+                          ref,
+                          icon: Icons.devices,
+                          title: ref.tr('security_device_manage'),
+                          subtitle: ref.tr('security_device_list'),
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) =>
+                                  const DeviceManagementScreen(),
+                            ),
+                          ),
+                        ),
+                        _buildMenuItem(
+                          ref,
+                          icon: Icons.notifications,
+                          title: ref.tr('profile_reminder'),
+                          subtitle: ref.tr('profile_reminder_desc'),
+                          iconWidget: NotificationBadgeIcon(
+                            icon: Icons.notifications,
+                            count: unreadNotifications,
+                            color: JewelryColors.champagneGold,
+                            size: 20,
+                          ),
+                          onTap: () => _showReminderSettings(context),
+                        ),
+
+                        const SizedBox(height: 20),
+                        _buildSectionTitle(ref.tr('profile_function_settings')),
+
+                        _buildMenuItem(
+                          ref,
+                          icon: Icons.language,
+                          title: ref.tr('settings_language'),
+                          trailing: _getLanguageLabel(
+                              ref, ref.watch(appSettingsProvider).language),
+                          onTap: () => _showLanguageDialog(context, ref),
+                        ),
+                        _buildMenuItem(
+                          ref,
+                          icon: Icons.dark_mode,
+                          title: ref.tr('settings_dark_mode'),
+                          trailing: _getThemeModeLabel(
+                              ref, ref.watch(appSettingsProvider).themeMode),
+                          onTap: () => _showDarkModeDialog(context, ref),
+                        ),
+                        _buildMenuItem(
+                          ref,
+                          icon: Icons.storage,
+                          title: ref.tr('settings_cache'),
+                          trailing:
+                              '${ref.watch(appSettingsProvider).cacheSize.toStringAsFixed(1)} MB',
+                          onTap: () => _showClearCacheDialog(context, ref),
+                        ),
+                        _buildMenuItem(
+                          ref,
+                          icon: Icons.system_update_alt,
+                          title: _ProfileAccountCopy.updateTitle(context),
+                          subtitle: _ProfileAccountCopy.updateSubtitle(context),
+                          trailing: 'v${AppConfig.appVersion}',
+                          onTap: () => _checkForUpdatesManually(context),
+                        ),
+
+                        const SizedBox(height: 20),
+                        _buildSectionTitle(ref.tr('profile_about')),
+
+                        _buildMenuItem(
+                          ref,
+                          icon: Icons.privacy_tip,
+                          title: ref.tr('settings_privacy'),
+                          onTap: () => _showPrivacyPolicy(context, ref),
+                        ),
+                        _buildMenuItem(
+                          ref,
+                          icon: Icons.description,
+                          title: ref.tr('settings_agreement'),
+                          onTap: () => _showUserAgreement(context, ref),
+                        ),
+                        _buildMenuItem(
+                          ref,
+                          icon: Icons.info,
+                          title: ref.tr('settings_about'),
+                          trailing: 'v${AppConfig.appVersion}',
+                          onTap: () => _showAboutDialog(context, ref),
+                        ),
+
+                        const SizedBox(height: 30),
+
+                        // Sign-out actions.
+                        _buildLogoutButton(context, ref),
+                        if (user?.isCustomer ?? false) ...[
+                          const SizedBox(height: 12),
+                          _buildDeactivateButton(context, ref),
+                        ],
+
+                        const SizedBox(height: 30),
+
+                        // Compliance footer.
+                        Center(
+                          child: Column(
+                            children: [
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.shield,
+                                    size: 14,
+                                    color: JewelryColors.jadeMist
+                                        .withOpacity(0.28),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    ref.tr('compliance_cert'),
+                                    style: TextStyle(
+                                      color: JewelryColors.jadeMist
+                                          .withOpacity(0.28),
+                                      fontSize: 11,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
                               Text(
-                                ref.tr('compliance_cert'),
+                                ref.tr('compliance_copyright'),
                                 style: TextStyle(
-                                  color: (isDark ? Colors.white : Colors.black)
-                                      .withOpacity(0.3),
-                                  fontSize: 11,
+                                  color:
+                                      JewelryColors.jadeMist.withOpacity(0.22),
+                                  fontSize: 10,
                                 ),
                               ),
                             ],
                           ),
-                          const SizedBox(height: 8),
-                          Text(
-                            ref.tr('compliance_copyright'),
-                            style: TextStyle(
-                              color: (isDark ? Colors.white : Colors.black)
-                                  .withOpacity(0.25),
-                              fontSize: 10,
-                            ),
-                          ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
-        ),
+        ],
       ),
     );
   }
@@ -297,109 +399,182 @@ class ProfileScreen extends ConsumerWidget {
 
     return Container(
       margin: const EdgeInsets.all(16),
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            JewelryColors.primary.withOpacity(0.3),
-            JewelryColors.gold.withOpacity(0.2),
+            JewelryColors.jadeSurface.withOpacity(0.82),
+            JewelryColors.deepJade.withOpacity(0.94),
+            JewelryColors.jadeBlack.withOpacity(0.96),
           ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(28),
         border: Border.all(
-          color: JewelryColors.primary.withOpacity(0.3),
+          color: JewelryColors.champagneGold.withOpacity(0.16),
         ),
+        boxShadow: JewelryShadows.liquidGlass,
       ),
-      child: Row(
+      child: Stack(
         children: [
-          Container(
-            width: 70,
-            height: 70,
-            decoration: BoxDecoration(
-              gradient: isAdmin
-                  ? JewelryColors.primaryGradient
-                  : JewelryColors.goldGradient,
-              borderRadius: BorderRadius.circular(20),
-              boxShadow: [
-                BoxShadow(
-                  color: (isAdmin ? JewelryColors.primary : JewelryColors.gold)
-                      .withOpacity(0.4),
-                  blurRadius: 15,
-                  offset: const Offset(0, 5),
+          Positioned(
+            right: -26,
+            top: -34,
+            child: Container(
+              width: 128,
+              height: 128,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: JewelryColors.champagneGold.withOpacity(0.12),
                 ),
-              ],
-            ),
-            child: Icon(
-              isAdmin ? Icons.admin_panel_settings : Icons.person,
-              color: isAdmin ? Colors.white : Colors.black87,
-              size: 32,
+              ),
             ),
           ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  username,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
+          Row(
+            children: [
+              Container(
+                width: 74,
+                height: 74,
+                decoration: BoxDecoration(
+                  gradient: isAdmin
+                      ? JewelryColors.emeraldLusterGradient
+                      : JewelryColors.champagneGradient,
+                  borderRadius: BorderRadius.circular(24),
+                  boxShadow: isAdmin
+                      ? JewelryShadows.emeraldHalo
+                      : [
+                          BoxShadow(
+                            color:
+                                JewelryColors.champagneGold.withOpacity(0.22),
+                            blurRadius: 24,
+                            offset: const Offset(0, 10),
+                          ),
+                        ],
                 ),
-                const SizedBox(height: 4),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                child: Icon(
+                  isAdmin ? Icons.admin_panel_settings : Icons.person,
+                  color: JewelryColors.jadeBlack,
+                  size: 34,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      username,
+                      style: const TextStyle(
+                        color: JewelryColors.jadeMist,
+                        fontSize: 21,
+                        fontWeight: FontWeight.w900,
+                        height: 1.1,
+                      ),
+                    ),
+                    const SizedBox(height: 7),
+                    Text(
+                      user?.phone ?? roleLabel,
+                      style: TextStyle(
+                        color: JewelryColors.jadeMist.withOpacity(0.5),
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 5,
+                      ),
+                      decoration: BoxDecoration(
+                        color: (isAdmin
+                                ? JewelryColors.emeraldGlow
+                                : JewelryColors.champagneGold)
+                            .withOpacity(0.12),
+                        borderRadius: BorderRadius.circular(999),
+                        border: Border.all(
+                          color: (isAdmin
+                                  ? JewelryColors.emeraldGlow
+                                  : JewelryColors.champagneGold)
+                              .withOpacity(0.2),
+                        ),
+                      ),
+                      child: Text(
+                        roleLabel,
+                        style: TextStyle(
+                          color: isAdmin
+                              ? JewelryColors.emeraldGlow
+                              : JewelryColors.champagneGold,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              IconButton(
+                icon: Container(
+                  padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color:
-                        (isAdmin ? JewelryColors.primary : JewelryColors.gold)
-                            .withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Text(
-                    roleLabel,
-                    style: TextStyle(
-                      color:
-                          isAdmin ? JewelryColors.primary : JewelryColors.gold,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
+                    color: JewelryColors.deepJade.withOpacity(0.72),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                      color: JewelryColors.champagneGold.withOpacity(0.14),
                     ),
                   ),
+                  child: Icon(
+                    Icons.edit,
+                    color: JewelryColors.jadeMist.withOpacity(0.72),
+                    size: 18,
+                  ),
                 ),
-              ],
-            ),
-          ),
-          IconButton(
-            icon: Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(12),
+                onPressed: () => _showEditProfileSheet(context, ref),
               ),
-              child: const Icon(Icons.edit, color: Colors.white70, size: 18),
-            ),
-            onPressed: () => _showEditProfileSheet(context, ref),
+            ],
           ),
         ],
       ),
     );
   }
 
+  BoxDecoration _profileGlassDecoration({
+    double radius = 22,
+    double borderOpacity = 0.13,
+  }) {
+    return BoxDecoration(
+      gradient: LinearGradient(
+        colors: [
+          JewelryColors.deepJade.withOpacity(0.76),
+          JewelryColors.jadeSurface.withOpacity(0.48),
+        ],
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+      ),
+      borderRadius: BorderRadius.circular(radius),
+      border: Border.all(
+        color: JewelryColors.champagneGold.withOpacity(borderOpacity),
+      ),
+      boxShadow: JewelryShadows.liquidGlass,
+    );
+  }
+
   void _showEditProfileSheet(BuildContext context, WidgetRef ref) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final nameCtrl = TextEditingController(text: '');
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: isDark ? const Color(0xFF1A1A2E) : Colors.white,
+      backgroundColor: Colors.transparent,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
-      builder: (ctx) => Padding(
+      builder: (ctx) => Container(
+        decoration: const BoxDecoration(
+          gradient: JewelryColors.jadeDepthGradient,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+        ),
         padding: EdgeInsets.fromLTRB(
             20, 20, 20, MediaQuery.of(ctx).viewInsets.bottom + 20),
         child: Column(
@@ -408,28 +583,42 @@ class ProfileScreen extends ConsumerWidget {
           children: [
             Center(
               child: Container(
-                width: 36,
+                width: 42,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: Colors.grey[300],
+                  color: JewelryColors.champagneGold.withOpacity(0.36),
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
             ),
             const SizedBox(height: 16),
             Text(ref.tr('profile_edit_title'),
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: isDark ? Colors.white : JewelryColors.textPrimary,
+                  fontWeight: FontWeight.w900,
+                  color: JewelryColors.jadeMist,
                 )),
             const SizedBox(height: 20),
             TextField(
               controller: nameCtrl,
+              style: const TextStyle(color: JewelryColors.jadeMist),
               decoration: InputDecoration(
                 labelText: ref.tr('profile_nickname'),
-                border:
-                    OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                labelStyle: TextStyle(
+                  color: JewelryColors.jadeMist.withOpacity(0.56),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: BorderSide(
+                    color: JewelryColors.champagneGold.withOpacity(0.16),
+                  ),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: const BorderSide(
+                    color: JewelryColors.emeraldGlow,
+                  ),
+                ),
               ),
             ),
             const SizedBox(height: 20),
@@ -447,13 +636,15 @@ class ProfileScreen extends ConsumerWidget {
                   );
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: JewelryColors.primary,
+                  backgroundColor: JewelryColors.emeraldLuster,
+                  foregroundColor: JewelryColors.jadeBlack,
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12)),
+                      borderRadius: BorderRadius.circular(14)),
                 ),
                 child: Text(ref.tr('save')),
               ),
             ),
+            const SizedBox(height: 10),
           ],
         ),
       ),
@@ -461,7 +652,6 @@ class ProfileScreen extends ConsumerWidget {
   }
 
   Widget _buildAssetsCard(BuildContext context, WidgetRef ref) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final stats = ref.watch(orderStatsProvider);
     final isLoaded = ref.watch(orderLoadedProvider);
     if (!isLoaded) {
@@ -476,18 +666,7 @@ class ProfileScreen extends ConsumerWidget {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: isDark ? Colors.white.withOpacity(0.06) : Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: isDark
-            ? null
-            : [
-                BoxShadow(
-                    color: Colors.black.withOpacity(0.04),
-                    blurRadius: 10,
-                    offset: const Offset(0, 2)),
-              ],
-      ),
+      decoration: _profileGlassDecoration(),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
@@ -511,22 +690,10 @@ class ProfileScreen extends ConsumerWidget {
   }
 
   Widget _buildAssetsLoadingCard(BuildContext context, WidgetRef ref) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: isDark ? Colors.white.withOpacity(0.06) : Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: isDark
-            ? null
-            : [
-                BoxShadow(
-                    color: Colors.black.withOpacity(0.04),
-                    blurRadius: 10,
-                    offset: const Offset(0, 2)),
-              ],
-      ),
+      decoration: _profileGlassDecoration(),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
@@ -550,91 +717,75 @@ class ProfileScreen extends ConsumerWidget {
   }
 
   Widget _buildLoadingAssetItem(String label, IconData icon) {
-    return Builder(builder: (context) {
-      final isDark = Theme.of(context).brightness == Brightness.dark;
-      final shimmerColor =
-          (isDark ? Colors.white : Colors.black).withOpacity(0.08);
-      return Column(
-        children: [
-          Icon(icon, color: JewelryColors.gold, size: 24),
-          const SizedBox(height: 8),
-          Container(
-            width: 32,
-            height: 18,
-            decoration: BoxDecoration(
-              color: shimmerColor,
-              borderRadius: BorderRadius.circular(6),
-            ),
+    return Column(
+      children: [
+        Icon(icon, color: JewelryColors.champagneGold, size: 24),
+        const SizedBox(height: 8),
+        Container(
+          width: 32,
+          height: 18,
+          decoration: BoxDecoration(
+            color: JewelryColors.jadeMist.withOpacity(0.08),
+            borderRadius: BorderRadius.circular(6),
           ),
-          const SizedBox(height: 8),
-          Text(
-            label,
-            style: TextStyle(
-              color: (isDark ? Colors.white : Colors.black).withOpacity(0.5),
-              fontSize: 12,
-            ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          label,
+          style: TextStyle(
+            color: JewelryColors.jadeMist.withOpacity(0.5),
+            fontSize: 12,
           ),
-        ],
-      );
-    });
+        ),
+      ],
+    );
   }
 
   Widget _buildAssetItem(String label, String value, IconData icon) {
-    return Builder(builder: (context) {
-      final isDark = Theme.of(context).brightness == Brightness.dark;
-      return Column(
-        children: [
-          Icon(icon, color: JewelryColors.gold, size: 24),
-          const SizedBox(height: 8),
-          Text(
-            value,
-            style: TextStyle(
-              color: isDark ? Colors.white : JewelryColors.textPrimary,
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
+    return Column(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: JewelryColors.champagneGold.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(14),
           ),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: TextStyle(
-              color: (isDark ? Colors.white : Colors.black).withOpacity(0.5),
-              fontSize: 12,
-            ),
+          child: Icon(icon, color: JewelryColors.champagneGold, size: 22),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          value,
+          style: const TextStyle(
+            color: JewelryColors.jadeMist,
+            fontSize: 18,
+            fontWeight: FontWeight.w900,
           ),
-        ],
-      );
-    });
+        ),
+        const SizedBox(height: 4),
+        Text(
+          label,
+          style: TextStyle(
+            color: JewelryColors.jadeMist.withOpacity(0.52),
+            fontSize: 12,
+          ),
+        ),
+      ],
+    );
   }
 
   Widget _buildDivider() {
-    return Builder(builder: (context) {
-      final isDark = Theme.of(context).brightness == Brightness.dark;
-      return Container(
-        width: 1,
-        height: 50,
-        color: (isDark ? Colors.white : Colors.black).withOpacity(0.1),
-      );
-    });
+    return Container(
+      width: 1,
+      height: 50,
+      color: JewelryColors.champagneGold.withOpacity(0.1),
+    );
   }
 
   Widget _buildOrderSection(BuildContext context, WidgetRef ref) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       margin: const EdgeInsets.all(16),
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: isDark ? Colors.white.withOpacity(0.06) : Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: isDark
-            ? null
-            : [
-                BoxShadow(
-                    color: Colors.black.withOpacity(0.04),
-                    blurRadius: 10,
-                    offset: const Offset(0, 2)),
-              ],
-      ),
+      decoration: _profileGlassDecoration(),
       child: Column(
         children: [
           Row(
@@ -642,10 +793,10 @@ class ProfileScreen extends ConsumerWidget {
             children: [
               Text(
                 ref.tr('order_list_title'),
-                style: TextStyle(
-                  color: isDark ? Colors.white : JewelryColors.textPrimary,
+                style: const TextStyle(
+                  color: JewelryColors.jadeMist,
                   fontSize: 16,
-                  fontWeight: FontWeight.w600,
+                  fontWeight: FontWeight.w900,
                 ),
               ),
               GestureDetector(
@@ -662,15 +813,14 @@ class ProfileScreen extends ConsumerWidget {
                     Text(
                       ref.tr('view_all_orders'),
                       style: TextStyle(
-                        color: (isDark ? Colors.white : Colors.black)
-                            .withOpacity(0.5),
+                        color: JewelryColors.champagneGold.withOpacity(0.76),
                         fontSize: 13,
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
                     Icon(
                       Icons.arrow_forward_ios,
-                      color: (isDark ? Colors.white : Colors.black)
-                          .withOpacity(0.5),
+                      color: JewelryColors.champagneGold.withOpacity(0.76),
                       size: 12,
                     ),
                   ],
@@ -713,20 +863,19 @@ class ProfileScreen extends ConsumerWidget {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: JewelryColors.primary.withOpacity(0.15),
-              borderRadius: BorderRadius.circular(12),
+              gradient: JewelryColors.emeraldLusterGradient,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: JewelryShadows.emeraldHalo,
             ),
-            child: Icon(icon, color: JewelryColors.primary, size: 24),
+            child: Icon(icon, color: JewelryColors.jadeBlack, size: 24),
           ),
           const SizedBox(height: 8),
           Text(
             label,
             style: TextStyle(
-              color: (Theme.of(context).brightness == Brightness.dark
-                      ? Colors.white
-                      : Colors.black)
-                  .withOpacity(0.7),
+              color: JewelryColors.jadeMist.withOpacity(0.68),
               fontSize: 12,
+              fontWeight: FontWeight.w600,
             ),
           ),
         ],
@@ -735,21 +884,31 @@ class ProfileScreen extends ConsumerWidget {
   }
 
   Widget _buildSectionTitle(String title) {
-    return Builder(builder: (context) {
-      final isDark = Theme.of(context).brightness == Brightness.dark;
-      return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        child: Text(
-          title,
-          style: TextStyle(
-            color: (isDark ? Colors.white : Colors.black).withOpacity(0.5),
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
-            letterSpacing: 1,
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      child: Row(
+        children: [
+          Container(
+            width: 18,
+            height: 2,
+            decoration: BoxDecoration(
+              color: JewelryColors.emeraldGlow.withOpacity(0.7),
+              borderRadius: BorderRadius.circular(999),
+            ),
           ),
-        ),
-      );
-    });
+          const SizedBox(width: 8),
+          Text(
+            title,
+            style: TextStyle(
+              color: JewelryColors.jadeMist.withOpacity(0.56),
+              fontSize: 12,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 1,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildMenuItem(
@@ -762,34 +921,25 @@ class ProfileScreen extends ConsumerWidget {
     required VoidCallback onTap,
   }) {
     return Builder(builder: (context) {
-      final isDark = Theme.of(context).brightness == Brightness.dark;
       return GestureDetector(
         onTap: onTap,
         child: Container(
           margin: const EdgeInsets.only(bottom: 10),
           padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: isDark ? Colors.white.withOpacity(0.06) : Colors.white,
-            borderRadius: BorderRadius.circular(14),
-            boxShadow: isDark
-                ? null
-                : [
-                    BoxShadow(
-                        color: Colors.black.withOpacity(0.03),
-                        blurRadius: 6,
-                        offset: const Offset(0, 1)),
-                  ],
-          ),
+          decoration: _profileGlassDecoration(radius: 18, borderOpacity: 0.1),
           child: Row(
             children: [
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: JewelryColors.primary.withOpacity(0.15),
-                  borderRadius: BorderRadius.circular(10),
+                  color: JewelryColors.emeraldGlow.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: JewelryColors.emeraldGlow.withOpacity(0.12),
+                  ),
                 ),
                 child: iconWidget ??
-                    Icon(icon, color: JewelryColors.primary, size: 20),
+                    Icon(icon, color: JewelryColors.emeraldGlow, size: 20),
               ),
               const SizedBox(width: 14),
               Expanded(
@@ -798,11 +948,10 @@ class ProfileScreen extends ConsumerWidget {
                   children: [
                     Text(
                       title,
-                      style: TextStyle(
-                        color:
-                            isDark ? Colors.white : JewelryColors.textPrimary,
+                      style: const TextStyle(
+                        color: JewelryColors.jadeMist,
                         fontSize: 14,
-                        fontWeight: FontWeight.w500,
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
                     if (subtitle != null) ...[
@@ -810,8 +959,7 @@ class ProfileScreen extends ConsumerWidget {
                       Text(
                         subtitle,
                         style: TextStyle(
-                          color: (isDark ? Colors.white : Colors.black)
-                              .withOpacity(0.4),
+                          color: JewelryColors.jadeMist.withOpacity(0.42),
                           fontSize: 11,
                         ),
                       ),
@@ -823,15 +971,15 @@ class ProfileScreen extends ConsumerWidget {
                 Text(
                   trailing,
                   style: TextStyle(
-                    color:
-                        (isDark ? Colors.white : Colors.black).withOpacity(0.5),
+                    color: JewelryColors.champagneGold.withOpacity(0.72),
                     fontSize: 13,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
               const SizedBox(width: 8),
               Icon(
                 Icons.arrow_forward_ios,
-                color: (isDark ? Colors.white : Colors.black).withOpacity(0.3),
+                color: JewelryColors.jadeMist.withOpacity(0.28),
                 size: 14,
               ),
             ],
@@ -848,11 +996,18 @@ class ProfileScreen extends ConsumerWidget {
         width: double.infinity,
         padding: const EdgeInsets.symmetric(vertical: 16),
         decoration: BoxDecoration(
-          color: JewelryColors.error.withOpacity(0.15),
-          borderRadius: BorderRadius.circular(14),
+          color: JewelryColors.error.withOpacity(0.12),
+          borderRadius: BorderRadius.circular(18),
           border: Border.all(
             color: JewelryColors.error.withOpacity(0.3),
           ),
+          boxShadow: [
+            BoxShadow(
+              color: JewelryColors.error.withOpacity(0.08),
+              blurRadius: 18,
+              offset: const Offset(0, 8),
+            ),
+          ],
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -880,8 +1035,8 @@ class ProfileScreen extends ConsumerWidget {
         width: double.infinity,
         padding: const EdgeInsets.symmetric(vertical: 14),
         decoration: BoxDecoration(
-          color: Colors.transparent,
-          borderRadius: BorderRadius.circular(14),
+          color: JewelryColors.deepJade.withOpacity(0.42),
+          borderRadius: BorderRadius.circular(18),
           border: Border.all(
             color: JewelryColors.error.withOpacity(0.25),
           ),
@@ -907,32 +1062,27 @@ class ProfileScreen extends ConsumerWidget {
   }
 
   void _showLogoutDialog(BuildContext context, WidgetRef ref) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: isDark ? const Color(0xFF1E1E2E) : Colors.white,
+        backgroundColor: JewelryColors.deepJade,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(24),
         ),
         title: Text(
           ref.tr('logout_button'),
-          style: TextStyle(
-              color: isDark ? Colors.white : JewelryColors.textPrimary),
+          style: const TextStyle(color: JewelryColors.jadeMist),
         ),
         content: Text(
           ref.tr('logout_message'),
-          style: TextStyle(
-              color: (isDark ? Colors.white : Colors.black).withOpacity(0.7)),
+          style: TextStyle(color: JewelryColors.jadeMist.withOpacity(0.7)),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: Text(
               ref.tr('cancel'),
-              style: TextStyle(
-                  color:
-                      (isDark ? Colors.white : Colors.black).withOpacity(0.5)),
+              style: TextStyle(color: JewelryColors.jadeMist.withOpacity(0.5)),
             ),
           ),
           ElevatedButton(
@@ -952,6 +1102,14 @@ class ProfileScreen extends ConsumerWidget {
   }
 
   Future<void> _checkForUpdatesManually(BuildContext context) async {
+    if (kIsWeb) {
+      _showAccountMessage(
+        context,
+        _ProfileAccountCopy.updateUpToDate(context),
+      );
+      return;
+    }
+
     final service = AppUpdateService();
     final info = await service.fetchLatestUpdate();
     if (!context.mounted) {
@@ -1000,16 +1158,57 @@ class ProfileScreen extends ConsumerWidget {
     }
 
     await service.clearSkippedBuild();
-    final opened = await service.openDownload(info);
+    final state = await service.startUpdate(info);
     if (!context.mounted) {
       return;
     }
-    if (!opened) {
-      _showAccountMessage(
-        context,
-        _ProfileAccountCopy.updateLinkUnavailable(context),
-        isError: true,
-      );
+    _showUpdateActionMessage(context, state);
+  }
+
+  void _showUpdateActionMessage(
+    BuildContext context,
+    AppUpdateDownloadState state,
+  ) {
+    switch (state.status) {
+      case AppUpdateDownloadStatus.external:
+        return;
+      case AppUpdateDownloadStatus.queued:
+      case AppUpdateDownloadStatus.running:
+      case AppUpdateDownloadStatus.paused:
+        _showAccountMessage(
+          context,
+          _ProfileAccountCopy.updateDownloadStarted(context),
+        );
+        return;
+      case AppUpdateDownloadStatus.installing:
+        _showAccountMessage(
+          context,
+          _ProfileAccountCopy.updateInstallStarted(context),
+        );
+        return;
+      case AppUpdateDownloadStatus.permissionRequired:
+        _showAccountMessage(
+          context,
+          _ProfileAccountCopy.updateInstallPermissionRequired(context),
+        );
+        return;
+      case AppUpdateDownloadStatus.unavailable:
+        _showAccountMessage(
+          context,
+          _ProfileAccountCopy.updateLinkUnavailable(context),
+          isError: true,
+        );
+        return;
+      case AppUpdateDownloadStatus.failed:
+        _showAccountMessage(
+          context,
+          _ProfileAccountCopy.updateDownloadFailed(context),
+          isError: true,
+        );
+        return;
+      case AppUpdateDownloadStatus.successful:
+      case AppUpdateDownloadStatus.idle:
+        return;
     }
   }
 
@@ -1844,13 +2043,12 @@ class _ReminderSettingsSheetState
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final unreadNotifications = ref.watch(notificationUnreadCountProvider);
 
     return Container(
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1A1A2E) : Colors.white,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+      decoration: const BoxDecoration(
+        gradient: JewelryColors.jadeDepthGradient,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       child: SafeArea(
         top: false,
@@ -1873,10 +2071,10 @@ class _ReminderSettingsSheetState
                   const SizedBox(width: 10),
                   Text(
                     ref.tr('reminder_settings'),
-                    style: TextStyle(
-                      color: isDark ? Colors.white : JewelryColors.textPrimary,
+                    style: const TextStyle(
+                      color: JewelryColors.jadeMist,
                       fontSize: 18,
-                      fontWeight: FontWeight.bold,
+                      fontWeight: FontWeight.w900,
                     ),
                   ),
                 ],
@@ -1888,11 +2086,10 @@ class _ReminderSettingsSheetState
                   margin: const EdgeInsets.only(bottom: 14),
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
-                    color:
-                        JewelryColors.primary.withOpacity(isDark ? 0.18 : 0.1),
+                    color: JewelryColors.emeraldGlow.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(14),
                     border: Border.all(
-                      color: JewelryColors.primary.withOpacity(0.24),
+                      color: JewelryColors.emeraldGlow.withOpacity(0.18),
                     ),
                   ),
                   child: Row(
@@ -1910,8 +2107,7 @@ class _ReminderSettingsSheetState
                             'count': unreadNotifications,
                           }),
                           style: TextStyle(
-                            color:
-                                isDark ? Colors.white : JewelryColors.textPrimary,
+                            color: JewelryColors.jadeMist.withOpacity(0.86),
                             fontSize: 13,
                             fontWeight: FontWeight.w600,
                           ),
@@ -1921,9 +2117,10 @@ class _ReminderSettingsSheetState
                       OutlinedButton(
                         onPressed: _openNotificationCenter,
                         style: OutlinedButton.styleFrom(
-                          foregroundColor: JewelryColors.primary,
+                          foregroundColor: JewelryColors.champagneGold,
                           side: BorderSide(
-                            color: JewelryColors.primary.withOpacity(0.35),
+                            color:
+                                JewelryColors.champagneGold.withOpacity(0.35),
                           ),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(10),
@@ -2022,13 +2219,15 @@ class _ReminderSettingsSheetState
 
   Widget _buildSwitch(
       String title, String subtitle, bool value, ValueChanged<bool> onChanged) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: (isDark ? Colors.white : Colors.black).withOpacity(0.06),
-        borderRadius: BorderRadius.circular(12),
+        color: JewelryColors.deepJade.withOpacity(0.56),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: JewelryColors.champagneGold.withOpacity(0.1),
+        ),
       ),
       child: Row(
         children: [
@@ -2037,15 +2236,12 @@ class _ReminderSettingsSheetState
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(title,
-                    style: TextStyle(
-                        color:
-                            isDark ? Colors.white : JewelryColors.textPrimary,
-                        fontSize: 14)),
+                    style: const TextStyle(
+                        color: JewelryColors.jadeMist, fontSize: 14)),
                 const SizedBox(height: 2),
                 Text(subtitle,
                     style: TextStyle(
-                      color: (isDark ? Colors.white : Colors.black)
-                          .withOpacity(0.4),
+                      color: JewelryColors.jadeMist.withOpacity(0.42),
                       fontSize: 11,
                     )),
               ],
@@ -2054,7 +2250,7 @@ class _ReminderSettingsSheetState
           Switch(
             value: value,
             onChanged: onChanged,
-            activeColor: JewelryColors.primary,
+            activeColor: JewelryColors.emeraldGlow,
           ),
         ],
       ),
@@ -2109,6 +2305,18 @@ class _ProfileAccountCopy {
 
   static String updateLinkUnavailable(BuildContext context) =>
       _fromKey(context, 'profile_update_link_unavailable');
+
+  static String updateDownloadStarted(BuildContext context) =>
+      _fromKey(context, 'app_update_download_started');
+
+  static String updateDownloadFailed(BuildContext context) =>
+      _fromKey(context, 'app_update_download_failed');
+
+  static String updateInstallStarted(BuildContext context) =>
+      _fromKey(context, 'app_update_install_started');
+
+  static String updateInstallPermissionRequired(BuildContext context) =>
+      _fromKey(context, 'app_update_install_permission_required');
 
   static String deactivateTitle(BuildContext context) =>
       _fromKey(context, 'profile_deactivate_title');

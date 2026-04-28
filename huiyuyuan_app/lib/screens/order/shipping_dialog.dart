@@ -96,19 +96,31 @@ class _ShippingDialogState extends ConsumerState<ShippingDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bgColor = isDark ? const Color(0xFF1E1E2E) : Colors.white;
-    final textPrimary = isDark ? Colors.white : const Color(0xFF1A1A2E);
-    final textSecondary =
-        isDark ? const Color(0xFFB0B0C0) : const Color(0xFF6B7280);
-    final cardBg = isDark ? const Color(0xFF2A2A3A) : const Color(0xFFF8F9FA);
+    const textPrimary = JewelryColors.jadeMist;
+    final textSecondary = JewelryColors.jadeMist.withOpacity(0.62);
+    final cardBg = JewelryColors.deepJade.withOpacity(0.5);
     final carriers = _carrierKeys.map(ref.tr).toList();
 
     return Dialog(
-      backgroundColor: bgColor,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Padding(
-        padding: EdgeInsets.all(24),
+      backgroundColor: Colors.transparent,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+      child: Container(
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              JewelryColors.deepJade.withOpacity(0.96),
+              JewelryColors.jadeSurface.withOpacity(0.9),
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(28),
+          border: Border.all(
+            color: JewelryColors.champagneGold.withOpacity(0.16),
+          ),
+          boxShadow: JewelryShadows.liquidGlass,
+        ),
         child: SingleChildScrollView(
           child: Form(
             key: _formKey,
@@ -120,31 +132,38 @@ class _ShippingDialogState extends ConsumerState<ShippingDialog> {
                 Row(
                   children: [
                     Container(
-                      padding: EdgeInsets.all(10),
+                      padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                        color: JewelryColors.primaryGreen.withAlpha(25),
-                        borderRadius: BorderRadius.circular(10),
+                        gradient: JewelryColors.emeraldLusterGradient,
+                        borderRadius: BorderRadius.circular(14),
+                        boxShadow: [
+                          BoxShadow(
+                            color: JewelryColors.emeraldGlow.withOpacity(0.18),
+                            blurRadius: 16,
+                            offset: const Offset(0, 8),
+                          ),
+                        ],
                       ),
-                      child: Icon(
+                      child: const Icon(
                         Icons.local_shipping_outlined,
-                        color: JewelryColors.primaryGreen,
+                        color: JewelryColors.jadeBlack,
                         size: 24,
                       ),
                     ),
-                    SizedBox(width: 12),
+                    const SizedBox(width: 12),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
                             ref.tr('shipping_confirm_title'),
-                            style: TextStyle(
+                            style: const TextStyle(
                               fontSize: 18,
-                              fontWeight: FontWeight.w600,
+                              fontWeight: FontWeight.w900,
                               color: textPrimary,
                             ),
                           ),
-                          SizedBox(height: 2),
+                          const SizedBox(height: 2),
                           Text(
                             widget.productName,
                             style:
@@ -157,19 +176,19 @@ class _ShippingDialogState extends ConsumerState<ShippingDialog> {
                     ),
                   ],
                 ),
-                SizedBox(height: 20),
+                const SizedBox(height: 20),
 
                 // Face-to-face toggle
                 Container(
                   decoration: BoxDecoration(
                     color: _isFaceToFace
-                        ? JewelryColors.primaryGreen.withAlpha(15)
+                        ? JewelryColors.emeraldGlow.withOpacity(0.12)
                         : cardBg,
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(18),
                     border: Border.all(
                       color: _isFaceToFace
-                          ? JewelryColors.primaryGreen.withAlpha(100)
-                          : Colors.transparent,
+                          ? JewelryColors.emeraldGlow.withOpacity(0.3)
+                          : JewelryColors.champagneGold.withOpacity(0.1),
                     ),
                   ),
                   child: CheckboxListTile(
@@ -178,9 +197,9 @@ class _ShippingDialogState extends ConsumerState<ShippingDialog> {
                         setState(() => _isFaceToFace = v ?? false),
                     title: Text(
                       ref.tr('shipping_face_to_face'),
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 15,
-                        fontWeight: FontWeight.w500,
+                        fontWeight: FontWeight.w800,
                         color: textPrimary,
                       ),
                     ),
@@ -188,26 +207,27 @@ class _ShippingDialogState extends ConsumerState<ShippingDialog> {
                       ref.tr('shipping_face_to_face_hint'),
                       style: TextStyle(fontSize: 12, color: textSecondary),
                     ),
-                    activeColor: JewelryColors.primaryGreen,
+                    activeColor: JewelryColors.emeraldGlow,
+                    checkColor: JewelryColors.jadeBlack,
                     controlAffinity: ListTileControlAffinity.leading,
-                    contentPadding: EdgeInsets.symmetric(horizontal: 8),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 8),
                     dense: true,
                   ),
                 ),
 
                 // Carrier & tracking fields (hidden when face-to-face)
                 if (!_isFaceToFace) ...[
-                  SizedBox(height: 16),
+                  const SizedBox(height: 16),
                   // Carrier selection
                   Text(
                     ref.tr('shipping_carrier_label'),
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 14,
-                      fontWeight: FontWeight.w500,
+                      fontWeight: FontWeight.w800,
                       color: textPrimary,
                     ),
                   ),
-                  SizedBox(height: 8),
+                  const SizedBox(height: 8),
                   Wrap(
                     spacing: 8,
                     runSpacing: 8,
@@ -216,19 +236,20 @@ class _ShippingDialogState extends ConsumerState<ShippingDialog> {
                       return GestureDetector(
                         onTap: () => setState(() => _selectedCarrier = carrier),
                         child: Container(
-                          padding: EdgeInsets.symmetric(
+                          padding: const EdgeInsets.symmetric(
                             horizontal: 12,
                             vertical: 8,
                           ),
                           decoration: BoxDecoration(
                             color: isSelected
-                                ? JewelryColors.primaryGreen.withAlpha(25)
+                                ? JewelryColors.emeraldGlow.withOpacity(0.12)
                                 : cardBg,
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius: BorderRadius.circular(999),
                             border: Border.all(
                               color: isSelected
-                                  ? JewelryColors.primaryGreen
-                                  : Colors.transparent,
+                                  ? JewelryColors.emeraldGlow.withOpacity(0.36)
+                                  : JewelryColors.champagneGold
+                                      .withOpacity(0.08),
                             ),
                           ),
                           child: Text(
@@ -236,40 +257,58 @@ class _ShippingDialogState extends ConsumerState<ShippingDialog> {
                             style: TextStyle(
                               fontSize: 13,
                               color: isSelected
-                                  ? JewelryColors.primaryGreen
+                                  ? JewelryColors.emeraldGlow
                                   : textPrimary,
                               fontWeight: isSelected
-                                  ? FontWeight.w500
-                                  : FontWeight.w400,
+                                  ? FontWeight.w900
+                                  : FontWeight.w600,
                             ),
                           ),
                         ),
                       );
                     }).toList(),
                   ),
-                  SizedBox(height: 16),
+                  const SizedBox(height: 16),
                   // Tracking number
                   Text(
                     ref.tr('shipping_tracking_number_label'),
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 14,
-                      fontWeight: FontWeight.w500,
+                      fontWeight: FontWeight.w800,
                       color: textPrimary,
                     ),
                   ),
-                  SizedBox(height: 8),
+                  const SizedBox(height: 8),
                   TextFormField(
                     controller: _trackingController,
+                    style: const TextStyle(
+                      color: JewelryColors.jadeMist,
+                      fontWeight: FontWeight.w700,
+                    ),
                     decoration: InputDecoration(
                       hintText: ref.tr('shipping_tracking_number_hint'),
                       hintStyle: TextStyle(color: textSecondary.withAlpha(150)),
                       filled: true,
                       fillColor: cardBg,
                       border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: BorderSide.none,
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: BorderSide(
+                          color: JewelryColors.champagneGold.withOpacity(0.1),
+                        ),
                       ),
-                      contentPadding: EdgeInsets.symmetric(
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: BorderSide(
+                          color: JewelryColors.champagneGold.withOpacity(0.1),
+                        ),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: BorderSide(
+                          color: JewelryColors.emeraldGlow.withOpacity(0.5),
+                        ),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
                         horizontal: 14,
                         vertical: 14,
                       ),
@@ -279,7 +318,7 @@ class _ShippingDialogState extends ConsumerState<ShippingDialog> {
                         : null,
                   ),
                 ],
-                SizedBox(height: 24),
+                const SizedBox(height: 24),
 
                 // Buttons
                 Row(
@@ -288,11 +327,16 @@ class _ShippingDialogState extends ConsumerState<ShippingDialog> {
                       child: OutlinedButton(
                         onPressed: () => Navigator.of(context).pop(),
                         style: OutlinedButton.styleFrom(
-                          padding: EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: const RoundedRectangleBorder(
+                            borderRadius: BorderRadius.all(Radius.circular(16)),
                           ),
-                          side: BorderSide(color: textSecondary.withAlpha(100)),
+                          backgroundColor:
+                              JewelryColors.deepJade.withOpacity(0.38),
+                          side: BorderSide(
+                            color:
+                                JewelryColors.champagneGold.withOpacity(0.26),
+                          ),
                         ),
                         child: Text(
                           ref.tr('cancel'), // Cancel
@@ -300,22 +344,24 @@ class _ShippingDialogState extends ConsumerState<ShippingDialog> {
                         ),
                       ),
                     ),
-                    SizedBox(width: 12),
+                    const SizedBox(width: 12),
                     Expanded(
                       child: ElevatedButton(
                         onPressed: _confirm,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: JewelryColors.primaryGreen,
-                          foregroundColor: Colors.white,
-                          padding: EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
+                          backgroundColor: JewelryColors.emeraldLuster,
+                          foregroundColor: JewelryColors.jadeBlack,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: const RoundedRectangleBorder(
+                            borderRadius: BorderRadius.all(Radius.circular(16)),
                           ),
-                          elevation: 0,
+                          elevation: 4,
+                          shadowColor:
+                              JewelryColors.emeraldGlow.withOpacity(0.24),
                         ),
                         child: Text(
                           ref.tr('shipping_confirm_title'),
-                          style: TextStyle(fontWeight: FontWeight.w600),
+                          style: const TextStyle(fontWeight: FontWeight.w600),
                         ),
                       ),
                     ),

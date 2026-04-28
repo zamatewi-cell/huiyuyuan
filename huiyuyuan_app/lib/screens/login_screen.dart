@@ -3,12 +3,15 @@ library;
 
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:huiyuyuan/l10n/string_extension.dart';
 
+import '../config/api_config.dart';
 import '../providers/auth_provider.dart';
+import '../utils/url_helper.dart';
 import '../screens/legal/privacy_policy_screen.dart';
 import '../screens/legal/user_agreement_screen.dart';
 import '../themes/colors.dart';
@@ -116,6 +119,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                       ),
                     ),
                     const SizedBox(height: 24),
+                    if (kIsWeb) _DownloadAppButton(),
+                    const SizedBox(height: 16),
                     const LoginFooter(),
                   ],
                 ),
@@ -400,10 +405,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     final phone = _phoneController.text.trim();
     final password = _passwordController.text;
     final authCode = _authCodeController.text.trim();
+    final notifier = ref.read(authProvider.notifier);
 
     setState(() => _isLoading = true);
 
-    final success = await ref.read(authProvider.notifier).loginAdmin(
+    final success = await notifier.loginAdmin(
           phone,
           password,
           authCode,
@@ -412,7 +418,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     setState(() => _isLoading = false);
 
     if (!success && mounted) {
-      _showError('login_error_password_or_code'.tr);
+      _showError(notifier.lastLoginError ?? 'login_error_password_or_code'.tr);
     }
   }
 
@@ -422,6 +428,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
 
     final username = _usernameController.text.trim();
     final password = _passwordController.text;
+    final notifier = ref.read(authProvider.notifier);
 
     if (username.isEmpty) {
       _showError('login_error_enter_operator_account'.tr);
@@ -430,7 +437,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
 
     setState(() => _isLoading = true);
 
-    final success = await ref.read(authProvider.notifier).loginOperator(
+    final success = await notifier.loginOperator(
           username,
           password,
         );
@@ -438,7 +445,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     setState(() => _isLoading = false);
 
     if (!success && mounted) {
-      _showError('login_error_account_or_password'.tr);
+      _showError(
+        notifier.lastLoginError ?? 'login_error_account_or_password'.tr,
+      );
     }
   }
 
@@ -557,6 +566,65 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
   Future<void> _openLegalPage(Widget page) async {
     await Navigator.of(context).push(
       MaterialPageRoute(builder: (_) => page),
+    );
+  }
+}
+
+/// Download app button displayed below the login card.
+class _DownloadAppButton extends StatelessWidget {
+  const _DownloadAppButton();
+
+  void _openDownloadPage() {
+    openUrl('${ApiConfig.productionUrl}/download.html');
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: _openDownloadPage,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+        decoration: BoxDecoration(
+          border: Border.all(
+            color: JewelryColors.primary.withOpacity(0.4),
+            width: 1,
+          ),
+          borderRadius: BorderRadius.circular(12),
+          gradient: LinearGradient(
+            colors: [
+              JewelryColors.primary.withOpacity(0.15),
+              JewelryColors.primary.withOpacity(0.05),
+            ],
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.download_rounded,
+              size: 18,
+              color: JewelryColors.primaryLight,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              '下载App',
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: JewelryColors.primaryLight,
+                letterSpacing: 0.5,
+              ),
+            ),
+            const SizedBox(width: 6),
+            Icon(
+              Icons.arrow_forward_ios,
+              size: 12,
+              color: JewelryColors.primaryLight.withOpacity(0.6),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

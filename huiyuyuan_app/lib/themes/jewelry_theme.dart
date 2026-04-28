@@ -258,31 +258,31 @@ class JewelryTheme {
 
         // 颜色方案
         colorScheme: const ColorScheme.dark(
-          primary: JewelryColors.primaryLight,
+          primary: JewelryColors.emeraldGlow,
           onPrimary: Colors.white,
-          secondary: JewelryColors.gold,
-          onSecondary: Colors.black,
-          surface: Color(0xFF1E1E2E),
-          onSurface: Color(0xFFE8E8EC),
+          secondary: JewelryColors.champagneGold,
+          onSecondary: JewelryColors.jadeBlack,
+          surface: JewelryColors.jadeInk,
+          onSurface: JewelryColors.jadeMist,
           error: JewelryColors.error,
           onError: Colors.white,
         ),
 
         // 脚手架背景
-        scaffoldBackgroundColor: const Color(0xFF121218),
+        scaffoldBackgroundColor: JewelryColors.deepJade,
 
         // AppBar主题
         appBarTheme: const AppBarTheme(
           elevation: 0,
           centerTitle: true,
-          backgroundColor: Color(0xFF1A1A28),
-          foregroundColor: Colors.white,
+          backgroundColor: JewelryColors.deepJade,
+          foregroundColor: JewelryColors.jadeMist,
           titleTextStyle: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w600,
-            color: Colors.white,
+            color: JewelryColors.jadeMist,
           ),
-          iconTheme: IconThemeData(color: Colors.white),
+          iconTheme: IconThemeData(color: JewelryColors.jadeMist),
         ),
 
         // 卡片主题
@@ -291,15 +291,15 @@ class JewelryTheme {
           shape: RoundedRectangleBorder(
             borderRadius: JewelryRadius.lgAll,
           ),
-          color: const Color(0xFF252532),
+          color: JewelryColors.jadeSurface,
         ),
 
         // 按钮主题
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
             elevation: 0,
-            backgroundColor: JewelryColors.primaryLight,
-            foregroundColor: Colors.white,
+            backgroundColor: JewelryColors.primary,
+            foregroundColor: JewelryColors.jadeMist,
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
             shape: RoundedRectangleBorder(
               borderRadius: JewelryRadius.mdAll,
@@ -313,10 +313,10 @@ class JewelryTheme {
 
         outlinedButtonTheme: OutlinedButtonThemeData(
           style: OutlinedButton.styleFrom(
-            foregroundColor: JewelryColors.primaryLight,
+            foregroundColor: JewelryColors.emeraldGlow,
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
             side:
-                const BorderSide(color: JewelryColors.primaryLight, width: 1.5),
+                const BorderSide(color: JewelryColors.emeraldGlow, width: 1.5),
             shape: RoundedRectangleBorder(
               borderRadius: JewelryRadius.mdAll,
             ),
@@ -325,7 +325,7 @@ class JewelryTheme {
 
         textButtonTheme: TextButtonThemeData(
           style: TextButton.styleFrom(
-            foregroundColor: JewelryColors.primaryLight,
+            foregroundColor: JewelryColors.emeraldGlow,
             textStyle: const TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w500,
@@ -336,7 +336,7 @@ class JewelryTheme {
         // 输入框主题 - 暗色模式完整定义
         inputDecorationTheme: InputDecorationTheme(
           filled: true,
-          fillColor: const Color(0xFF2A2A3A),
+          fillColor: JewelryColors.jadeSurface,
           contentPadding:
               const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           border: OutlineInputBorder(
@@ -345,33 +345,37 @@ class JewelryTheme {
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: JewelryRadius.mdAll,
-            borderSide: const BorderSide(color: Color(0xFF3A3A4A), width: 1),
+            borderSide: const BorderSide(
+              color: JewelryColors.darkDivider,
+              width: 1,
+            ),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: JewelryRadius.mdAll,
             borderSide:
-                const BorderSide(color: JewelryColors.primaryLight, width: 2),
+                const BorderSide(color: JewelryColors.emeraldGlow, width: 2),
           ),
           errorBorder: OutlineInputBorder(
             borderRadius: JewelryRadius.mdAll,
             borderSide: const BorderSide(color: JewelryColors.error, width: 1),
           ),
-          hintStyle: const TextStyle(color: Color(0xFF8888A0), fontSize: 14),
-          labelStyle: const TextStyle(color: Color(0xFFAAAAAC)),
+          hintStyle:
+              const TextStyle(color: JewelryColors.darkTextHint, fontSize: 14),
+          labelStyle: const TextStyle(color: JewelryColors.darkTextSecondary),
         ),
 
         // 分隔线
         dividerTheme: const DividerThemeData(
-          color: Color(0xFF2E2E3E),
+          color: JewelryColors.darkDivider,
           thickness: 1,
           space: 1,
         ),
 
         // 芯片主题
         chipTheme: ChipThemeData(
-          backgroundColor: JewelryColors.primaryLight.withOpacity(0.15),
+          backgroundColor: JewelryColors.emeraldGlow.withOpacity(0.14),
           labelStyle: const TextStyle(
-            color: JewelryColors.primaryLight,
+            color: JewelryColors.emeraldGlow,
             fontSize: 12,
             fontWeight: FontWeight.w500,
           ),
@@ -383,28 +387,28 @@ class JewelryTheme {
 
         // 底部导航栏
         bottomNavigationBarTheme: const BottomNavigationBarThemeData(
-          backgroundColor: Color(0xFF1A1A28),
-          selectedItemColor: JewelryColors.primaryLight,
-          unselectedItemColor: Color(0xFF666680),
+          backgroundColor: JewelryColors.deepJade,
+          selectedItemColor: JewelryColors.emeraldGlow,
+          unselectedItemColor: JewelryColors.darkTextHint,
           type: BottomNavigationBarType.fixed,
           elevation: 0,
         ),
 
         // 浮动按钮
         floatingActionButtonTheme: const FloatingActionButtonThemeData(
-          backgroundColor: JewelryColors.primaryLight,
-          foregroundColor: Colors.white,
+          backgroundColor: JewelryColors.primary,
+          foregroundColor: JewelryColors.jadeMist,
           elevation: 6,
         ),
 
         // 对话框主题
         dialogTheme: DialogThemeData(
-          backgroundColor: const Color(0xFF252532),
+          backgroundColor: JewelryColors.jadeSurface,
           shape: RoundedRectangleBorder(
             borderRadius: JewelryRadius.xlAll,
           ),
           titleTextStyle: const TextStyle(
-            color: Color(0xFFE8E8EC),
+            color: JewelryColors.jadeMist,
             fontSize: 18,
             fontWeight: FontWeight.w600,
           ),
@@ -412,8 +416,8 @@ class JewelryTheme {
 
         // SnackBar主题
         snackBarTheme: SnackBarThemeData(
-          backgroundColor: const Color(0xFF2A2A3A),
-          contentTextStyle: const TextStyle(color: Colors.white),
+          backgroundColor: JewelryColors.jadeSurface,
+          contentTextStyle: const TextStyle(color: JewelryColors.jadeMist),
           shape: RoundedRectangleBorder(
             borderRadius: JewelryRadius.mdAll,
           ),

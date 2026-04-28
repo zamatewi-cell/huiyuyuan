@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:huiyuyuan/config/api_config.dart';
@@ -7,6 +7,9 @@ import 'package:huiyuyuan/models/user_model.dart';
 import 'package:huiyuyuan/providers/auth_provider.dart';
 import 'package:huiyuyuan/providers/contact_provider.dart';
 import 'package:huiyuyuan/providers/notification_provider.dart';
+import 'package:huiyuyuan/screens/admin/admin_order_workbench_screen.dart';
+import 'package:huiyuyuan/screens/admin/inventory_screen.dart';
+import 'package:huiyuyuan/screens/admin/payment_reconciliation_workbench_screen.dart';
 import 'package:huiyuyuan/screens/operator/operator_home.dart';
 import 'package:huiyuyuan/widgets/common/notification_badge_icon.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -25,6 +28,16 @@ void main() {
     operatorNumber: 1,
   );
 
+  UserModel operatorWithPermissions(List<String> permissions) => UserModel(
+        id: 'operator-1',
+        username: 'Operator 01',
+        phone: '13800138000',
+        userType: UserType.operator,
+        isActive: true,
+        operatorNumber: 1,
+        permissions: permissions,
+      );
+
   setUp(() async {
     SharedPreferences.setMockInitialValues({});
     ApiConfig.useMockApi = true;
@@ -37,6 +50,7 @@ void main() {
   Future<void> pumpOperatorHome(
     WidgetTester tester, {
     int unreadCount = 0,
+    UserModel? user,
   }) async {
     tester.view.physicalSize = const Size(1280, 1600);
     tester.view.devicePixelRatio = 1.0;
@@ -46,7 +60,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
-          currentUserProvider.overrideWith((ref) => operatorUser),
+          currentUserProvider.overrideWith((ref) => user ?? operatorUser),
           recentContactsLoaderProvider.overrideWith(
             (ref) => ({int limit = 5}) async => const [],
           ),
@@ -160,5 +174,65 @@ void main() {
         expect(notificationBadgeCount(tester), 0);
       },
     );
+  });
+
+  group('OperatorHome permission gating', () {
+    testWidgets(
+        'shows permission message when opening orders without permission',
+        (tester) async {
+      await pumpOperatorHome(tester, user: operatorWithPermissions(const []));
+
+      await tester.tap(find.text('订单管理'));
+      await tester.pump();
+
+      expect(find.text('当前操作员没有此功能权限，请联系管理员开通。'), findsOneWidget);
+    });
+
+    testWidgets('opens order and inventory pages when permissions are granted',
+        (tester) async {
+      await pumpOperatorHome(
+        tester,
+        user: operatorWithPermissions(
+          const ['orders', 'inventory_read', 'ai_assistant', 'shop_radar'],
+        ),
+      );
+
+      await tester.tap(find.text('订单管理'));
+      await tester.pumpAndSettle();
+      expect(find.byType(AdminOrderWorkbenchScreen), findsOneWidget);
+
+      await tester.pageBack();
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('库存'));
+      await tester.pumpAndSettle();
+      expect(find.byType(InventoryScreen), findsOneWidget);
+    });
+
+    testWidgets('payment reconciliation permission can also open order page',
+        (tester) async {
+      await pumpOperatorHome(
+        tester,
+        user: operatorWithPermissions(const ['payment_reconcile']),
+      );
+
+      await tester.tap(find.text('订单管理'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(AdminOrderWorkbenchScreen), findsOneWidget);
+    });
+
+    testWidgets('payment permission opens reconciliation workbench',
+        (tester) async {
+      await pumpOperatorHome(
+        tester,
+        user: operatorWithPermissions(const ['payment_exception_mark']),
+      );
+
+      await tester.tap(find.text('支付对账'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(PaymentReconciliationWorkbenchScreen), findsOneWidget);
+    });
   });
 }

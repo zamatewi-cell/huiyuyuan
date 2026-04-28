@@ -1,4 +1,4 @@
-﻿// 汇玉源 - 支付服务测试
+// 汇玉源 - 支付服务测试
 //
 // 测试内容:
 // - 支付订单创建
@@ -7,11 +7,15 @@
 // - 支付方式枚举
 import 'package:flutter_test/flutter_test.dart';
 import 'package:huiyuyuan/services/payment_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
   late PaymentService paymentService;
 
   setUp(() {
+    SharedPreferences.setMockInitialValues({});
     paymentService = PaymentService();
   });
 
@@ -46,11 +50,11 @@ void main() {
 
     test('PaymentStatus label 应正确', () {
       expect(PaymentStatus.pending.label, '待支付');
-      expect(PaymentStatus.processing.label, '支付中');
-      expect(PaymentStatus.success.label, '支付成功');
-      expect(PaymentStatus.failed.label, '支付失败');
+      expect(PaymentStatus.awaitingConfirmation.label, '待确认到账');
+      expect(PaymentStatus.confirmed.label, '已确认');
       expect(PaymentStatus.cancelled.label, '已取消');
-      expect(PaymentStatus.refunding.label, '退款中');
+      expect(PaymentStatus.timeout.label, '已超时');
+      expect(PaymentStatus.disputed.label, '争议处理中');
       expect(PaymentStatus.refunded.label, '已退款');
     });
   });
@@ -74,7 +78,7 @@ void main() {
       expect(order.orderId, 'ORD-001');
       expect(order.amount, 299.0);
       expect(order.method, PaymentMethod.wechat);
-      expect(order.status, PaymentStatus.success);
+      expect(order.status, PaymentStatus.confirmed);
       expect(order.transactionId, 'TXN-001');
     });
 
@@ -260,7 +264,7 @@ void main() {
 
       final paidOrder = await paymentService.simulatePaymentSuccess(order);
 
-      expect(paidOrder.status, PaymentStatus.success);
+      expect(paidOrder.status, PaymentStatus.confirmed);
       expect(paidOrder.transactionId, isNotNull);
       expect(paidOrder.paidAt, isNotNull);
     });
@@ -276,7 +280,7 @@ void main() {
 
       final result = await paymentService.cancelPayment(order.id);
 
-      expect(result, true);
+      expect(result, false);
     });
   });
 

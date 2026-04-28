@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../l10n/l10n_provider.dart';
@@ -74,9 +74,10 @@ class LoginCustomerForm extends ConsumerWidget {
               ? LoginCopy.resetTitle(context)
               : LoginCopy.customerTitle(context),
           style: const TextStyle(
-            color: Colors.white,
+            color: JewelryColors.champagneGold,
             fontSize: 20,
-            fontWeight: FontWeight.w700,
+            fontWeight: FontWeight.w800,
+            letterSpacing: 0.4,
           ),
         ),
         const SizedBox(height: 8),
@@ -85,7 +86,7 @@ class LoginCustomerForm extends ConsumerWidget {
               ? LoginCopy.resetSubtitle(context)
               : LoginCopy.customerSubtitle(context),
           style: TextStyle(
-            color: Colors.white.withOpacity(0.72),
+            color: JewelryColors.jadeMist.withOpacity(0.7),
             fontSize: 13,
             height: 1.5,
           ),
@@ -174,9 +175,11 @@ class LoginCustomerForm extends ConsumerWidget {
         Container(
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.08),
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: Colors.white.withOpacity(0.08)),
+            color: JewelryColors.deepJade.withOpacity(0.56),
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(
+              color: JewelryColors.champagneGold.withOpacity(0.1),
+            ),
           ),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -184,14 +187,14 @@ class LoginCustomerForm extends ConsumerWidget {
               Icon(
                 Icons.verified_user_outlined,
                 size: 18,
-                color: JewelryColors.primary.withOpacity(0.92),
+                color: JewelryColors.emeraldGlow.withOpacity(0.86),
               ),
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
                   _tipText(context),
                   style: TextStyle(
-                    color: Colors.white.withOpacity(0.72),
+                    color: JewelryColors.jadeMist.withOpacity(0.68),
                     fontSize: 12,
                     height: 1.45,
                   ),
@@ -222,7 +225,7 @@ class LoginCustomerForm extends ConsumerWidget {
               child: Text(
                 LoginCopy.forgotPassword(context),
                 style: const TextStyle(
-                  color: JewelryColors.gold,
+                  color: JewelryColors.champagneGold,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -238,7 +241,7 @@ class LoginCustomerForm extends ConsumerWidget {
               child: Text(
                 LoginCopy.backToPassword(context),
                 style: const TextStyle(
-                  color: JewelryColors.gold,
+                  color: JewelryColors.champagneGold,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -302,9 +305,11 @@ class _CustomerModeSwitcher extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(5),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.08),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.white.withOpacity(0.08)),
+        color: JewelryColors.deepJade.withOpacity(0.58),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: Colors.white.withOpacity(0.08),
+        ),
       ),
       child: Row(
         children: [
@@ -371,7 +376,7 @@ class _AgreementRow extends StatelessWidget {
               Text(
                 LoginCopy.agreementPrefix(context),
                 style: TextStyle(
-                  color: Colors.white.withOpacity(0.72),
+                  color: JewelryColors.jadeMist.withOpacity(0.72),
                   fontSize: 12,
                 ),
               ),
@@ -382,7 +387,7 @@ class _AgreementRow extends StatelessWidget {
               Text(
                 LoginCopy.agreementAnd(context),
                 style: TextStyle(
-                  color: Colors.white.withOpacity(0.72),
+                  color: JewelryColors.jadeMist.withOpacity(0.72),
                   fontSize: 12,
                 ),
               ),
@@ -414,7 +419,7 @@ class _AgreementLink extends StatelessWidget {
       child: Text(
         label,
         style: const TextStyle(
-          color: JewelryColors.gold,
+          color: JewelryColors.champagneGold,
           fontSize: 12,
           fontWeight: FontWeight.w700,
         ),
@@ -444,11 +449,13 @@ class _CustomerModeChip extends StatelessWidget {
         borderRadius: BorderRadius.circular(14),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 220),
+          curve: Curves.easeOutCubic,
           padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
           decoration: BoxDecoration(
-            gradient: selected ? JewelryColors.primaryGradient : null,
+            gradient: selected ? JewelryColors.emeraldLusterGradient : null,
             color: selected ? null : Colors.transparent,
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: selected ? JewelryShadows.emeraldHalo : null,
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -456,17 +463,20 @@ class _CustomerModeChip extends StatelessWidget {
               Icon(
                 icon,
                 size: 18,
-                color: selected ? Colors.white : Colors.white.withOpacity(0.75),
+                color: selected
+                    ? JewelryColors.jadeBlack
+                    : JewelryColors.jadeMist.withOpacity(0.72),
               ),
               const SizedBox(height: 6),
               Text(
                 label,
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  color:
-                      selected ? Colors.white : Colors.white.withOpacity(0.75),
+                  color: selected
+                      ? JewelryColors.jadeBlack
+                      : JewelryColors.jadeMist.withOpacity(0.72),
                   fontSize: 12,
-                  fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                  fontWeight: selected ? FontWeight.w800 : FontWeight.w500,
                 ),
               ),
             ],
@@ -493,7 +503,7 @@ class _PasswordToggleButton extends StatelessWidget {
         obscurePassword
             ? Icons.visibility_outlined
             : Icons.visibility_off_outlined,
-        color: const Color(0xFF9CA3AF),
+        color: JewelryColors.jadeMist.withOpacity(0.56),
         size: 20,
       ),
       onPressed: onPressed,
@@ -565,7 +575,7 @@ class LoginAdminForm extends StatelessWidget {
           'login_admin_contact_hint'.tr,
           style: TextStyle(
             fontSize: 12,
-            color: Colors.white.withOpacity(0.5),
+            color: JewelryColors.jadeMist.withOpacity(0.48),
           ),
         ),
       ],
@@ -618,7 +628,7 @@ class LoginOperatorForm extends StatelessWidget {
             text: 'login_operator_login'.tr,
             icon: Icons.login,
             isLoading: isLoading,
-            gradient: JewelryColors.goldGradient,
+            gradient: JewelryColors.champagneGradient,
             onPressed: onLogin,
           ),
         ),
@@ -627,7 +637,7 @@ class LoginOperatorForm extends StatelessWidget {
           'login_operator_desc'.tr,
           style: TextStyle(
             fontSize: 12,
-            color: Colors.white.withOpacity(0.5),
+            color: JewelryColors.jadeMist.withOpacity(0.48),
           ),
         ),
       ],
@@ -651,25 +661,21 @@ class LoginVerifyCodeRow extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    const inputTextColor = Color(0xFF1A1A2E);
-    const inputHintColor = Color(0xFF6B7280);
-    const inputBgColor = Color(0xFFF8F9FB);
-
     final canSend = countdown == 0 && !isSendingCode;
 
     return Container(
       decoration: BoxDecoration(
-        color: inputBgColor,
-        borderRadius: BorderRadius.circular(14),
+        color: Colors.white.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(18),
         border: Border.all(
-          color: Colors.white.withOpacity(0.95),
-          width: 1.5,
+          color: JewelryColors.champagneGold.withOpacity(0.13),
+          width: 1.1,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
+            color: Colors.black.withOpacity(0.22),
+            blurRadius: 22,
+            offset: const Offset(0, 12),
           ),
         ],
       ),
@@ -685,21 +691,21 @@ class LoginVerifyCodeRow extends ConsumerWidget {
                 keyboardType: TextInputType.number,
                 maxLength: 6,
                 style: const TextStyle(
-                  color: inputTextColor,
+                  color: JewelryColors.jadeMist,
                   fontSize: 15,
                   fontWeight: FontWeight.w500,
                 ),
-                cursorColor: JewelryColors.primary,
+                cursorColor: JewelryColors.emeraldGlow,
                 decoration: InputDecoration(
                   hintText: 'login_sms_code_hint'.tr,
-                  hintStyle: const TextStyle(
-                    color: inputHintColor,
+                  hintStyle: TextStyle(
+                    color: JewelryColors.jadeMist.withOpacity(0.46),
                     fontSize: 14,
                     fontWeight: FontWeight.w400,
                   ),
                   prefixIcon: Icon(
                     Icons.chat_outlined,
-                    color: JewelryColors.primary.withOpacity(0.8),
+                    color: JewelryColors.emeraldGlow.withOpacity(0.78),
                     size: 20,
                   ),
                   counterText: '',
@@ -716,7 +722,7 @@ class LoginVerifyCodeRow extends ConsumerWidget {
           Container(
             width: 1,
             height: 28,
-            color: const Color(0xFFE5E7EB),
+            color: JewelryColors.champagneGold.withOpacity(0.14),
           ),
           GestureDetector(
             onTap: canSend ? onSendCode : null,
@@ -728,7 +734,7 @@ class LoginVerifyCodeRow extends ConsumerWidget {
                       height: 16,
                       child: CircularProgressIndicator(
                         strokeWidth: 2,
-                        color: JewelryColors.primary,
+                        color: JewelryColors.emeraldGlow,
                       ),
                     )
                   : Text(
@@ -739,8 +745,8 @@ class LoginVerifyCodeRow extends ConsumerWidget {
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
                         color: canSend
-                            ? JewelryColors.primary
-                            : const Color(0xFF9CA3AF),
+                            ? JewelryColors.champagneGold
+                            : JewelryColors.jadeMist.withOpacity(0.38),
                       ),
                     ),
             ),
@@ -775,28 +781,24 @@ class LoginGlassInput extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const inputTextColor = Color(0xFF1A1A2E);
-    const inputHintColor = Color(0xFF6B7280);
-    const inputBgColor = Color(0xFFF8F9FB);
-
     return Container(
       decoration: BoxDecoration(
-        color: inputBgColor,
-        borderRadius: BorderRadius.circular(14),
+        color: Colors.white.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(18),
         border: Border.all(
-          color: Colors.white.withOpacity(0.95),
-          width: 1.5,
+          color: JewelryColors.champagneGold.withOpacity(0.13),
+          width: 1.1,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
+            color: Colors.black.withOpacity(0.22),
+            blurRadius: 22,
+            offset: const Offset(0, 12),
           ),
           BoxShadow(
-            color: JewelryColors.primary.withOpacity(0.05),
-            blurRadius: 20,
-            offset: const Offset(0, 8),
+            color: JewelryColors.primary.withOpacity(0.08),
+            blurRadius: 28,
+            offset: const Offset(0, 14),
           ),
         ],
       ),
@@ -811,21 +813,21 @@ class LoginGlassInput extends StatelessWidget {
           autofillHints: autofillHints,
           maxLength: maxLength,
           style: const TextStyle(
-            color: inputTextColor,
+            color: JewelryColors.jadeMist,
             fontSize: 15,
             fontWeight: FontWeight.w500,
           ),
-          cursorColor: JewelryColors.primary,
+          cursorColor: JewelryColors.emeraldGlow,
           decoration: InputDecoration(
             hintText: hint,
-            hintStyle: const TextStyle(
-              color: inputHintColor,
+            hintStyle: TextStyle(
+              color: JewelryColors.jadeMist.withOpacity(0.46),
               fontSize: 14,
               fontWeight: FontWeight.w400,
             ),
             prefixIcon: Icon(
               icon,
-              color: JewelryColors.primary.withOpacity(0.8),
+              color: JewelryColors.emeraldGlow.withOpacity(0.78),
               size: 20,
             ),
             suffixIcon: suffixIcon,

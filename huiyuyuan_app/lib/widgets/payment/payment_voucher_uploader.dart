@@ -3,15 +3,17 @@
 /// 允许用户从相册或相机拍摄上传支付凭证图片。
 library;
 
-import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 
+import '../../config/api_config.dart';
 import '../../l10n/string_extension.dart';
 import '../../themes/colors.dart';
 import '../common/glassmorphic_card.dart';
+import '../common/resilient_network_image.dart';
 
 class PaymentVoucherUploader extends ConsumerStatefulWidget {
   final String paymentId;
@@ -34,6 +36,7 @@ class _PaymentVoucherUploaderState
     extends ConsumerState<PaymentVoucherUploader> {
   bool _uploading = false;
   String? _localPreview;
+  Uint8List? _localPreviewBytes;
 
   Future<void> _pickAndUpload(ImageSource source) async {
     final picker = ImagePicker();
@@ -45,9 +48,11 @@ class _PaymentVoucherUploaderState
     );
 
     if (image == null) return;
+    final previewBytes = await image.readAsBytes();
 
     setState(() {
       _localPreview = image.path;
+      _localPreviewBytes = previewBytes;
       _uploading = true;
     });
 
@@ -64,7 +69,7 @@ class _PaymentVoucherUploaderState
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('payment_voucher_uploaded'.tr),
-            backgroundColor: JewelryColors.primary,
+            backgroundColor: JewelryColors.emeraldShadow,
           ),
         );
       }
@@ -73,7 +78,9 @@ class _PaymentVoucherUploaderState
         setState(() => _uploading = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('payment_voucher_upload_failed'.trArgs({'error': e.toString()})),
+            content: Text(
+              'payment_voucher_upload_failed'.trArgs({'error': e.toString()}),
+            ),
             backgroundColor: JewelryColors.error,
           ),
         );
@@ -85,22 +92,47 @@ class _PaymentVoucherUploaderState
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: JewelryColors.darkSurface,
-        title: Text('payment_voucher_pick_source'.tr),
+        backgroundColor: JewelryColors.deepJade,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        title: Text(
+          'payment_voucher_pick_source'.tr,
+          style: const TextStyle(
+            color: JewelryColors.jadeMist,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
-              leading: const Icon(Icons.photo_library, color: JewelryColors.primary),
-              title: Text('payment_voucher_gallery'.tr),
+              leading: const Icon(
+                Icons.photo_library,
+                color: JewelryColors.emeraldGlow,
+              ),
+              title: Text(
+                'payment_voucher_gallery'.tr,
+                style: const TextStyle(
+                  color: JewelryColors.jadeMist,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
               onTap: () {
                 Navigator.pop(ctx);
                 _pickAndUpload(ImageSource.gallery);
               },
             ),
             ListTile(
-              leading: const Icon(Icons.camera_alt, color: JewelryColors.primary),
-              title: Text('payment_voucher_camera'.tr),
+              leading: const Icon(
+                Icons.camera_alt,
+                color: JewelryColors.emeraldGlow,
+              ),
+              title: Text(
+                'payment_voucher_camera'.tr,
+                style: const TextStyle(
+                  color: JewelryColors.jadeMist,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
               onTap: () {
                 Navigator.pop(ctx);
                 _pickAndUpload(ImageSource.camera);
@@ -111,7 +143,10 @@ class _PaymentVoucherUploaderState
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: Text('common_cancel'.tr),
+            child: Text(
+              'common_cancel'.tr,
+              style: TextStyle(color: JewelryColors.jadeMist.withOpacity(0.58)),
+            ),
           ),
         ],
       ),
@@ -120,21 +155,46 @@ class _PaymentVoucherUploaderState
 
   @override
   Widget build(BuildContext context) {
-    final hasVoucher = widget.currentVoucherUrl != null && widget.currentVoucherUrl!.isNotEmpty;
+    final hasVoucher = widget.currentVoucherUrl != null &&
+        widget.currentVoucherUrl!.isNotEmpty;
 
     return GlassmorphicCard(
+      padding: const EdgeInsets.all(16),
+      borderRadius: 22,
+      blur: 16,
+      opacity: 0.18,
+      borderColor: JewelryColors.champagneGold.withOpacity(0.14),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              const Icon(Icons.receipt_long, color: JewelryColors.gold, size: 20),
+              Container(
+                width: 34,
+                height: 34,
+                decoration: BoxDecoration(
+                  gradient: JewelryColors.emeraldLusterGradient,
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: JewelryColors.emeraldGlow.withOpacity(0.18),
+                      blurRadius: 16,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
+                ),
+                child: const Icon(
+                  Icons.receipt_long,
+                  color: JewelryColors.jadeBlack,
+                  size: 19,
+                ),
+              ),
               const SizedBox(width: 8),
               Text(
                 'payment_voucher_title'.tr,
                 style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: JewelryColors.textPrimary,
+                  fontWeight: FontWeight.w900,
+                  color: JewelryColors.jadeMist,
                   fontSize: 14,
                 ),
               ),
@@ -143,24 +203,28 @@ class _PaymentVoucherUploaderState
           const SizedBox(height: 12),
           if (hasVoucher || _localPreview != null) ...[
             ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: _localPreview != null
-                  ? Image.file(
-                      File(_localPreview!),
+              borderRadius: BorderRadius.circular(16),
+              child: _localPreviewBytes != null
+                  ? Image.memory(
+                      _localPreviewBytes!,
                       height: 180,
                       width: double.infinity,
                       fit: BoxFit.cover,
                     )
-                  : Image.network(
-                      widget.currentVoucherUrl!,
+                  : ResilientNetworkImage(
+                      imageUrl: _resolveImageUrl(widget.currentVoucherUrl!),
                       height: 180,
                       width: double.infinity,
                       fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => Container(
+                      errorWidget: Container(
                         height: 180,
-                        color: JewelryColors.darkBackground,
-                        child: const Center(
-                          child: Icon(Icons.broken_image, size: 48, color: JewelryColors.textSecondary),
+                        color: JewelryColors.deepJade.withOpacity(0.58),
+                        child: Center(
+                          child: Icon(
+                            Icons.broken_image,
+                            size: 48,
+                            color: JewelryColors.jadeMist.withOpacity(0.32),
+                          ),
                         ),
                       ),
                     ),
@@ -168,7 +232,10 @@ class _PaymentVoucherUploaderState
             const SizedBox(height: 8),
             Text(
               'payment_voucher_uploaded_hint'.tr,
-              style: const TextStyle(fontSize: 12, color: JewelryColors.textSecondary),
+              style: TextStyle(
+                fontSize: 12,
+                color: JewelryColors.jadeMist.withOpacity(0.58),
+              ),
             ),
           ] else ...[
             GestureDetector(
@@ -177,30 +244,35 @@ class _PaymentVoucherUploaderState
                 height: 140,
                 width: double.infinity,
                 decoration: BoxDecoration(
-                  color: JewelryColors.darkBackground.withOpacity(0.5),
-                  borderRadius: BorderRadius.circular(8),
+                  color: JewelryColors.deepJade.withOpacity(0.48),
+                  borderRadius: BorderRadius.circular(18),
                   border: Border.all(
-                    color: JewelryColors.primary.withOpacity(0.3),
+                    color: JewelryColors.champagneGold.withOpacity(0.16),
                     width: 1,
                     style: BorderStyle.solid,
                   ),
                 ),
                 child: _uploading
-                    ? const Center(child: CircularProgressIndicator())
+                    ? const Center(
+                        child: CircularProgressIndicator(
+                          color: JewelryColors.emeraldGlow,
+                        ),
+                      )
                     : Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Icon(
                             Icons.cloud_upload_outlined,
                             size: 40,
-                            color: JewelryColors.primary.withOpacity(0.7),
+                            color: JewelryColors.emeraldGlow.withOpacity(0.72),
                           ),
                           const SizedBox(height: 8),
                           Text(
                             'payment_voucher_tap_to_upload'.tr,
                             style: TextStyle(
-                              color: JewelryColors.primary.withOpacity(0.7),
+                              color: JewelryColors.jadeMist.withOpacity(0.68),
                               fontSize: 13,
+                              fontWeight: FontWeight.w700,
                             ),
                           ),
                         ],
@@ -212,4 +284,14 @@ class _PaymentVoucherUploaderState
       ),
     );
   }
+}
+
+String _resolveImageUrl(String rawUrl) {
+  if (rawUrl.startsWith('http://') || rawUrl.startsWith('https://')) {
+    return rawUrl;
+  }
+  if (rawUrl.startsWith('/')) {
+    return '${ApiConfig.apiUrl}$rawUrl';
+  }
+  return rawUrl;
 }

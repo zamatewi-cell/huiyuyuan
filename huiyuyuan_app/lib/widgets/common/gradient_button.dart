@@ -23,7 +23,7 @@ class GradientButton extends StatefulWidget {
     this.gradient,
     this.width,
     this.height = 52,
-    this.borderRadius = 12,
+    this.borderRadius = 18,
     this.icon,
     this.isLoading = false,
     this.enabled = true,
@@ -95,51 +95,63 @@ class _GradientButtonState extends State<GradientButton>
               height: widget.height,
               decoration: BoxDecoration(
                 gradient: isDisabled
-                    ? LinearGradient(
-                        colors: [Colors.grey[400]!, Colors.grey[500]!],
+                    ? const LinearGradient(
+                        colors: [Color(0xFF5B6578), Color(0xFF3C475B)],
                       )
-                    : (widget.gradient ?? JewelryColors.primaryGradient),
+                    : (widget.gradient ?? JewelryColors.emeraldLusterGradient),
                 borderRadius: BorderRadius.circular(widget.borderRadius),
                 boxShadow: isDisabled
                     ? null
                     : [
                         BoxShadow(
-                          color: JewelryColors.primary
-                              .withOpacity(_isPressed ? 0.5 : 0.3),
-                          blurRadius: _isPressed ? 15 : 10,
-                          offset: Offset(0, _isPressed ? 6 : 4),
+                          color: JewelryColors.emeraldGlow
+                              .withOpacity(_isPressed ? 0.25 : 0.18),
+                          blurRadius: _isPressed ? 22 : 28,
+                          offset: Offset(0, _isPressed ? 7 : 11),
+                        ),
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.22),
+                          blurRadius: 18,
+                          offset: const Offset(0, 10),
                         ),
                       ],
               ),
-              child: Center(
-                child: widget.isLoading
-                    ? const SizedBox(
-                        width: 24,
-                        height: 24,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2.5,
-                          valueColor:
-                              AlwaysStoppedAnimation<Color>(Colors.white),
-                        ),
-                      )
-                    : Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          if (widget.icon != null) ...[
-                            Icon(widget.icon, color: Colors.white, size: 20),
-                            const SizedBox(width: 8),
-                          ],
-                          Text(
-                            widget.text,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                              letterSpacing: 0.5,
-                            ),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Center(
+                  child: widget.isLoading
+                      ? const SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2.5,
+                            valueColor:
+                                AlwaysStoppedAnimation<Color>(Colors.white),
                           ),
-                        ],
-                      ),
+                        )
+                      : FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              if (widget.icon != null) ...[
+                                Icon(widget.icon,
+                                    color: Colors.white, size: 20),
+                                const SizedBox(width: 8),
+                              ],
+                              Text(
+                                widget.text,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                ),
               ),
             ),
           );
@@ -173,7 +185,7 @@ class GoldButton extends StatelessWidget {
     return GradientButton(
       text: text,
       onPressed: onPressed,
-      gradient: JewelryColors.goldGradient,
+      gradient: JewelryColors.champagneGradient,
       width: width,
       height: height,
       icon: icon,
@@ -229,27 +241,33 @@ class _GlassButtonState extends State<GlassButton> {
               width: 1.5,
             ),
           ),
-          child: Center(
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (widget.icon != null) ...[
-                  Icon(
-                    widget.icon,
-                    color: widget.textColor ?? Colors.white,
-                    size: 18,
-                  ),
-                  const SizedBox(width: 8),
-                ],
-                Text(
-                  widget.text,
-                  style: TextStyle(
-                    color: widget.textColor ?? Colors.white,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                  ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Center(
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (widget.icon != null) ...[
+                      Icon(
+                        widget.icon,
+                        color: widget.textColor ?? Colors.white,
+                        size: 18,
+                      ),
+                      const SizedBox(width: 8),
+                    ],
+                    Text(
+                      widget.text,
+                      style: TextStyle(
+                        color: widget.textColor ?? Colors.white,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
         ),

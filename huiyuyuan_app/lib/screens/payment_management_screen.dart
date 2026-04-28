@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:huiyuyuan/l10n/string_extension.dart';
 import 'package:image_picker/image_picker.dart';
@@ -8,7 +8,100 @@ import '../l10n/l10n_provider.dart';
 import '../models/payment_account.dart';
 import '../providers/payment_provider.dart';
 import '../services/api_service.dart';
+import '../themes/colors.dart';
 import '../widgets/common/glassmorphic_card.dart';
+import '../widgets/common/resilient_network_image.dart';
+
+class _PaymentManagementBackdrop extends StatelessWidget {
+  const _PaymentManagementBackdrop();
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: const BoxDecoration(
+        gradient: JewelryColors.jadeDepthGradient,
+      ),
+      child: Stack(
+        children: [
+          Positioned(
+            top: -150,
+            right: -120,
+            child: _PaymentManagementGlowOrb(
+              size: 330,
+              color: JewelryColors.emeraldGlow.withOpacity(0.1),
+            ),
+          ),
+          Positioned(
+            left: -150,
+            top: 330,
+            child: _PaymentManagementGlowOrb(
+              size: 300,
+              color: JewelryColors.champagneGold.withOpacity(0.1),
+            ),
+          ),
+          Positioned.fill(
+            child: CustomPaint(
+              painter: _PaymentManagementTracePainter(),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PaymentManagementGlowOrb extends StatelessWidget {
+  const _PaymentManagementGlowOrb({
+    required this.size,
+    required this.color,
+  });
+
+  final double size;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: color,
+        boxShadow: [
+          BoxShadow(color: color, blurRadius: 96, spreadRadius: 30),
+        ],
+      ),
+    );
+  }
+}
+
+class _PaymentManagementTracePainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 0.75
+      ..color = JewelryColors.champagneGold.withOpacity(0.035);
+
+    for (var i = 0; i < 7; i++) {
+      final y = size.height * (0.1 + i * 0.13);
+      final path = Path()..moveTo(-24, y);
+      path.cubicTo(
+        size.width * 0.2,
+        y - 30,
+        size.width * 0.72,
+        y + 34,
+        size.width + 24,
+        y,
+      );
+      canvas.drawPath(path, paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _PaymentManagementTracePainter oldDelegate) =>
+      false;
+}
 
 class PaymentManagementScreen extends ConsumerWidget {
   const PaymentManagementScreen({super.key});
@@ -17,26 +110,32 @@ class PaymentManagementScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final paymentState = ref.watch(paymentAccountsProvider);
     final isLoading = paymentState.state == PaymentLoadingState.loading;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      extendBodyBehindAppBar: true,
+      backgroundColor: JewelryColors.jadeBlack,
       appBar: AppBar(
-        title: Text(ref.tr('payment_management_title')),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        flexibleSpace: Container(
+        title: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [
-                Theme.of(context).colorScheme.surface.withOpacity(0.9),
-                Theme.of(context).colorScheme.surface.withOpacity(0.5),
-              ],
+            color: JewelryColors.deepJade.withOpacity(0.62),
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(
+              color: JewelryColors.champagneGold.withOpacity(0.14),
+            ),
+          ),
+          child: Text(
+            ref.tr('payment_management_title'),
+            style: const TextStyle(
+              color: JewelryColors.jadeMist,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 0.4,
             ),
           ),
         ),
+        centerTitle: true,
+        backgroundColor: JewelryColors.jadeBlack.withOpacity(0.84),
+        foregroundColor: JewelryColors.jadeMist,
+        elevation: 0,
         actions: [
           if (isLoading)
             const Padding(
@@ -44,7 +143,10 @@ class PaymentManagementScreen extends ConsumerWidget {
               child: SizedBox(
                 width: 20,
                 height: 20,
-                child: CircularProgressIndicator(strokeWidth: 2),
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: JewelryColors.emeraldGlow,
+                ),
               ),
             ),
           IconButton(
@@ -55,25 +157,18 @@ class PaymentManagementScreen extends ConsumerWidget {
           ),
         ],
       ),
-      body: Container(
-        decoration: isDark
-            ? null
-            : BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    Colors.grey[100]!,
-                    Colors.grey[50]!,
-                  ],
-                ),
-              ),
-        child: _buildContent(context, ref, paymentState),
+      body: Stack(
+        children: [
+          const Positioned.fill(child: _PaymentManagementBackdrop()),
+          _buildContent(context, ref, paymentState),
+        ],
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _showEditDialog(context, null),
         icon: const Icon(Icons.add),
         label: Text(ref.tr('payment_add_account')),
+        backgroundColor: JewelryColors.emeraldLuster,
+        foregroundColor: JewelryColors.jadeBlack,
       ),
     );
   }
@@ -84,7 +179,9 @@ class PaymentManagementScreen extends ConsumerWidget {
     PaymentAccountsState state,
   ) {
     if (state.state == PaymentLoadingState.loading && state.accounts.isEmpty) {
-      return const Center(child: CircularProgressIndicator());
+      return const Center(
+        child: CircularProgressIndicator(color: JewelryColors.emeraldGlow),
+      );
     }
 
     if (state.state == PaymentLoadingState.error && state.accounts.isEmpty) {
@@ -120,50 +217,64 @@ class PaymentManagementScreen extends ConsumerWidget {
   }
 
   Widget _buildEmptyState(BuildContext context) {
-    final theme = Theme.of(context);
-
     return Center(
       child: Padding(
         padding: const EdgeInsets.fromLTRB(24, 120, 24, 24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 88,
-              height: 88,
-              decoration: BoxDecoration(
-                color: theme.colorScheme.primary.withOpacity(0.08),
-                shape: BoxShape.circle,
+        child: GlassmorphicCard(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 30),
+          borderRadius: 26,
+          blur: 16,
+          opacity: 0.18,
+          borderColor: JewelryColors.champagneGold.withOpacity(0.14),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 88,
+                height: 88,
+                decoration: BoxDecoration(
+                  color: JewelryColors.emeraldGlow.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: JewelryColors.emeraldGlow.withOpacity(0.18),
+                  ),
+                ),
+                child: const Icon(
+                  Icons.account_balance_wallet_outlined,
+                  size: 40,
+                  color: JewelryColors.emeraldGlow,
+                ),
               ),
-              child: Icon(
-                Icons.account_balance_wallet_outlined,
-                size: 40,
-                color: theme.colorScheme.primary,
+              const SizedBox(height: 20),
+              Text(
+                'payment_empty_title'.tr,
+                style: const TextStyle(
+                  color: JewelryColors.jadeMist,
+                  fontWeight: FontWeight.w900,
+                  fontSize: 20,
+                ),
               ),
-            ),
-            const SizedBox(height: 20),
-            Text(
-              'payment_empty_title'.tr,
-              style: theme.textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.w700,
+              const SizedBox(height: 8),
+              Text(
+                'payment_empty_subtitle'.tr,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: JewelryColors.jadeMist.withOpacity(0.62),
+                  height: 1.5,
+                ),
               ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'payment_empty_subtitle'.tr,
-              textAlign: TextAlign.center,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.textTheme.bodyMedium?.color?.withOpacity(0.7),
-                height: 1.5,
+              const SizedBox(height: 20),
+              FilledButton.icon(
+                onPressed: () => _showEditDialog(context, null),
+                icon: const Icon(Icons.add),
+                label: Text('payment_add_account'.tr),
+                style: FilledButton.styleFrom(
+                  backgroundColor: JewelryColors.emeraldLuster,
+                  foregroundColor: JewelryColors.jadeBlack,
+                ),
               ),
-            ),
-            const SizedBox(height: 20),
-            FilledButton.icon(
-              onPressed: () => _showEditDialog(context, null),
-              icon: const Icon(Icons.add),
-              label: Text('payment_add_account'.tr),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -174,52 +285,66 @@ class PaymentManagementScreen extends ConsumerWidget {
     WidgetRef ref,
     String message,
   ) {
-    final theme = Theme.of(context);
-
     return Center(
       child: Padding(
         padding: const EdgeInsets.fromLTRB(24, 120, 24, 24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 88,
-              height: 88,
-              decoration: BoxDecoration(
-                color: theme.colorScheme.error.withOpacity(0.08),
-                shape: BoxShape.circle,
+        child: GlassmorphicCard(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 30),
+          borderRadius: 26,
+          blur: 16,
+          opacity: 0.18,
+          borderColor: JewelryColors.error.withOpacity(0.22),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 88,
+                height: 88,
+                decoration: BoxDecoration(
+                  color: JewelryColors.error.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: JewelryColors.error.withOpacity(0.18),
+                  ),
+                ),
+                child: const Icon(
+                  Icons.error_outline,
+                  size: 40,
+                  color: JewelryColors.error,
+                ),
               ),
-              child: Icon(
-                Icons.error_outline,
-                size: 40,
-                color: theme.colorScheme.error,
+              const SizedBox(height: 20),
+              Text(
+                ref.tr('error'),
+                style: const TextStyle(
+                  color: JewelryColors.jadeMist,
+                  fontWeight: FontWeight.w900,
+                  fontSize: 20,
+                ),
               ),
-            ),
-            const SizedBox(height: 20),
-            Text(
-              ref.tr('error'),
-              style: theme.textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.w700,
+              const SizedBox(height: 8),
+              Text(
+                message,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: JewelryColors.jadeMist.withOpacity(0.62),
+                  height: 1.5,
+                ),
               ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              message,
-              textAlign: TextAlign.center,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.textTheme.bodyMedium?.color?.withOpacity(0.7),
-                height: 1.5,
+              const SizedBox(height: 20),
+              FilledButton.icon(
+                onPressed: () {
+                  ref.read(paymentAccountsProvider.notifier).loadAccounts();
+                },
+                icon: const Icon(Icons.refresh),
+                label: Text(ref.tr('retry')),
+                style: FilledButton.styleFrom(
+                  backgroundColor: JewelryColors.emeraldLuster,
+                  foregroundColor: JewelryColors.jadeBlack,
+                ),
               ),
-            ),
-            const SizedBox(height: 20),
-            FilledButton.icon(
-              onPressed: () {
-                ref.read(paymentAccountsProvider.notifier).loadAccounts();
-              },
-              icon: const Icon(Icons.refresh),
-              label: Text(ref.tr('retry')),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -233,12 +358,11 @@ class _PaymentAccountCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
     return GlassmorphicCard(
-      opacity: isDark ? 0.1 : 0.6,
-      blur: 20,
+      opacity: 0.18,
+      blur: 16,
+      borderRadius: 24,
+      borderColor: JewelryColors.champagneGold.withOpacity(0.14),
       padding: EdgeInsets.zero,
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -250,12 +374,15 @@ class _PaymentAccountCard extends ConsumerWidget {
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: theme.colorScheme.primary.withOpacity(0.1),
+                    color: JewelryColors.emeraldGlow.withOpacity(0.1),
                     shape: BoxShape.circle,
+                    border: Border.all(
+                      color: JewelryColors.emeraldGlow.withOpacity(0.16),
+                    ),
                   ),
                   child: Icon(
                     _getIconForType(account.type),
-                    color: theme.colorScheme.primary,
+                    color: JewelryColors.emeraldGlow,
                     size: 24,
                   ),
                 ),
@@ -271,8 +398,10 @@ class _PaymentAccountCard extends ConsumerWidget {
                         children: [
                           Text(
                             account.name,
-                            style: theme.textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.bold,
+                            style: const TextStyle(
+                              color: JewelryColors.jadeMist,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w900,
                             ),
                           ),
                           if (account.isDefault)
@@ -283,14 +412,19 @@ class _PaymentAccountCard extends ConsumerWidget {
                               ),
                               decoration: BoxDecoration(
                                 color:
-                                    theme.colorScheme.primary.withOpacity(0.12),
+                                    JewelryColors.emeraldGlow.withOpacity(0.12),
                                 borderRadius: BorderRadius.circular(999),
+                                border: Border.all(
+                                  color: JewelryColors.emeraldGlow
+                                      .withOpacity(0.18),
+                                ),
                               ),
                               child: Text(
                                 ref.tr('payment_default_badge'),
-                                style: theme.textTheme.labelSmall?.copyWith(
-                                  color: theme.colorScheme.primary,
+                                style: const TextStyle(
+                                  color: JewelryColors.emeraldGlow,
                                   fontWeight: FontWeight.w700,
+                                  fontSize: 11,
                                 ),
                               ),
                             ),
@@ -299,19 +433,19 @@ class _PaymentAccountCard extends ConsumerWidget {
                       const SizedBox(height: 4),
                       Text(
                         account.typeName.tr,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.textTheme.bodySmall?.color
-                              ?.withOpacity(0.7),
+                        style: TextStyle(
+                          color: JewelryColors.jadeMist.withOpacity(0.62),
+                          fontSize: 12,
                         ),
                       ),
                       if (account.accountNumber != null) ...[
                         const SizedBox(height: 4),
                         Text(
                           account.accountNumber!,
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            color: theme.textTheme.bodyMedium?.color
-                                ?.withOpacity(0.75),
+                          style: TextStyle(
+                            color: JewelryColors.jadeMist.withOpacity(0.78),
                             fontFamily: 'Monospace',
+                            fontSize: 14,
                           ),
                         ),
                       ],
@@ -319,9 +453,9 @@ class _PaymentAccountCard extends ConsumerWidget {
                         const SizedBox(height: 2),
                         Text(
                           account.bankName!,
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.textTheme.bodySmall?.color
-                                ?.withOpacity(0.5),
+                          style: TextStyle(
+                            color: JewelryColors.jadeMist.withOpacity(0.48),
+                            fontSize: 12,
                           ),
                         ),
                       ],
@@ -330,23 +464,30 @@ class _PaymentAccountCard extends ConsumerWidget {
                         const SizedBox(height: 12),
                         ClipRRect(
                           borderRadius: BorderRadius.circular(12),
-                          child: Image.network(
-                            _resolveImageUrl(account.qrCodeUrl!),
+                          child: ResilientNetworkImage(
+                            imageUrl: _resolveImageUrl(account.qrCodeUrl!),
                             width: 88,
                             height: 88,
                             fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => Container(
+                            errorWidget: Container(
                               width: 88,
                               height: 88,
                               alignment: Alignment.center,
                               decoration: BoxDecoration(
-                                color: theme.colorScheme.primary
-                                    .withOpacity(0.08),
+                                color: JewelryColors.deepJade.withOpacity(0.58),
                                 borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: JewelryColors.champagneGold
+                                      .withOpacity(0.12),
+                                ),
                               ),
                               child: Text(
                                 'payment_qr_preview'.tr,
-                                style: theme.textTheme.labelSmall,
+                                style: TextStyle(
+                                  color:
+                                      JewelryColors.jadeMist.withOpacity(0.58),
+                                  fontSize: 11,
+                                ),
                                 textAlign: TextAlign.center,
                               ),
                             ),
@@ -358,6 +499,8 @@ class _PaymentAccountCard extends ConsumerWidget {
                 ),
                 Switch(
                   value: account.isActive,
+                  activeColor: JewelryColors.emeraldGlow,
+                  activeTrackColor: JewelryColors.emeraldGlow.withOpacity(0.28),
                   onChanged: (_) async {
                     final success = await ref
                         .read(paymentAccountsProvider.notifier)
@@ -373,7 +516,10 @@ class _PaymentAccountCard extends ConsumerWidget {
                 ),
               ],
             ),
-            const Divider(height: 24),
+            Divider(
+              height: 24,
+              color: JewelryColors.champagneGold.withOpacity(0.12),
+            ),
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
@@ -393,6 +539,9 @@ class _PaymentAccountCard extends ConsumerWidget {
                     },
                     icon: const Icon(Icons.check_circle_outline, size: 16),
                     label: Text('payment_set_default'.tr),
+                    style: TextButton.styleFrom(
+                      foregroundColor: JewelryColors.emeraldGlow,
+                    ),
                   ),
                 TextButton.icon(
                   onPressed: () {
@@ -404,13 +553,16 @@ class _PaymentAccountCard extends ConsumerWidget {
                   },
                   icon: const Icon(Icons.edit_outlined, size: 16),
                   label: Text(ref.tr('edit')),
+                  style: TextButton.styleFrom(
+                    foregroundColor: JewelryColors.jadeMist.withOpacity(0.72),
+                  ),
                 ),
                 TextButton.icon(
                   onPressed: () => _confirmDelete(context, ref, account),
                   icon: const Icon(Icons.delete_outline, size: 16),
                   label: Text(ref.tr('delete')),
                   style: TextButton.styleFrom(
-                    foregroundColor: theme.colorScheme.error,
+                    foregroundColor: JewelryColors.error,
                   ),
                 ),
               ],
@@ -445,20 +597,37 @@ class _PaymentAccountCard extends ConsumerWidget {
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
-          title: Text(ref.tr('delete')),
+          backgroundColor: JewelryColors.deepJade,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          title: Text(
+            ref.tr('delete'),
+            style: const TextStyle(
+              color: JewelryColors.jadeMist,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
           content: Text(
             ref.tr(
               'payment_delete_confirm',
               params: {'accountName': account.name},
             ),
+            style: TextStyle(
+              color: JewelryColors.jadeMist.withOpacity(0.66),
+              height: 1.45,
+            ),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialogContext),
-              child: Text(ref.tr('cancel')),
+              child: Text(
+                ref.tr('cancel'),
+                style:
+                    TextStyle(color: JewelryColors.jadeMist.withOpacity(0.58)),
+              ),
             ),
             TextButton(
-              style: TextButton.styleFrom(foregroundColor: Colors.red),
+              style: TextButton.styleFrom(foregroundColor: JewelryColors.error),
               onPressed: () async {
                 final success = await ref
                     .read(paymentAccountsProvider.notifier)
@@ -534,167 +703,287 @@ class _PaymentAccountDialogState extends ConsumerState<_PaymentAccountDialog> {
   @override
   Widget build(BuildContext context) {
     return Dialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      backgroundColor: Colors.transparent,
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 500),
-        child: SingleChildScrollView(
+        child: Container(
           padding: const EdgeInsets.all(24),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text(
-                  widget.account == null
-                      ? 'payment_add_account'.tr
-                      : 'payment_edit_account'.tr,
-                  style: Theme.of(context).textTheme.titleLarge,
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 24),
-                DropdownButtonFormField<PaymentType>(
-                  value: _selectedType,
-                  decoration:
-                      InputDecoration(labelText: 'payment_account_type'.tr),
-                  items: PaymentType.values.map((type) {
-                    return DropdownMenuItem(
-                      value: type,
-                      child: Text(_getTypeName(type)),
-                    );
-                  }).toList(),
-                  onChanged: (value) {
-                    if (value != null) {
-                      setState(() => _selectedType = value);
-                    }
-                  },
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _nameController,
-                  decoration: InputDecoration(
-                    labelText: 'payment_account_name'.tr,
-                    hintText: 'payment_account_name_example'.tr,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                JewelryColors.deepJade.withOpacity(0.98),
+                JewelryColors.jadeSurface.withOpacity(0.94),
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(28),
+            border: Border.all(
+              color: JewelryColors.champagneGold.withOpacity(0.16),
+            ),
+            boxShadow: JewelryShadows.liquidGlass,
+          ),
+          child: SingleChildScrollView(
+            child: Form(
+              key: _formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    widget.account == null
+                        ? 'payment_add_account'.tr
+                        : 'payment_edit_account'.tr,
+                    style: const TextStyle(
+                      color: JewelryColors.jadeMist,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w900,
+                    ),
+                    textAlign: TextAlign.center,
                   ),
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return 'payment_enter_account_name'.tr;
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 16),
-                if (_selectedType == PaymentType.bank) ...[
-                  TextFormField(
-                    controller: _bankNameController,
-                    decoration:
-                        InputDecoration(labelText: 'payment_bank_name'.tr),
+                  const SizedBox(height: 24),
+                  DropdownButtonFormField<PaymentType>(
+                    value: _selectedType,
+                    dropdownColor: JewelryColors.deepJade,
+                    iconEnabledColor: JewelryColors.champagneGold,
+                    iconDisabledColor: JewelryColors.jadeMist.withOpacity(0.3),
+                    decoration: _inputDecoration('payment_account_type'.tr),
+                    style: const TextStyle(color: JewelryColors.jadeMist),
+                    items: PaymentType.values.map((type) {
+                      return DropdownMenuItem(
+                        value: type,
+                        child: Text(
+                          _getTypeName(type),
+                          style: const TextStyle(
+                            color: JewelryColors.jadeMist,
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                    onChanged: (value) {
+                      if (value != null) {
+                        setState(() => _selectedType = value);
+                      }
+                    },
                   ),
                   const SizedBox(height: 16),
-                ],
-                TextFormField(
-                  controller: _accountNumberController,
-                  decoration: InputDecoration(labelText: _accountNumberLabel),
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _qrCodeUrlController,
-                  decoration: InputDecoration(
-                    labelText: 'payment_qr_code'.tr,
-                    hintText: 'payment_qr_code_hint'.tr,
-                  ),
-                  onChanged: (_) => setState(() {}),
-                ),
-                const SizedBox(height: 12),
-                if (_qrCodeUrlController.text.trim().isNotEmpty) ...[
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(16),
-                    child: Image.network(
-                      _resolveImageUrl(_qrCodeUrlController.text.trim()),
-                      height: 180,
-                      width: double.infinity,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => Container(
-                        height: 120,
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          color: Theme.of(context)
-                              .colorScheme
-                              .primary
-                              .withOpacity(0.06),
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: Text('payment_qr_preview'.tr),
-                      ),
+                  TextFormField(
+                    controller: _nameController,
+                    cursorColor: JewelryColors.emeraldGlow,
+                    style: const TextStyle(color: JewelryColors.jadeMist),
+                    decoration: _inputDecoration(
+                      'payment_account_name'.tr,
+                      hintText: 'payment_account_name_example'.tr,
                     ),
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return 'payment_enter_account_name'.tr;
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  if (_selectedType == PaymentType.bank) ...[
+                    TextFormField(
+                      controller: _bankNameController,
+                      cursorColor: JewelryColors.emeraldGlow,
+                      style: const TextStyle(color: JewelryColors.jadeMist),
+                      decoration: _inputDecoration('payment_bank_name'.tr),
+                    ),
+                    const SizedBox(height: 16),
+                  ],
+                  TextFormField(
+                    controller: _accountNumberController,
+                    cursorColor: JewelryColors.emeraldGlow,
+                    style: const TextStyle(color: JewelryColors.jadeMist),
+                    decoration: _inputDecoration(_accountNumberLabel),
+                  ),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: _qrCodeUrlController,
+                    cursorColor: JewelryColors.emeraldGlow,
+                    style: const TextStyle(color: JewelryColors.jadeMist),
+                    decoration: _inputDecoration(
+                      'payment_qr_code'.tr,
+                      hintText: 'payment_qr_code_hint'.tr,
+                    ),
+                    onChanged: (_) => setState(() {}),
                   ),
                   const SizedBox(height: 12),
+                  if (_qrCodeUrlController.text.trim().isNotEmpty) ...[
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(16),
+                      child: ResilientNetworkImage(
+                        imageUrl:
+                            _resolveImageUrl(_qrCodeUrlController.text.trim()),
+                        height: 180,
+                        width: double.infinity,
+                        fit: BoxFit.cover,
+                        errorWidget: Container(
+                          height: 120,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: JewelryColors.jadeBlack.withOpacity(0.28),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color:
+                                  JewelryColors.champagneGold.withOpacity(0.14),
+                            ),
+                          ),
+                          child: Text(
+                            'payment_qr_preview'.tr,
+                            style: TextStyle(
+                              color: JewelryColors.jadeMist.withOpacity(0.58),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+                  Wrap(
+                    spacing: 12,
+                    runSpacing: 12,
+                    children: [
+                      OutlinedButton.icon(
+                        onPressed: _isUploadingQr ? null : _uploadQrCode,
+                        icon: _isUploadingQr
+                            ? const SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: JewelryColors.emeraldGlow,
+                                ),
+                              )
+                            : const Icon(Icons.upload_outlined),
+                        label: Text(
+                          _isUploadingQr
+                              ? 'payment_qr_uploading'.tr
+                              : 'payment_upload_qr'.tr,
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: JewelryColors.jadeMist,
+                          backgroundColor:
+                              JewelryColors.jadeBlack.withOpacity(0.18),
+                          side: BorderSide(
+                            color:
+                                JewelryColors.champagneGold.withOpacity(0.26),
+                          ),
+                        ),
+                      ),
+                      if (_qrCodeUrlController.text.trim().isNotEmpty)
+                        TextButton.icon(
+                          onPressed: () {
+                            setState(() => _qrCodeUrlController.clear());
+                          },
+                          icon: const Icon(Icons.delete_outline),
+                          label: Text('delete'.tr),
+                          style: TextButton.styleFrom(
+                            foregroundColor: JewelryColors.error,
+                          ),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  SwitchListTile.adaptive(
+                    contentPadding: EdgeInsets.zero,
+                    title: Text(
+                      'payment_set_default'.tr,
+                      style: const TextStyle(
+                        color: JewelryColors.jadeMist,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    subtitle: Text(
+                      'payment_default_account_hint'.tr,
+                      style: TextStyle(
+                        color: JewelryColors.jadeMist.withOpacity(0.54),
+                      ),
+                    ),
+                    value: _isDefault,
+                    activeColor: JewelryColors.emeraldGlow,
+                    activeTrackColor:
+                        JewelryColors.emeraldGlow.withOpacity(0.3),
+                    onChanged: (value) {
+                      setState(() => _isDefault = value);
+                    },
+                  ),
+                  const SizedBox(height: 24),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      TextButton(
+                        onPressed:
+                            _isSaving ? null : () => Navigator.pop(context),
+                        child: Text(
+                          ref.tr('cancel'),
+                          style: TextStyle(
+                            color: JewelryColors.jadeMist.withOpacity(0.58),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      ElevatedButton(
+                        onPressed: _isSaving ? null : _save,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: JewelryColors.emeraldLuster,
+                          foregroundColor: JewelryColors.jadeBlack,
+                          elevation: 0,
+                          shadowColor: Colors.transparent,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                        ),
+                        child: _isSaving
+                            ? const SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: JewelryColors.jadeBlack,
+                                ),
+                              )
+                            : Text(ref.tr('save')),
+                      ),
+                    ],
+                  ),
                 ],
-                Wrap(
-                  spacing: 12,
-                  runSpacing: 12,
-                  children: [
-                    OutlinedButton.icon(
-                      onPressed: _isUploadingQr ? null : _uploadQrCode,
-                      icon: _isUploadingQr
-                          ? const SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : const Icon(Icons.upload_outlined),
-                      label: Text(
-                        _isUploadingQr
-                            ? 'payment_qr_uploading'.tr
-                            : 'payment_upload_qr'.tr,
-                      ),
-                    ),
-                    if (_qrCodeUrlController.text.trim().isNotEmpty)
-                      TextButton.icon(
-                        onPressed: () {
-                          setState(() => _qrCodeUrlController.clear());
-                        },
-                        icon: const Icon(Icons.delete_outline),
-                        label: Text('delete'.tr),
-                      ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                SwitchListTile.adaptive(
-                  contentPadding: EdgeInsets.zero,
-                  title: Text('payment_set_default'.tr),
-                  subtitle: Text('payment_default_account_hint'.tr),
-                  value: _isDefault,
-                  onChanged: (value) {
-                    setState(() => _isDefault = value);
-                  },
-                ),
-                const SizedBox(height: 24),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    TextButton(
-                      onPressed:
-                          _isSaving ? null : () => Navigator.pop(context),
-                      child: Text(ref.tr('cancel')),
-                    ),
-                    const SizedBox(width: 16),
-                    ElevatedButton(
-                      onPressed: _isSaving ? null : _save,
-                      child: _isSaving
-                          ? const SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : Text(ref.tr('save')),
-                    ),
-                  ],
-                ),
-              ],
+              ),
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  InputDecoration _inputDecoration(String labelText, {String? hintText}) {
+    return InputDecoration(
+      labelText: labelText,
+      hintText: hintText,
+      labelStyle: TextStyle(color: JewelryColors.jadeMist.withOpacity(0.62)),
+      hintStyle: TextStyle(color: JewelryColors.jadeMist.withOpacity(0.36)),
+      filled: true,
+      fillColor: JewelryColors.jadeBlack.withOpacity(0.28),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: BorderSide(
+          color: JewelryColors.champagneGold.withOpacity(0.14),
+        ),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: BorderSide(
+          color: JewelryColors.emeraldGlow.withOpacity(0.5),
+        ),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(color: JewelryColors.error),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(color: JewelryColors.error),
       ),
     );
   }
@@ -836,7 +1125,13 @@ void _showErrorSnackBar(BuildContext context, String message) {
   final messenger = ScaffoldMessenger.of(context);
   messenger
     ..clearSnackBars()
-    ..showSnackBar(SnackBar(content: Text(message)));
+    ..showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: JewelryColors.error,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
 }
 
 String _resolveImageUrl(String rawUrl) {

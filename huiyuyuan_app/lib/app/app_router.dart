@@ -1,12 +1,18 @@
 library;
 
+import 'dart:async';
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../config/local_debug_config.dart';
 import '../l10n/l10n_provider.dart';
+import '../models/app_update_download_state.dart';
 import '../providers/auth_provider.dart';
+import '../screens/design/luxury_redesign_preview_screen.dart';
 import '../screens/login_screen.dart';
 import '../screens/main_screen.dart';
 import '../services/app_update_service.dart';
@@ -22,13 +28,49 @@ class AppRouter extends ConsumerStatefulWidget {
   ConsumerState<AppRouter> createState() => _AppRouterState();
 }
 
-class _AppRouterState extends ConsumerState<AppRouter> {
+class _AppRouterState extends ConsumerState<AppRouter>
+    with WidgetsBindingObserver {
   static const _privacyKey = 'privacy_accepted_v1';
+
   final AppUpdateService _appUpdateService = AppUpdateService();
   bool _startupChecksScheduled = false;
+  bool _installPermissionHintShown = false;
+  Timer? _updateMonitorTimer;
+  StreamSubscription<AppUpdateDownloadState>? _updateStateSubscription;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _updateStateSubscription = AppUpdateService.stateChanges.listen(
+      _handleServiceUpdateState,
+    );
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _updateMonitorTimer?.cancel();
+    _updateStateSubscription?.cancel();
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (kIsWeb) {
+      return;
+    }
+    if (state == AppLifecycleState.resumed) {
+      unawaited(_resumePendingUpdateFlow());
+    }
+  }
 
   Future<void> _runStartupChecks() async {
     await _checkPrivacy();
+    if (kIsWeb) {
+      return;
+    }
+    await _resumePendingUpdateFlow();
     await _checkAppUpdate();
   }
 
@@ -41,12 +83,24 @@ class _AppRouterState extends ConsumerState<AppRouter> {
   }
 
   Future<void> _checkAppUpdate() async {
-    if (!mounted) {
+    if (kIsWeb || !mounted) {
       return;
     }
 
     final info = await _appUpdateService.fetchLatestUpdate();
     if (info == null || !mounted) {
+      return;
+    }
+
+    final existingState =
+        await _appUpdateService.getPendingAndroidUpdateState();
+    if (existingState.buildNumber == info.latestBuildNumber &&
+        (existingState.isActiveDownload ||
+            existingState.canInstall ||
+            existingState.requiresInstallPermission)) {
+      if (existingState.isActiveDownload) {
+        _ensureUpdateMonitorRunning();
+      }
       return;
     }
 
@@ -72,14 +126,178 @@ class _AppRouterState extends ConsumerState<AppRouter> {
     }
 
     await _appUpdateService.clearSkippedBuild();
-    final opened = await _appUpdateService.openDownload(info);
-    if (!mounted || opened) {
+    final state = await _appUpdateService.startUpdate(info);
+    if (!mounted) {
+      return;
+    }
+    await _handleUpdateOutcome(state);
+  }
+
+  Future<void> _resumePendingUpdateFlow() async {
+    if (kIsWeb || !mounted) {
       return;
     }
 
+    final state = await _appUpdateService.getPendingAndroidUpdateState();
+    if (!mounted) {
+      return;
+    }
+
+    if (state.isActiveDownload) {
+      _ensureUpdateMonitorRunning();
+      return;
+    }
+
+    if (state.canInstall) {
+      final installState =
+          await _appUpdateService.resumePendingAndroidUpdateInstall();
+      if (!mounted) {
+        return;
+      }
+      await _handleUpdateOutcome(installState, showQueuedMessage: false);
+      return;
+    }
+
+    if (state.requiresInstallPermission) {
+      _showInstallPermissionHintOnce();
+      return;
+    }
+
+    if (state.shouldShowFailure) {
+      await _appUpdateService.clearPendingAndroidUpdateState();
+      _showUpdateSnackBar(
+        ref.tr('app_update_download_failed'),
+        isError: true,
+      );
+      return;
+    }
+
+    if (state.status == AppUpdateDownloadStatus.idle) {
+      _installPermissionHintShown = false;
+    }
+  }
+
+  void _ensureUpdateMonitorRunning() {
+    if (kIsWeb) {
+      return;
+    }
+    _updateMonitorTimer ??= Timer.periodic(
+      const Duration(seconds: 2),
+      (_) => unawaited(_pollPendingUpdateState()),
+    );
+  }
+
+  Future<void> _pollPendingUpdateState() async {
+    if (kIsWeb || !mounted) {
+      _updateMonitorTimer?.cancel();
+      _updateMonitorTimer = null;
+      return;
+    }
+
+    final state = await _appUpdateService.getPendingAndroidUpdateState();
+    if (!mounted) {
+      return;
+    }
+
+    if (state.isActiveDownload) {
+      return;
+    }
+
+    _updateMonitorTimer?.cancel();
+    _updateMonitorTimer = null;
+
+    if (state.canInstall) {
+      final installState =
+          await _appUpdateService.resumePendingAndroidUpdateInstall();
+      if (!mounted) {
+        return;
+      }
+      await _handleUpdateOutcome(installState, showQueuedMessage: false);
+      return;
+    }
+
+    if (state.shouldShowFailure) {
+      await _appUpdateService.clearPendingAndroidUpdateState();
+      _showUpdateSnackBar(
+        ref.tr('app_update_download_failed'),
+        isError: true,
+      );
+    }
+  }
+
+  void _handleServiceUpdateState(AppUpdateDownloadState state) {
+    if (kIsWeb || !mounted) {
+      return;
+    }
+
+    if (state.isActiveDownload) {
+      _ensureUpdateMonitorRunning();
+      return;
+    }
+
+    if (state.canInstall) {
+      unawaited(_resumePendingUpdateFlow());
+    }
+  }
+
+  Future<void> _handleUpdateOutcome(
+    AppUpdateDownloadState state, {
+    bool showQueuedMessage = true,
+  }) async {
+    switch (state.status) {
+      case AppUpdateDownloadStatus.external:
+        return;
+      case AppUpdateDownloadStatus.queued:
+      case AppUpdateDownloadStatus.running:
+      case AppUpdateDownloadStatus.paused:
+        _ensureUpdateMonitorRunning();
+        if (showQueuedMessage) {
+          _showUpdateSnackBar(ref.tr('app_update_download_started'));
+        }
+        return;
+      case AppUpdateDownloadStatus.installing:
+        _installPermissionHintShown = false;
+        _showUpdateSnackBar(ref.tr('app_update_install_started'));
+        return;
+      case AppUpdateDownloadStatus.permissionRequired:
+        _showInstallPermissionHintOnce();
+        return;
+      case AppUpdateDownloadStatus.failed:
+        _showUpdateSnackBar(
+          ref.tr('app_update_download_failed'),
+          isError: true,
+        );
+        return;
+      case AppUpdateDownloadStatus.unavailable:
+        _showUpdateSnackBar(
+          ref.tr('app_update_link_unavailable'),
+          isError: true,
+        );
+        return;
+      case AppUpdateDownloadStatus.successful:
+        await _resumePendingUpdateFlow();
+        return;
+      case AppUpdateDownloadStatus.idle:
+        return;
+    }
+  }
+
+  void _showInstallPermissionHintOnce() {
+    if (_installPermissionHintShown) {
+      return;
+    }
+    _installPermissionHintShown = true;
+    _showUpdateSnackBar(ref.tr('app_update_install_permission_required'));
+  }
+
+  void _showUpdateSnackBar(String message, {bool isError = false}) {
+    if (!mounted) {
+      return;
+    }
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(ref.tr('app_update_link_unavailable')),
+        content: Text(message),
+        backgroundColor: isError ? Theme.of(context).colorScheme.error : null,
       ),
     );
   }
@@ -104,11 +322,17 @@ class _AppRouterState extends ConsumerState<AppRouter> {
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
+    final showUiRedesignPreview =
+        LocalDebugConfig.instance.getBool('show_ui_redesign_preview') ?? false;
+
+    if (showUiRedesignPreview) {
+      return const LuxuryRedesignPreviewScreen();
+    }
 
     if (!_startupChecksScheduled && authState.hasValue) {
       _startupChecksScheduled = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        _runStartupChecks();
+        unawaited(_runStartupChecks());
       });
     }
 

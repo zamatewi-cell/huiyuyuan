@@ -75,8 +75,12 @@ void main() {
       
       expect(response, isNotNull);
       expect(response.isNotEmpty, true);
-      // 应包含推荐内容
-      expect(response.contains('和田玉') || response.contains('翡翠') || response.contains('南红'), true);
+      expect(
+        response.contains('预算范围') ||
+            response.contains('材质偏好') ||
+            response.contains('送礼'),
+        true,
+      );
     });
 
     test('退换货问题应返回售后政策', () async {
@@ -87,8 +91,12 @@ void main() {
       
       expect(response, isNotNull);
       expect(response.isNotEmpty, true);
-      // 应包含退换货相关内容
-      expect(response.contains('退') || response.contains('换') || response.contains('7天'), true);
+      expect(
+        response.contains('退换货') ||
+            response.contains('售后') ||
+            response.contains('订单状态'),
+        true,
+      );
     });
 
     test('一般问候应返回自我介绍', () async {
@@ -144,8 +152,8 @@ void main() {
       
       expect(description, isNotNull);
       expect(description.isNotEmpty, true);
-      // 应包含产品名或材质相关内容
-      expect(description.contains('手镯') || description.contains('和田玉'), true);
+      expect(description.contains('羊脂白玉手镯'), true);
+      expect(description.contains('和田玉'), true);
     });
 
     test('应生成翡翠产品描述', () async {

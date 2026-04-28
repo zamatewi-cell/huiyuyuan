@@ -1,9 +1,18 @@
-﻿import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:huiyuyuan/config/api_config.dart';
 import 'package:huiyuyuan/config/local_debug_config.dart';
 import 'package:huiyuyuan/services/ai_dashscope_service.dart';
 
 void main() {
+  late bool originalUseMockApi;
+
+  setUp(() {
+    originalUseMockApi = ApiConfig.useMockApi;
+    ApiConfig.useMockApi = true;
+  });
+
   tearDown(() {
+    ApiConfig.useMockApi = originalUseMockApi;
     LocalDebugConfig.instance.clearForTesting();
   });
 

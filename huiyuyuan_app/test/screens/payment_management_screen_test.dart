@@ -1,11 +1,11 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_test/flutter_test.dart';
 import 'package:huiyuyuan/models/payment_account.dart';
 import 'package:huiyuyuan/providers/payment_provider.dart';
 import 'package:huiyuyuan/screens/payment_management_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -63,7 +63,7 @@ void main() {
       );
       await tester.pump();
 
-      expect(find.text('加载失败'), findsOneWidget);
+      expect(find.text('出错了'), findsOneWidget);
       expect(find.text('网络连接失败，请检查网络设置'), findsOneWidget);
       expect(find.text('重试'), findsOneWidget);
     });
@@ -103,7 +103,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('设为默认'));
+      await tester.tap(find.text('设为默认账户'));
       await tester.pumpAndSettle();
 
       expect(find.text('设置默认失败：服务器错误'), findsOneWidget);
@@ -147,13 +147,13 @@ void main() {
       await tester.tap(find.text('删除').first);
       await tester.pumpAndSettle();
 
-      expect(find.text('确认删除'), findsOneWidget);
+      expect(find.textContaining('确定删除收款账户“待删除账户”吗？'), findsOneWidget);
 
       await tester.tap(
         find.descendant(
           of: find.byType(AlertDialog),
-          matching: find.text('删除'),
-        ),
+          matching: find.widgetWithText(TextButton, '删除'),
+        ).last,
       );
       await tester.pumpAndSettle();
 
@@ -201,8 +201,8 @@ void main() {
       await tester.tap(
         find.descendant(
           of: find.byType(AlertDialog),
-          matching: find.text('删除'),
-        ),
+          matching: find.widgetWithText(TextButton, '删除'),
+        ).last,
       );
       await tester.pumpAndSettle();
 
@@ -217,7 +217,7 @@ class _LoadingFailsNotifier extends StateNotifier<PaymentAccountsState>
 
   @override
   Future<void> loadAccounts() async {
-    // do nothing - error state already set
+    // Error state is injected by the test.
   }
 
   @override

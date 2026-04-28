@@ -14,11 +14,67 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'dart:ui';
 import '../../models/user_data_models.dart';
 import '../../themes/colors.dart';
-import '../../themes/jewelry_theme.dart';
 import '../../services/user_data_service.dart';
-import '../../widgets/common/empty_state.dart';
+import '../../widgets/common/glassmorphic_card.dart';
 import '../../widgets/common/skeleton.dart';
 import '../../widgets/common/error_handler.dart';
+
+class _ProfileListBackdrop extends StatelessWidget {
+  const _ProfileListBackdrop();
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration:
+          const BoxDecoration(gradient: JewelryColors.jadeDepthGradient),
+      child: Stack(
+        children: [
+          Positioned(
+            top: -150,
+            right: -120,
+            child: _ProfileListGlowOrb(
+              size: 320,
+              color: JewelryColors.emeraldGlow.withOpacity(0.1),
+            ),
+          ),
+          Positioned(
+            left: -150,
+            bottom: 120,
+            child: _ProfileListGlowOrb(
+              size: 280,
+              color: JewelryColors.champagneGold.withOpacity(0.08),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ProfileListGlowOrb extends StatelessWidget {
+  const _ProfileListGlowOrb({
+    required this.size,
+    required this.color,
+  });
+
+  final double size;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: color,
+        boxShadow: [
+          BoxShadow(color: color, blurRadius: 96, spreadRadius: 28),
+        ],
+      ),
+    );
+  }
+}
 
 final _userDataServiceProvider = Provider<UserDataService>((ref) {
   return UserDataService();
@@ -45,29 +101,19 @@ class _BrowseHistoryScreenState extends ConsumerState<BrowseHistoryScreen> {
     final historyAsync = ref.watch(browseHistoryProvider);
 
     return Scaffold(
-      backgroundColor: context.adaptiveBackground,
+      backgroundColor: JewelryColors.jadeBlack,
       appBar: _buildAppBar(context),
-      body: historyAsync.when(
-        data: (history) => history.isEmpty
-            ? const EmptyStateWidget(type: EmptyType.history)
-            : _buildHistoryList(context, history),
-        loading: () => _buildLoadingState(),
-        error: (error, _) => Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.error_outline, size: 48, color: JewelryColors.error),
-              SizedBox(height: 16),
-              Text(ref.tr('browse_history_load_failed',
-                  params: {'error': error.toString()})),
-              SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: () => ref.invalidate(browseHistoryProvider),
-                child: Text(ref.tr('retry')),
-              ),
-            ],
+      body: Stack(
+        children: [
+          const Positioned.fill(child: _ProfileListBackdrop()),
+          historyAsync.when(
+            data: (history) => history.isEmpty
+                ? _buildEmptyState()
+                : _buildHistoryList(context, history),
+            loading: () => _buildLoadingState(),
+            error: (error, _) => _buildErrorState(error),
           ),
-        ),
+        ],
       ),
     );
   }
@@ -79,34 +125,48 @@ class _BrowseHistoryScreenState extends ConsumerState<BrowseHistoryScreen> {
         child: BackdropFilter(
           filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
           child: Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  JewelryColors.primary.withOpacity(0.9),
-                  JewelryColors.primaryDark.withOpacity(0.9),
-                ],
-              ),
-            ),
+            color: JewelryColors.jadeBlack.withOpacity(0.84),
             child: SafeArea(
               child: Row(
                 children: [
                   IconButton(
-                    icon: Icon(Icons.arrow_back_ios, color: Colors.white),
+                    icon: const Icon(
+                      Icons.arrow_back_ios,
+                      color: JewelryColors.jadeMist,
+                    ),
                     onPressed: () => Navigator.pop(context),
                   ),
                   Expanded(
-                    child: Text(
-                      ref.tr('profile_history'),
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
+                    child: Center(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 8,
+                        ),
+                        decoration: BoxDecoration(
+                          color: JewelryColors.deepJade.withOpacity(0.62),
+                          borderRadius: BorderRadius.circular(999),
+                          border: Border.all(
+                            color:
+                                JewelryColors.champagneGold.withOpacity(0.14),
+                          ),
+                        ),
+                        child: Text(
+                          ref.tr('profile_history'),
+                          style: const TextStyle(
+                            color: JewelryColors.jadeMist,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
                       ),
-                      textAlign: TextAlign.center,
                     ),
                   ),
                   IconButton(
-                    icon: Icon(Icons.delete_outline, color: Colors.white),
+                    icon: const Icon(
+                      Icons.delete_outline,
+                      color: JewelryColors.jadeMist,
+                    ),
                     onPressed: () => _showClearDialog(context),
                   ),
                 ],
@@ -118,11 +178,99 @@ class _BrowseHistoryScreenState extends ConsumerState<BrowseHistoryScreen> {
     );
   }
 
+  Widget _buildEmptyState() {
+    return Center(
+      child: GlassmorphicCard(
+        margin: const EdgeInsets.all(24),
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 30),
+        borderRadius: 26,
+        blur: 16,
+        opacity: 0.18,
+        borderColor: JewelryColors.champagneGold.withOpacity(0.14),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.history,
+              size: 64,
+              color: JewelryColors.jadeMist.withOpacity(0.34),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              ref.tr('profile_history_empty_title'),
+              style: const TextStyle(
+                color: JewelryColors.jadeMist,
+                fontSize: 18,
+                fontWeight: FontWeight.w900,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              ref.tr('profile_history_empty_subtitle'),
+              style: TextStyle(
+                color: JewelryColors.jadeMist.withOpacity(0.58),
+                fontSize: 14,
+                height: 1.45,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildErrorState(Object error) {
+    return Center(
+      child: GlassmorphicCard(
+        margin: const EdgeInsets.all(24),
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 30),
+        borderRadius: 26,
+        blur: 16,
+        opacity: 0.18,
+        borderColor: JewelryColors.error.withOpacity(0.22),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              Icons.error_outline,
+              size: 48,
+              color: JewelryColors.error,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              ref.tr(
+                'browse_history_load_failed',
+                params: {'error': error.toString()},
+              ),
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: JewelryColors.jadeMist.withOpacity(0.68),
+                height: 1.45,
+              ),
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: () => ref.invalidate(browseHistoryProvider),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: JewelryColors.emeraldLuster,
+                foregroundColor: JewelryColors.jadeBlack,
+                elevation: 0,
+              ),
+              child: Text(ref.tr('retry')),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildLoadingState() {
     return ListView.builder(
-      padding: EdgeInsets.all(16),
+      padding: const EdgeInsets.all(16),
       itemCount: 4,
-      itemBuilder: (context, index) => Padding(
+      itemBuilder: (context, index) => const Padding(
         padding: EdgeInsets.only(bottom: 12),
         child: ListItemSkeleton(),
       ),
@@ -134,7 +282,7 @@ class _BrowseHistoryScreenState extends ConsumerState<BrowseHistoryScreen> {
     List<BrowseHistoryItem> history,
   ) {
     return ListView.builder(
-      padding: EdgeInsets.all(16),
+      padding: const EdgeInsets.all(16),
       itemCount: history.length,
       itemBuilder: (context, index) {
         return _HistoryCard(item: history[index]);
@@ -146,12 +294,26 @@ class _BrowseHistoryScreenState extends ConsumerState<BrowseHistoryScreen> {
     showDialog(
       context: ctx,
       builder: (dialogContext) => AlertDialog(
-        title: Text(ref.tr('browse_history_clear_title')),
-        content: Text(ref.tr('browse_history_clear_confirm')),
+        backgroundColor: JewelryColors.deepJade,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        title: Text(
+          ref.tr('browse_history_clear_title'),
+          style: const TextStyle(
+            color: JewelryColors.jadeMist,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+        content: Text(
+          ref.tr('browse_history_clear_confirm'),
+          style: TextStyle(color: JewelryColors.jadeMist.withOpacity(0.68)),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext),
-            child: Text(ref.tr('cancel')),
+            child: Text(
+              ref.tr('cancel'),
+              style: TextStyle(color: JewelryColors.jadeMist.withOpacity(0.58)),
+            ),
           ),
           TextButton(
             onPressed: () async {
@@ -162,7 +324,11 @@ class _BrowseHistoryScreenState extends ConsumerState<BrowseHistoryScreen> {
               ref.invalidate(browseHistoryProvider);
               if (success) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text(ref.tr('browse_history_cleared'))),
+                  SnackBar(
+                    content: Text(ref.tr('browse_history_cleared')),
+                    backgroundColor: JewelryColors.emeraldShadow,
+                    behavior: SnackBarBehavior.floating,
+                  ),
                 );
               } else {
                 context.showError(ref.tr('search_clear_fail'));
@@ -170,7 +336,7 @@ class _BrowseHistoryScreenState extends ConsumerState<BrowseHistoryScreen> {
             },
             child: Text(
               ref.tr('confirm'),
-              style: TextStyle(color: Colors.red.shade400),
+              style: const TextStyle(color: JewelryColors.error),
             ),
           ),
         ],
@@ -186,32 +352,27 @@ class _HistoryCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final product = item.product;
     final imageUrl = product.images.isEmpty ? null : product.images.first;
 
-    return Container(
-      margin: EdgeInsets.only(bottom: 12),
-      padding: EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: isDark ? JewelryColors.darkCard : Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(isDark ? 0.2 : 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
+    return GlassmorphicCard(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(12),
+      borderRadius: 22,
+      blur: 16,
+      opacity: 0.17,
+      borderColor: JewelryColors.champagneGold.withOpacity(0.12),
       child: Row(
         children: [
           Container(
             width: 70,
             height: 70,
             decoration: BoxDecoration(
-              color: JewelryColors.primary.withOpacity(0.1),
+              color: JewelryColors.jadeBlack.withOpacity(0.28),
               borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: JewelryColors.champagneGold.withOpacity(0.12),
+              ),
             ),
             child: imageUrl != null
                 ? ClipRRect(
@@ -222,17 +383,17 @@ class _HistoryCard extends ConsumerWidget {
                       errorBuilder: (_, __, ___) => Icon(
                         Icons.diamond_outlined,
                         size: 32,
-                        color: JewelryColors.primary.withOpacity(0.5),
+                        color: JewelryColors.emeraldGlow.withOpacity(0.5),
                       ),
                     ),
                   )
                 : Icon(
                     Icons.diamond_outlined,
                     size: 32,
-                    color: JewelryColors.primary.withOpacity(0.5),
+                    color: JewelryColors.emeraldGlow.withOpacity(0.5),
                   ),
           ),
-          SizedBox(width: 12),
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -241,33 +402,31 @@ class _HistoryCard extends ConsumerWidget {
                   product.titleL10n.isEmpty
                       ? ref.tr('product_unknown')
                       : product.titleL10n,
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: isDark
-                        ? JewelryColors.darkTextPrimary
-                        : JewelryColors.textPrimary,
+                    fontWeight: FontWeight.w900,
+                    color: JewelryColors.jadeMist,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
-                SizedBox(height: 4),
+                const SizedBox(height: 4),
                 if (product.matL10n.isNotEmpty)
                   Text(
                     product.matL10n,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12,
-                      color: JewelryColors.textSecondary,
+                      color: JewelryColors.jadeMist.withOpacity(0.58),
                     ),
                   ),
                 if (product.price > 0) ...[
-                  SizedBox(height: 4),
+                  const SizedBox(height: 4),
                   Text(
                     '¥${product.price.toStringAsFixed(0)}',
                     style: const TextStyle(
                       fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                      color: JewelryColors.price,
+                      fontWeight: FontWeight.w900,
+                      color: JewelryColors.champagneGold,
                     ),
                   ),
                 ],
@@ -276,20 +435,27 @@ class _HistoryCard extends ConsumerWidget {
           ),
           IconButton(
             icon: Container(
-              padding: EdgeInsets.all(8),
+              padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: JewelryColors.primary.withOpacity(0.1),
+                color: JewelryColors.emeraldGlow.withOpacity(0.12),
                 borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                  color: JewelryColors.emeraldGlow.withOpacity(0.18),
+                ),
               ),
-              child: Icon(
+              child: const Icon(
                 Icons.add_shopping_cart,
-                color: JewelryColors.primary,
+                color: JewelryColors.emeraldGlow,
                 size: 20,
               ),
             ),
             onPressed: () {
               ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text(ref.tr('product_added_cart'))),
+                SnackBar(
+                  content: Text(ref.tr('product_added_cart')),
+                  backgroundColor: JewelryColors.emeraldShadow,
+                  behavior: SnackBarBehavior.floating,
+                ),
               );
             },
           ),

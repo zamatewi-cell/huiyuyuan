@@ -11,6 +11,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:huiyuyuan/config/api_config.dart';
 import 'package:huiyuyuan/screens/chat/ai_assistant_screen.dart';
 import 'package:huiyuyuan/services/ai_service.dart';
 import 'package:huiyuyuan/models/user_model.dart';
@@ -46,9 +47,17 @@ void _mockSecureStorage() {
 }
 
 void main() {
+  late bool originalUseMockApi;
+
   setUp(() async {
+    originalUseMockApi = ApiConfig.useMockApi;
+    ApiConfig.useMockApi = true;
     SharedPreferences.setMockInitialValues({});
     _mockSecureStorage();
+  });
+
+  tearDown(() {
+    ApiConfig.useMockApi = originalUseMockApi;
   });
 
   group('AI 助手页面 UI 测试', () {
@@ -61,7 +70,8 @@ void main() {
         ),
       );
 
-      await tester.pumpAndSettle();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
 
       // 验证 AI 助手页面存在
       expect(find.byType(AIAssistantScreen), findsOneWidget);

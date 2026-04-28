@@ -19,7 +19,8 @@ class DeviceManagementScreen extends ConsumerStatefulWidget {
       _DeviceManagementScreenState();
 }
 
-class _DeviceManagementScreenState extends ConsumerState<DeviceManagementScreen> {
+class _DeviceManagementScreenState
+    extends ConsumerState<DeviceManagementScreen> {
   List<Map<String, dynamic>> _devices = [];
   bool _loading = true;
 
@@ -154,8 +155,8 @@ class _DeviceManagementScreenState extends ConsumerState<DeviceManagementScreen>
                       const SizedBox(height: 16),
                       Text(
                         'security_no_devices'.tr,
-                        style: const TextStyle(
-                            color: JewelryColors.textSecondary),
+                        style:
+                            const TextStyle(color: JewelryColors.textSecondary),
                       ),
                     ],
                   ),
@@ -174,7 +175,8 @@ class _DeviceManagementScreenState extends ConsumerState<DeviceManagementScreen>
                                   ? JewelryColors.primary.withOpacity(0.2)
                                   : JewelryColors.darkSurface,
                               child: Icon(
-                                _deviceIcon(device['device_type']?.toString() ?? ''),
+                                _deviceIcon(
+                                    device['device_type']?.toString() ?? ''),
                                 color: isCurrent
                                     ? JewelryColors.primary
                                     : JewelryColors.textSecondary,
@@ -196,8 +198,8 @@ class _DeviceManagementScreenState extends ConsumerState<DeviceManagementScreen>
                                     padding: const EdgeInsets.symmetric(
                                         horizontal: 8, vertical: 2),
                                     decoration: BoxDecoration(
-                                      color:
-                                          JewelryColors.primary.withOpacity(0.2),
+                                      color: JewelryColors.primary
+                                          .withOpacity(0.2),
                                       borderRadius: BorderRadius.circular(12),
                                     ),
                                     child: Text(
@@ -214,8 +216,8 @@ class _DeviceManagementScreenState extends ConsumerState<DeviceManagementScreen>
                                     padding: const EdgeInsets.symmetric(
                                         horizontal: 8, vertical: 2),
                                     decoration: BoxDecoration(
-                                      color:
-                                          JewelryColors.warning.withOpacity(0.2),
+                                      color: JewelryColors.warning
+                                          .withOpacity(0.2),
                                       borderRadius: BorderRadius.circular(12),
                                     ),
                                     child: Text(
@@ -234,7 +236,8 @@ class _DeviceManagementScreenState extends ConsumerState<DeviceManagementScreen>
                                 if (device['ip'] != null &&
                                     device['ip'].toString().isNotEmpty)
                                   Text(
-                                    'security_device_ip'.trArgs({'ip': device['ip']}),
+                                    'security_device_ip'
+                                        .trArgs({'ip': device['ip']}),
                                     style: const TextStyle(
                                         fontSize: 12,
                                         color: JewelryColors.textSecondary),
@@ -242,8 +245,8 @@ class _DeviceManagementScreenState extends ConsumerState<DeviceManagementScreen>
                                 if (device['last_login'] != null)
                                   Text(
                                     'security_device_last_login'.trArgs({
-                                      'time': _formatTime(
-                                          device['last_login_ts']),
+                                      'time':
+                                          _formatTime(device['last_login_ts']),
                                     }),
                                     style: const TextStyle(
                                         fontSize: 12,
@@ -256,14 +259,15 @@ class _DeviceManagementScreenState extends ConsumerState<DeviceManagementScreen>
                                 : IconButton(
                                     icon: const Icon(Icons.delete_outline,
                                         color: JewelryColors.error),
-                                    onPressed: () =>
-                                        _removeDevice(device['fingerprint']?.toString() ?? ''),
+                                    onPressed: () => _removeDevice(
+                                        device['fingerprint']?.toString() ??
+                                            ''),
                                     tooltip: 'security_remove_device'.tr,
                                   ),
                           ),
                         ),
                       );
-                    }).toList(),
+                    }),
                     if (_devices.length > 1) ...[
                       const SizedBox(height: 24),
                       SizedBox(
@@ -274,7 +278,8 @@ class _DeviceManagementScreenState extends ConsumerState<DeviceManagementScreen>
                           label: Text('security_logout_others'.tr),
                           style: OutlinedButton.styleFrom(
                             foregroundColor: JewelryColors.warning,
-                            side: const BorderSide(color: JewelryColors.warning),
+                            side:
+                                const BorderSide(color: JewelryColors.warning),
                             padding: const EdgeInsets.symmetric(vertical: 14),
                           ),
                         ),

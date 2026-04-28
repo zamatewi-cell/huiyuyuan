@@ -53,19 +53,21 @@ void main() {
         overrides: [
           productServiceProvider.overrideWithValue(service),
         ],
-        child: MaterialApp(
+        child: const MaterialApp(
           home: Scaffold(body: AdminProductManagementTab()),
         ),
       ),
     );
-    await tester.pumpAndSettle(const Duration(seconds: 2));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
 
     expect(find.text('alpha-bracelet'), findsOneWidget);
     expect(find.text('beta-pendant'), findsOneWidget);
 
     final textField = find.byType(TextField).first;
     await tester.enterText(textField, 'alpha');
-    await tester.pumpAndSettle(const Duration(seconds: 2));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
 
     expect(find.text('alpha-bracelet'), findsOneWidget);
     expect(find.text('beta-pendant'), findsNothing);

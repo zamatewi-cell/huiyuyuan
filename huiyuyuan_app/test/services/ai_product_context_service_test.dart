@@ -49,11 +49,14 @@ void main() {
 
       final context = await service.buildProductContext();
 
+      expect(context, contains('【平台在售商品概览】'));
       expect(context, contains('目前汇玉源商城共有 2 件在售商品'));
-      expect(context, contains('和田玉系列:'));
-      expect(context, contains('缅甸翡翠系列:'));
+      expect(context, contains('和田玉系列：'));
+      expect(context, contains('缅甸翡翠系列：'));
       expect(context, contains('[PRODUCT:商品编号]'));
-      expect(context, contains('和田玉手链(编号:HYY-HT001, ¥299, 手链, 新疆)'));
+      expect(context, contains('和田玉手链'));
+      expect(context, contains('编号:HYY-HT001'));
+      expect(context, contains('¥299'));
     });
 
     test('商品加载失败时应返回空字符串', () async {

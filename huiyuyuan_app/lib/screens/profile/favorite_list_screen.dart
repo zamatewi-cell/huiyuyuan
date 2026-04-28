@@ -12,11 +12,67 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'dart:ui';
 import '../../models/product_model.dart';
 import '../../themes/colors.dart';
-import '../../themes/jewelry_theme.dart';
 import '../../services/user_data_service.dart';
-import '../../widgets/common/empty_state.dart';
+import '../../widgets/common/glassmorphic_card.dart';
 import '../../widgets/common/skeleton.dart';
 import '../../widgets/common/error_handler.dart';
+
+class _FavoriteListBackdrop extends StatelessWidget {
+  const _FavoriteListBackdrop();
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration:
+          const BoxDecoration(gradient: JewelryColors.jadeDepthGradient),
+      child: Stack(
+        children: [
+          Positioned(
+            top: -150,
+            right: -120,
+            child: _FavoriteListGlowOrb(
+              size: 320,
+              color: JewelryColors.emeraldGlow.withOpacity(0.1),
+            ),
+          ),
+          Positioned(
+            left: -150,
+            bottom: 120,
+            child: _FavoriteListGlowOrb(
+              size: 280,
+              color: JewelryColors.champagneGold.withOpacity(0.08),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _FavoriteListGlowOrb extends StatelessWidget {
+  const _FavoriteListGlowOrb({
+    required this.size,
+    required this.color,
+  });
+
+  final double size;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: color,
+        boxShadow: [
+          BoxShadow(color: color, blurRadius: 96, spreadRadius: 28),
+        ],
+      ),
+    );
+  }
+}
 
 final _userDataServiceProvider = Provider<UserDataService>((ref) {
   return UserDataService();
@@ -41,36 +97,19 @@ class _FavoriteListScreenState extends ConsumerState<FavoriteListScreen> {
     final favoritesAsync = ref.watch(favoritesProvider);
 
     return Scaffold(
-      backgroundColor: context.adaptiveBackground,
+      backgroundColor: JewelryColors.jadeBlack,
       appBar: _buildAppBar(context),
-      body: favoritesAsync.when(
-        data: (favorites) => favorites.isEmpty
-            ? EmptyStateWidget(
-                type: EmptyType.favorite,
-                onAction: () => Navigator.pop(context),
-              )
-            : _buildFavoriteList(context, favorites),
-        loading: () => _buildLoadingState(),
-        error: (error, _) => Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.error_outline, size: 48, color: JewelryColors.error),
-              SizedBox(height: 16),
-              Text(
-                ref.tr(
-                  'favorite_load_failed',
-                  params: {'error': error.toString()},
-                ),
-              ),
-              SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: () => ref.invalidate(favoritesProvider),
-                child: Text(ref.tr('retry')),
-              ),
-            ],
+      body: Stack(
+        children: [
+          const Positioned.fill(child: _FavoriteListBackdrop()),
+          favoritesAsync.when(
+            data: (favorites) => favorites.isEmpty
+                ? _buildEmptyState()
+                : _buildFavoriteList(context, favorites),
+            loading: () => _buildLoadingState(),
+            error: (error, _) => _buildErrorState(error),
           ),
-        ),
+        ],
       ),
     );
   }
@@ -82,34 +121,48 @@ class _FavoriteListScreenState extends ConsumerState<FavoriteListScreen> {
         child: BackdropFilter(
           filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
           child: Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  JewelryColors.primary.withOpacity(0.9),
-                  JewelryColors.primaryDark.withOpacity(0.9),
-                ],
-              ),
-            ),
+            color: JewelryColors.jadeBlack.withOpacity(0.84),
             child: SafeArea(
               child: Row(
                 children: [
                   IconButton(
-                    icon: Icon(Icons.arrow_back_ios, color: Colors.white),
+                    icon: const Icon(
+                      Icons.arrow_back_ios,
+                      color: JewelryColors.jadeMist,
+                    ),
                     onPressed: () => Navigator.pop(context),
                   ),
                   Expanded(
-                    child: Text(
-                      ref.tr('profile_favorites'),
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
+                    child: Center(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 8,
+                        ),
+                        decoration: BoxDecoration(
+                          color: JewelryColors.deepJade.withOpacity(0.62),
+                          borderRadius: BorderRadius.circular(999),
+                          border: Border.all(
+                            color:
+                                JewelryColors.champagneGold.withOpacity(0.14),
+                          ),
+                        ),
+                        child: Text(
+                          ref.tr('profile_favorites'),
+                          style: const TextStyle(
+                            color: JewelryColors.jadeMist,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
                       ),
-                      textAlign: TextAlign.center,
                     ),
                   ),
                   IconButton(
-                    icon: Icon(Icons.delete_outline, color: Colors.white),
+                    icon: const Icon(
+                      Icons.delete_outline,
+                      color: JewelryColors.jadeMist,
+                    ),
                     onPressed: () {},
                   ),
                 ],
@@ -121,9 +174,107 @@ class _FavoriteListScreenState extends ConsumerState<FavoriteListScreen> {
     );
   }
 
+  Widget _buildEmptyState() {
+    return Center(
+      child: GlassmorphicCard(
+        margin: const EdgeInsets.all(24),
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 30),
+        borderRadius: 26,
+        blur: 16,
+        opacity: 0.18,
+        borderColor: JewelryColors.champagneGold.withOpacity(0.14),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.favorite_border,
+              size: 64,
+              color: JewelryColors.jadeMist.withOpacity(0.34),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              ref.tr('favorite_empty_title'),
+              style: const TextStyle(
+                color: JewelryColors.jadeMist,
+                fontSize: 18,
+                fontWeight: FontWeight.w900,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              ref.tr('favorite_empty_subtitle'),
+              style: TextStyle(
+                color: JewelryColors.jadeMist.withOpacity(0.58),
+                fontSize: 14,
+                height: 1.45,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: JewelryColors.emeraldLuster,
+                foregroundColor: JewelryColors.jadeBlack,
+                elevation: 0,
+              ),
+              child: Text(ref.tr('browse_products')),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildErrorState(Object error) {
+    return Center(
+      child: GlassmorphicCard(
+        margin: const EdgeInsets.all(24),
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 30),
+        borderRadius: 26,
+        blur: 16,
+        opacity: 0.18,
+        borderColor: JewelryColors.error.withOpacity(0.22),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              Icons.error_outline,
+              size: 48,
+              color: JewelryColors.error,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              ref.tr(
+                'favorite_load_failed',
+                params: {'error': error.toString()},
+              ),
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: JewelryColors.jadeMist.withOpacity(0.68),
+                height: 1.45,
+              ),
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: () => ref.invalidate(favoritesProvider),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: JewelryColors.emeraldLuster,
+                foregroundColor: JewelryColors.jadeBlack,
+                elevation: 0,
+              ),
+              child: Text(ref.tr('retry')),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildLoadingState() {
     return ListView.builder(
-      padding: EdgeInsets.all(16),
+      padding: const EdgeInsets.all(16),
       itemCount: 3,
       itemBuilder: (context, index) => const ListItemSkeleton(),
     );
@@ -134,9 +285,9 @@ class _FavoriteListScreenState extends ConsumerState<FavoriteListScreen> {
     List<ProductModel> favorites,
   ) {
     return ListView.separated(
-      padding: EdgeInsets.all(16),
+      padding: const EdgeInsets.all(16),
       itemCount: favorites.length,
-      separatorBuilder: (_, __) => SizedBox(height: 12),
+      separatorBuilder: (_, __) => const SizedBox(height: 12),
       itemBuilder: (context, index) {
         return _FavoriteCard(
           product: favorites[index],
@@ -153,7 +304,11 @@ class _FavoriteListScreenState extends ConsumerState<FavoriteListScreen> {
       if (success && mounted) {
         ref.invalidate(favoritesProvider);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(ref.tr('product_removed_favorite'))),
+          SnackBar(
+            content: Text(ref.tr('product_removed_favorite')),
+            backgroundColor: JewelryColors.emeraldShadow,
+            behavior: SnackBarBehavior.floating,
+          ),
         );
       } else if (mounted) {
         context.showError(ref.tr('favorite_remove_failed'));
@@ -177,34 +332,30 @@ class _FavoriteCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final imageUrl = product.images.isEmpty ? null : product.images.first;
     final name = product.titleL10n;
     final material = product.matL10n;
     final price = product.price.toStringAsFixed(0);
     final originalPrice = product.originalPrice?.toStringAsFixed(0);
-    return Container(
-      decoration: BoxDecoration(
-        color: isDark ? JewelryColors.darkCard : Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(isDark ? 0.2 : 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
+    return GlassmorphicCard(
+      padding: EdgeInsets.zero,
+      borderRadius: 24,
+      blur: 16,
+      opacity: 0.17,
+      borderColor: JewelryColors.champagneGold.withOpacity(0.12),
       child: Padding(
-        padding: EdgeInsets.all(12),
+        padding: const EdgeInsets.all(12),
         child: Row(
           children: [
             Container(
               width: 90,
               height: 90,
               decoration: BoxDecoration(
-                color: JewelryColors.primary.withOpacity(0.1),
+                color: JewelryColors.jadeBlack.withOpacity(0.28),
                 borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: JewelryColors.champagneGold.withOpacity(0.12),
+                ),
               ),
               child: imageUrl != null
                   ? ClipRRect(
@@ -215,59 +366,57 @@ class _FavoriteCard extends ConsumerWidget {
                         errorBuilder: (_, __, ___) => Icon(
                           Icons.diamond_outlined,
                           size: 40,
-                          color: JewelryColors.primary.withOpacity(0.5),
+                          color: JewelryColors.emeraldGlow.withOpacity(0.5),
                         ),
                       ),
                     )
                   : Icon(
                       Icons.diamond_outlined,
                       size: 40,
-                      color: JewelryColors.primary.withOpacity(0.5),
+                      color: JewelryColors.emeraldGlow.withOpacity(0.5),
                     ),
             ),
-            SizedBox(width: 12),
+            const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     name,
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                      color: isDark
-                          ? JewelryColors.darkTextPrimary
-                          : JewelryColors.textPrimary,
+                      fontWeight: FontWeight.w900,
+                      color: JewelryColors.jadeMist,
                     ),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  SizedBox(height: 4),
+                  const SizedBox(height: 4),
                   Text(
                     material,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12,
-                      color: JewelryColors.textSecondary,
+                      color: JewelryColors.jadeMist.withOpacity(0.58),
                     ),
                   ),
-                  SizedBox(height: 8),
+                  const SizedBox(height: 8),
                   Row(
                     children: [
                       Text(
                         '¥$price',
                         style: const TextStyle(
                           fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: JewelryColors.price,
+                          fontWeight: FontWeight.w900,
+                          color: JewelryColors.champagneGold,
                         ),
                       ),
-                      SizedBox(width: 8),
+                      const SizedBox(width: 8),
                       if (originalPrice != null)
                         Text(
                           '¥$originalPrice',
                           style: const TextStyle(
                             fontSize: 12,
-                            color: JewelryColors.textHint,
+                            color: JewelryColors.jadeMist,
                             decoration: TextDecoration.lineThrough,
                           ),
                         ),
@@ -281,18 +430,22 @@ class _FavoriteCard extends ConsumerWidget {
                 IconButton(
                   icon: Icon(
                     Icons.favorite,
-                    color: Colors.red.shade400,
+                    color: JewelryColors.error.withOpacity(0.9),
                   ),
                   onPressed: onRemove,
                 ),
                 IconButton(
-                  icon: Icon(
+                  icon: const Icon(
                     Icons.shopping_cart_outlined,
-                    color: JewelryColors.primary,
+                    color: JewelryColors.emeraldGlow,
                   ),
                   onPressed: () {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text(ref.tr('product_added_cart'))),
+                      SnackBar(
+                        content: Text(ref.tr('product_added_cart')),
+                        backgroundColor: JewelryColors.emeraldShadow,
+                        behavior: SnackBarBehavior.floating,
+                      ),
                     );
                   },
                 ),

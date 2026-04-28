@@ -155,6 +155,10 @@ $productName，甄选天然$material打造，质感细腻，佩戴百搭。
       return _recommendationReply(promptLanguage);
     }
 
+    if (_containsAny(lower, _afterSalesKeywords(promptLanguage))) {
+      return _afterSalesReply(promptLanguage);
+    }
+
     return _genericReply(promptLanguage);
   }
 
@@ -214,6 +218,17 @@ $productName，甄选天然$material打造，质感细腻，佩戴百搭。
         return ['推薦', '送禮', '手鍊', '項鍊', '手链', '项链'];
       case _PromptLanguage.zhCn:
         return ['推荐', '送礼', '手链', '项链'];
+    }
+  }
+
+  List<String> _afterSalesKeywords(_PromptLanguage language) {
+    switch (language) {
+      case _PromptLanguage.en:
+        return ['return', 'refund', 'exchange', 'after-sales'];
+      case _PromptLanguage.zhTw:
+        return ['退貨', '退款', '換貨', '售後', '退货', '退款', '换货'];
+      case _PromptLanguage.zhCn:
+        return ['退货', '退款', '换货', '售后'];
     }
   }
 
@@ -340,6 +355,36 @@ Tell me those preferences and I will narrow down suitable options for you.''',
 - 喜欢简约、典雅还是更有存在感的风格
 
 把需求告诉我，我就能继续帮你筛选。''',
+    );
+  }
+
+  String _afterSalesReply(_PromptLanguage language) {
+    return _selectByLanguage(
+      language,
+      en: '''
+For after-sales support, we recommend confirming:
+
+- whether the item is still within the return or exchange window
+- whether the certificate, packaging, and invoice are complete
+- whether the item shows signs of wear or custom processing
+
+If you tell me the order status and issue, I can help you judge the next step.''',
+      zhTw: '''
+關於售後處理，建議您先確認：
+
+- 是否仍在退換貨時效內
+- 證書、包裝與票據是否齊全
+- 商品是否有佩戴痕跡或客製化處理
+
+如果您告訴我訂單狀態與具體情況，我可以幫您一起判斷下一步。''',
+      zhCn: '''
+关于售后处理，建议你先确认：
+
+- 是否仍在退换货时效内
+- 证书、包装和票据是否齐全
+- 商品是否有佩戴痕迹或定制处理
+
+如果你告诉我订单状态和具体情况，我可以帮你一起判断下一步。''',
     );
   }
 

@@ -1,4 +1,4 @@
-﻿library;
+library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -6,7 +6,9 @@ import 'package:huiyuyuan/l10n/string_extension.dart';
 
 import '../../config/api_config.dart';
 import '../../l10n/l10n_provider.dart';
-import '../../models/order_model.dart';
+import '../../models/payment_models.dart' as pay;
+import '../../models/user_model.dart';
+import '../../providers/auth_provider.dart';
 import '../../services/order_service.dart';
 import '../../themes/colors.dart';
 import '../../themes/jewelry_theme.dart';
@@ -21,6 +23,91 @@ enum _AdminOrderFilter {
   toShip,
   inTransit,
   completed,
+}
+
+class _AdminOrderBackdrop extends StatelessWidget {
+  const _AdminOrderBackdrop();
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: const BoxDecoration(
+        gradient: JewelryColors.jadeDepthGradient,
+      ),
+      child: Stack(
+        children: [
+          Positioned(
+            top: -140,
+            right: -120,
+            child: _AdminOrderGlowOrb(
+              size: 330,
+              color: JewelryColors.emeraldGlow.withOpacity(0.1),
+            ),
+          ),
+          Positioned(
+            left: -150,
+            top: 340,
+            child: _AdminOrderGlowOrb(
+              size: 300,
+              color: JewelryColors.champagneGold.withOpacity(0.1),
+            ),
+          ),
+          Positioned.fill(
+            child: CustomPaint(
+              painter: _AdminOrderTracePainter(),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AdminOrderGlowOrb extends StatelessWidget {
+  const _AdminOrderGlowOrb({required this.size, required this.color});
+
+  final double size;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: color,
+        boxShadow: [
+          BoxShadow(color: color, blurRadius: 96, spreadRadius: 30),
+        ],
+      ),
+    );
+  }
+}
+
+class _AdminOrderTracePainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 0.75
+      ..color = JewelryColors.champagneGold.withOpacity(0.035);
+
+    for (var i = 0; i < 7; i++) {
+      final y = size.height * (0.1 + i * 0.13);
+      final path = Path()..moveTo(-24, y);
+      path.quadraticBezierTo(
+        size.width * 0.52,
+        y + (i.isEven ? 32 : -30),
+        size.width + 24,
+        y,
+      );
+      canvas.drawPath(path, paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _AdminOrderTracePainter oldDelegate) => false;
 }
 
 class _OrderWorkbenchSummary {
@@ -97,29 +184,44 @@ class _AdminOrderWorkbenchScreenState
 
   @override
   Widget build(BuildContext context) {
+    final user = ref.watch(currentUserProvider);
+    final canReadOrders = _canReadOrders(user);
+    final canManageOrders = _canManageOrders(user);
+    final canReconcilePayments = _canReconcilePayments(user);
+    final canMarkPaymentException = _canMarkPaymentException(user);
     final orders = ref.watch(orderProvider);
     final isLoaded = ref.watch(orderLoadedProvider);
     final summary = _OrderWorkbenchSummary.fromOrders(orders);
     final filteredOrders = _sortOrders(_applyFilter(orders));
     final priorityOrders = _sortOrders(
       orders.where(
-        (order) => _needsPaymentConfirm(order) || order.status == OrderStatus.paid,
+        (order) =>
+            _needsPaymentConfirm(order) || order.status == OrderStatus.paid,
       ),
     );
 
     return Scaffold(
-      backgroundColor: context.adaptiveBackground,
+      backgroundColor: JewelryColors.jadeBlack,
       appBar: AppBar(
         elevation: 0,
-        backgroundColor: Colors.transparent,
-        foregroundColor: Colors.white,
-        title: Text(ref.tr('admin_orders')),
-        flexibleSpace: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Color(0xFF0F766E), Color(0xFF1D4ED8)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
+        backgroundColor: JewelryColors.jadeBlack.withOpacity(0.84),
+        foregroundColor: JewelryColors.jadeMist,
+        centerTitle: true,
+        title: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          decoration: BoxDecoration(
+            color: JewelryColors.deepJade.withOpacity(0.62),
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(
+              color: JewelryColors.champagneGold.withOpacity(0.14),
+            ),
+          ),
+          child: Text(
+            ref.tr('admin_orders'),
+            style: const TextStyle(
+              color: JewelryColors.jadeMist,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 0.4,
             ),
           ),
         ),
@@ -131,42 +233,156 @@ class _AdminOrderWorkbenchScreenState
           ),
         ],
       ),
-      body: !isLoaded && orders.isEmpty
-          ? _buildLoadingState()
-          : RefreshIndicator(
-              color: JewelryColors.primary,
-              onRefresh: () => ref.read(orderProvider.notifier).refresh(),
-              child: ListView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-                children: [
-                  _buildHeroCard(summary),
-                  const SizedBox(height: 18),
-                  _buildSummaryGrid(summary),
-                  const SizedBox(height: 22),
-                  _buildPrioritySection(priorityOrders),
-                  const SizedBox(height: 22),
-                  _buildFilterBar(summary),
-                  const SizedBox(height: 14),
-                  if (orders.isEmpty)
-                    _buildEmptyCard(
-                      title: ref.tr('order_empty_title'),
-                      subtitle: ref.tr('order_empty_subtitle'),
-                    )
-                  else if (filteredOrders.isEmpty)
-                    _buildEmptyCard(
-                      title: ref.tr('no_data'),
-                      subtitle: ref.tr('admin_order_no_action_needed'),
-                      actionLabel: ref.tr('order_all'),
-                      onAction: () {
-                        setState(() => _selectedFilter = _AdminOrderFilter.all);
-                      },
-                    )
-                  else
-                    ...filteredOrders.map(_buildOrderCard),
-                ],
+      body: Stack(
+        children: [
+          const Positioned.fill(child: _AdminOrderBackdrop()),
+          !canReadOrders
+              ? _buildPermissionDeniedState()
+              : !isLoaded && orders.isEmpty
+                  ? _buildLoadingState()
+                  : RefreshIndicator(
+                      color: JewelryColors.emeraldGlow,
+                      onRefresh: () =>
+                          ref.read(orderProvider.notifier).refresh(),
+                      child: ListView(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+                        children: [
+                          _buildHeroCard(summary),
+                          const SizedBox(height: 18),
+                          _buildSummaryGrid(summary),
+                          const SizedBox(height: 22),
+                          _buildPrioritySection(
+                            priorityOrders,
+                            canManageOrders: canManageOrders,
+                            canReconcilePayments: canReconcilePayments,
+                            canMarkPaymentException: canMarkPaymentException,
+                          ),
+                          const SizedBox(height: 22),
+                          _buildFilterBar(summary),
+                          const SizedBox(height: 14),
+                          if (orders.isEmpty)
+                            _buildEmptyCard(
+                              title: ref.tr('order_empty_title'),
+                              subtitle: ref.tr('order_empty_subtitle'),
+                            )
+                          else if (filteredOrders.isEmpty)
+                            _buildEmptyCard(
+                              title: ref.tr('no_data'),
+                              subtitle: ref.tr('admin_order_no_action_needed'),
+                              actionLabel: ref.tr('order_all'),
+                              onAction: () {
+                                setState(
+                                  () => _selectedFilter = _AdminOrderFilter.all,
+                                );
+                              },
+                            )
+                          else
+                            ...filteredOrders.map(
+                              (order) => _buildOrderCard(
+                                order,
+                                canManageOrders: canManageOrders,
+                                canReconcilePayments: canReconcilePayments,
+                                canMarkPaymentException:
+                                    canMarkPaymentException,
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+        ],
+      ),
+    );
+  }
+
+  bool _canReadOrders(UserModel? user) {
+    if (user == null) {
+      return true;
+    }
+    if (user.isAdmin) {
+      return true;
+    }
+    if (user.userType != UserType.operator) {
+      return false;
+    }
+    return user.hasPermission('orders') ||
+        user.hasPermission('order_manage') ||
+        user.hasPermission('payment_reconcile') ||
+        user.hasPermission('payment_exception_mark');
+  }
+
+  bool _canManageOrders(UserModel? user) {
+    if (user == null) {
+      return true;
+    }
+    if (user.isAdmin) {
+      return true;
+    }
+    if (user.userType != UserType.operator) {
+      return false;
+    }
+    return user.hasPermission('order_manage');
+  }
+
+  bool _canReconcilePayments(UserModel? user) {
+    if (user == null) {
+      return true;
+    }
+    if (user.isAdmin) {
+      return true;
+    }
+    if (user.userType != UserType.operator) {
+      return false;
+    }
+    return user.hasPermission('payment_reconcile');
+  }
+
+  bool _canMarkPaymentException(UserModel? user) {
+    if (user == null) {
+      return true;
+    }
+    if (user.isAdmin) {
+      return true;
+    }
+    if (user.userType != UserType.operator) {
+      return false;
+    }
+    return user.hasPermission('payment_exception_mark');
+  }
+
+  Widget _buildPermissionDeniedState() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 72,
+              height: 72,
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.08),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: const Icon(
+                Icons.lock_outline_rounded,
+                color: Colors.white70,
+                size: 30,
               ),
             ),
+            const SizedBox(height: 18),
+            Text(
+              ref.tr('operator_permission_denied'),
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: context.adaptiveTextPrimary,
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -216,13 +432,11 @@ class _AdminOrderWorkbenchScreenState
   }
 
   Widget _buildHeroCard(_OrderWorkbenchSummary summary) {
-    return GradientCard(
+    return GlassmorphicCard(
       borderRadius: 24,
-      gradient: const LinearGradient(
-        colors: [Color(0xFF0F766E), Color(0xFF1E3A8A)],
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-      ),
+      blur: 18,
+      opacity: 0.18,
+      borderColor: JewelryColors.champagneGold.withOpacity(0.14),
       child: Row(
         children: [
           Expanded(
@@ -232,16 +446,16 @@ class _AdminOrderWorkbenchScreenState
                 Text(
                   ref.tr('admin_orders'),
                   style: const TextStyle(
-                    color: Colors.white,
+                    color: JewelryColors.jadeMist,
                     fontSize: 20,
-                    fontWeight: FontWeight.w700,
+                    fontWeight: FontWeight.w900,
                   ),
                 ),
                 const SizedBox(height: 8),
                 Text(
                   ref.tr('admin_order_workbench_subtitle'),
                   style: TextStyle(
-                    color: Colors.white.withOpacity(0.82),
+                    color: JewelryColors.jadeMist.withOpacity(0.68),
                     fontSize: 13,
                     height: 1.45,
                   ),
@@ -273,13 +487,20 @@ class _AdminOrderWorkbenchScreenState
             width: 64,
             height: 64,
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.14),
+              gradient: JewelryColors.emeraldLusterGradient,
               borderRadius: BorderRadius.circular(22),
+              boxShadow: [
+                BoxShadow(
+                  color: JewelryColors.emeraldGlow.withOpacity(0.22),
+                  blurRadius: 20,
+                  offset: const Offset(0, 10),
+                ),
+              ],
             ),
             child: const Icon(
               Icons.receipt_long_rounded,
               size: 32,
-              color: Colors.white,
+              color: JewelryColors.jadeBlack,
             ),
           ),
         ],
@@ -293,6 +514,9 @@ class _AdminOrderWorkbenchScreenState
       decoration: BoxDecoration(
         color: Colors.white.withOpacity(0.1),
         borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: JewelryColors.champagneGold.withOpacity(0.12),
+        ),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -300,18 +524,18 @@ class _AdminOrderWorkbenchScreenState
           Text(
             '$count',
             style: const TextStyle(
-              color: Colors.white,
+              color: JewelryColors.champagneGold,
               fontSize: 16,
-              fontWeight: FontWeight.w700,
+              fontWeight: FontWeight.w900,
             ),
           ),
           const SizedBox(width: 6),
           Text(
             label,
             style: TextStyle(
-              color: Colors.white.withOpacity(0.82),
+              color: JewelryColors.jadeMist.withOpacity(0.76),
               fontSize: 12,
-              fontWeight: FontWeight.w500,
+              fontWeight: FontWeight.w600,
             ),
           ),
         ],
@@ -346,7 +570,7 @@ class _AdminOrderWorkbenchScreenState
         label: ref.tr('order_completed'),
         count: summary.completed,
         icon: Icons.task_alt_rounded,
-        color: const Color(0xFF10B981),
+        color: JewelryColors.emeraldLuster,
         filter: _AdminOrderFilter.completed,
       ),
     ];
@@ -364,9 +588,11 @@ class _AdminOrderWorkbenchScreenState
       itemBuilder: (context, index) {
         final item = items[index];
         final selected = _selectedFilter == item.filter;
-        return PremiumCard(
-          backgroundColor: context.adaptiveSurface,
+        return GlassmorphicCard(
           borderRadius: 22,
+          blur: 16,
+          opacity: 0.18,
+          borderColor: item.color.withOpacity(selected ? 0.32 : 0.16),
           onTap: () {
             setState(() => _selectedFilter = item.filter);
           },
@@ -385,24 +611,26 @@ class _AdminOrderWorkbenchScreenState
               const Spacer(),
               Text(
                 '${item.count}',
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 26,
-                  fontWeight: FontWeight.w700,
-                  color: context.adaptiveTextPrimary,
+                  fontWeight: FontWeight.w900,
+                  color: JewelryColors.jadeMist,
                 ),
               ),
               const SizedBox(height: 4),
               Text(
                 item.label,
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: context.adaptiveTextPrimary,
+                  fontWeight: FontWeight.w800,
+                  color: JewelryColors.jadeMist,
                 ),
               ),
               const SizedBox(height: 4),
               Text(
-                selected ? ref.tr('common_view_detail') : ref.tr('profile_pending'),
+                selected
+                    ? ref.tr('common_view_detail')
+                    : ref.tr('profile_pending'),
                 style: TextStyle(
                   fontSize: 11,
                   color: item.color,
@@ -416,7 +644,12 @@ class _AdminOrderWorkbenchScreenState
     );
   }
 
-  Widget _buildPrioritySection(List<OrderModel> priorityOrders) {
+  Widget _buildPrioritySection(
+    List<OrderModel> priorityOrders, {
+    required bool canManageOrders,
+    required bool canReconcilePayments,
+    required bool canMarkPaymentException,
+  }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -425,46 +658,48 @@ class _AdminOrderWorkbenchScreenState
             const Icon(
               Icons.bolt_rounded,
               size: 20,
-              color: JewelryColors.gold,
+              color: JewelryColors.champagneGold,
             ),
             const SizedBox(width: 8),
             Text(
               ref.tr('profile_pending'),
-              style: TextStyle(
-                color: context.adaptiveTextPrimary,
+              style: const TextStyle(
+                color: JewelryColors.jadeMist,
                 fontSize: 16,
-                fontWeight: FontWeight.w700,
+                fontWeight: FontWeight.w900,
               ),
             ),
           ],
         ),
         const SizedBox(height: 12),
         if (priorityOrders.isEmpty)
-          PremiumCard(
-            backgroundColor: context.adaptiveSurface,
+          GlassmorphicCard(
             borderRadius: 20,
+            blur: 16,
+            opacity: 0.18,
+            borderColor: JewelryColors.champagneGold.withOpacity(0.14),
             child: Row(
               children: [
                 Container(
                   width: 44,
                   height: 44,
                   decoration: BoxDecoration(
-                    color: const Color(0xFF10B981).withOpacity(0.12),
+                    color: JewelryColors.emeraldGlow.withOpacity(0.12),
                     borderRadius: BorderRadius.circular(14),
                   ),
                   child: const Icon(
                     Icons.verified_rounded,
-                    color: Color(0xFF10B981),
+                    color: JewelryColors.emeraldGlow,
                   ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
                     ref.tr('admin_order_no_action_needed'),
-                    style: TextStyle(
-                      color: context.adaptiveTextPrimary,
+                    style: const TextStyle(
+                      color: JewelryColors.jadeMist,
                       fontSize: 14,
-                      fontWeight: FontWeight.w600,
+                      fontWeight: FontWeight.w800,
                     ),
                   ),
                 ),
@@ -472,12 +707,24 @@ class _AdminOrderWorkbenchScreenState
             ),
           )
         else
-          ...priorityOrders.take(3).map(_buildPriorityCard),
+          ...priorityOrders.take(3).map(
+                (order) => _buildPriorityCard(
+                  order,
+                  canManageOrders: canManageOrders,
+                  canReconcilePayments: canReconcilePayments,
+                  canMarkPaymentException: canMarkPaymentException,
+                ),
+              ),
       ],
     );
   }
 
-  Widget _buildPriorityCard(OrderModel order) {
+  Widget _buildPriorityCard(
+    OrderModel order, {
+    required bool canManageOrders,
+    required bool canReconcilePayments,
+    required bool canMarkPaymentException,
+  }) {
     final accentColor = _effectiveStatusColor(order);
 
     return Container(
@@ -531,7 +778,12 @@ class _AdminOrderWorkbenchScreenState
               ),
             ),
             const SizedBox(width: 12),
-            _buildInlineActionButton(order),
+            _buildInlineActionButton(
+              order,
+              canManageOrders: canManageOrders,
+              canReconcilePayments: canReconcilePayments,
+              canMarkPaymentException: canMarkPaymentException,
+            ),
           ],
         ),
       ),
@@ -546,7 +798,8 @@ class _AdminOrderWorkbenchScreenState
         final selected = _selectedFilter == filter;
         final color = _filterColor(filter);
         return FilterChip(
-          label: Text('${_filterLabel(filter)} ${_filterCount(summary, filter)}'),
+          label:
+              Text('${_filterLabel(filter)} ${_filterCount(summary, filter)}'),
           selected: selected,
           onSelected: (_) {
             setState(() => _selectedFilter = filter);
@@ -567,7 +820,12 @@ class _AdminOrderWorkbenchScreenState
     );
   }
 
-  Widget _buildOrderCard(OrderModel order) {
+  Widget _buildOrderCard(
+    OrderModel order, {
+    required bool canManageOrders,
+    required bool canReconcilePayments,
+    required bool canMarkPaymentException,
+  }) {
     return PremiumCard(
       margin: const EdgeInsets.only(bottom: 14),
       backgroundColor: context.adaptiveSurface,
@@ -661,12 +919,26 @@ class _AdminOrderWorkbenchScreenState
                   Icons.receipt_long_rounded,
                   '${ref.tr('payment_record_number')}: ${order.paymentId}',
                 ),
-              if (order.paymentAccount?.accountNumber?.trim().isNotEmpty ?? false)
+              if (_isPaymentDisputed(order))
+                _buildMetaChip(
+                  Icons.warning_amber_rounded,
+                  ref.tr('payment_status_disputed'),
+                  color: const Color(0xFFEF4444),
+                ),
+              if (order.paymentAdminNote?.trim().isNotEmpty ?? false)
+                _buildMetaChip(
+                  Icons.sticky_note_2_outlined,
+                  '${ref.tr('payment_admin_note_label')}: ${order.paymentAdminNote!}',
+                  color: const Color(0xFFF59E0B),
+                ),
+              if (order.paymentAccount?.accountNumber?.trim().isNotEmpty ??
+                  false)
                 _buildMetaChip(
                   Icons.qr_code_rounded,
                   '${ref.tr('payment_account_number')}: ${order.paymentAccount!.accountNumber}',
                 ),
-              if (order.status == OrderStatus.pending && !_needsPaymentConfirm(order))
+              if (order.status == OrderStatus.pending &&
+                  !_needsPaymentConfirm(order))
                 _buildMetaChip(
                   Icons.hourglass_bottom_rounded,
                   ref.tr('admin_order_waiting_customer_payment'),
@@ -680,7 +952,12 @@ class _AdminOrderWorkbenchScreenState
               spacing: 10,
               runSpacing: 10,
               alignment: WrapAlignment.end,
-              children: _buildActionButtons(order),
+              children: _buildActionButtons(
+                order,
+                canManageOrders: canManageOrders,
+                canReconcilePayments: canReconcilePayments,
+                canMarkPaymentException: canMarkPaymentException,
+              ),
             ),
           ),
         ],
@@ -772,8 +1049,13 @@ class _AdminOrderWorkbenchScreenState
     );
   }
 
-  Widget _buildInlineActionButton(OrderModel order) {
-    if (_needsPaymentConfirm(order)) {
+  Widget _buildInlineActionButton(
+    OrderModel order, {
+    required bool canManageOrders,
+    required bool canReconcilePayments,
+    required bool canMarkPaymentException,
+  }) {
+    if (_needsPaymentConfirm(order) && canReconcilePayments) {
       return FilledButton(
         onPressed: () => _confirmPayment(order),
         style: FilledButton.styleFrom(
@@ -782,6 +1064,22 @@ class _AdminOrderWorkbenchScreenState
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         ),
         child: Text(ref.tr('order_confirm_payment')),
+      );
+    }
+
+    if (_needsPaymentConfirm(order) &&
+        !_isPaymentDisputed(order) &&
+        canMarkPaymentException) {
+      return OutlinedButton(
+        onPressed: () => _markPaymentException(order),
+        child: Text(ref.tr('payment_mark_exception')),
+      );
+    }
+
+    if (!canManageOrders) {
+      return OutlinedButton(
+        onPressed: () => _openOrderDetail(order),
+        child: Text(ref.tr('common_view_detail')),
       );
     }
 
@@ -796,7 +1094,12 @@ class _AdminOrderWorkbenchScreenState
     );
   }
 
-  List<Widget> _buildActionButtons(OrderModel order) {
+  List<Widget> _buildActionButtons(
+    OrderModel order, {
+    required bool canManageOrders,
+    required bool canReconcilePayments,
+    required bool canMarkPaymentException,
+  }) {
     final buttons = <Widget>[
       OutlinedButton.icon(
         onPressed: () => _openOrderDetail(order),
@@ -805,22 +1108,46 @@ class _AdminOrderWorkbenchScreenState
       ),
     ];
 
-    if (_needsPaymentConfirm(order)) {
-      buttons.add(
-        FilledButton.icon(
-          onPressed: () => _confirmPayment(order),
-          icon: const Icon(Icons.verified_rounded, size: 16),
-          label: Text(ref.tr('order_confirm_payment')),
-          style: FilledButton.styleFrom(
-            backgroundColor: const Color(0xFFF59E0B),
-            foregroundColor: Colors.white,
+    if (!canManageOrders && !canReconcilePayments && !canMarkPaymentException) {
+      if (_isInTransit(order) || _isCompleted(order)) {
+        buttons.add(
+          OutlinedButton.icon(
+            onPressed: () => _openLogistics(order),
+            icon: const Icon(Icons.route_rounded, size: 16),
+            label: Text(ref.tr('order_logistics')),
           ),
-        ),
-      );
+        );
+      }
       return buttons;
     }
 
-    if (order.status == OrderStatus.paid) {
+    if (_needsPaymentConfirm(order)) {
+      if (canReconcilePayments) {
+        buttons.add(
+          FilledButton.icon(
+            onPressed: () => _confirmPayment(order),
+            icon: const Icon(Icons.verified_rounded, size: 16),
+            label: Text(ref.tr('order_confirm_payment')),
+            style: FilledButton.styleFrom(
+              backgroundColor: const Color(0xFFF59E0B),
+              foregroundColor: Colors.white,
+            ),
+          ),
+        );
+      }
+      if (!_isPaymentDisputed(order) && canMarkPaymentException) {
+        buttons.add(
+          OutlinedButton.icon(
+            onPressed: () => _markPaymentException(order),
+            icon: const Icon(Icons.report_gmailerrorred_rounded, size: 16),
+            label: Text(ref.tr('payment_mark_exception')),
+          ),
+        );
+      }
+      return buttons;
+    }
+
+    if (order.status == OrderStatus.paid && canManageOrders) {
       buttons.add(
         FilledButton.icon(
           onPressed: () => _shipOrder(order),
@@ -938,7 +1265,8 @@ class _AdminOrderWorkbenchScreenState
   List<OrderModel> _sortOrders(Iterable<OrderModel> orders) {
     final sorted = [...orders];
     sorted.sort((left, right) {
-      final priorityCompare = _sortPriority(left).compareTo(_sortPriority(right));
+      final priorityCompare =
+          _sortPriority(left).compareTo(_sortPriority(right));
       if (priorityCompare != 0) {
         return priorityCompare;
       }
@@ -1012,6 +1340,9 @@ class _AdminOrderWorkbenchScreenState
   }
 
   String _effectiveStatusLabel(OrderModel order) {
+    if (_isPaymentDisputed(order)) {
+      return pay.paymentStatusFromValue(order.paymentRecordStatus).label;
+    }
     if (_needsPaymentConfirm(order)) {
       return ref.tr('admin_order_to_confirm');
     }
@@ -1022,6 +1353,9 @@ class _AdminOrderWorkbenchScreenState
   }
 
   Color _effectiveStatusColor(OrderModel order) {
+    if (_isPaymentDisputed(order)) {
+      return const Color(0xFFEF4444);
+    }
     if (_needsPaymentConfirm(order)) {
       return const Color(0xFFF59E0B);
     }
@@ -1032,10 +1366,21 @@ class _AdminOrderWorkbenchScreenState
   }
 
   String _prioritySubtitle(OrderModel order) {
+    if (_isPaymentDisputed(order) &&
+        order.paymentAdminNote?.trim().isNotEmpty == true) {
+      return order.paymentAdminNote!.trim();
+    }
     if (_needsPaymentConfirm(order)) {
       return '${ref.tr('payment_record_number')}: ${order.paymentId}';
     }
     return '${ref.tr('address_recipient_name')}: ${_recipientText(order)}';
+  }
+
+  bool _isPaymentDisputed(OrderModel order) {
+    final status = order.paymentRecordStatus?.trim();
+    return status != null &&
+        status.isNotEmpty &&
+        pay.paymentStatusFromValue(status) == pay.PaymentStatus.disputed;
   }
 
   String _recipientText(OrderModel order) {
@@ -1076,6 +1421,10 @@ class _AdminOrderWorkbenchScreenState
   }
 
   Future<void> _confirmPayment(OrderModel order) async {
+    if (!_canReconcilePayments(ref.read(currentUserProvider))) {
+      _showSnackBar(ref.tr('operator_permission_denied'));
+      return;
+    }
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
@@ -1103,11 +1452,17 @@ class _AdminOrderWorkbenchScreenState
       return;
     }
     _showSnackBar(
-      ok ? ref.tr('order_confirm_payment_success') : ref.tr('please_retry_later'),
+      ok
+          ? ref.tr('order_confirm_payment_success')
+          : ref.tr('please_retry_later'),
     );
   }
 
   Future<void> _shipOrder(OrderModel order) async {
+    if (!_canManageOrders(ref.read(currentUserProvider))) {
+      _showSnackBar(ref.tr('operator_permission_denied'));
+      return;
+    }
     final result = await ShippingDialog.show(
       context,
       orderId: order.id,
@@ -1127,6 +1482,73 @@ class _AdminOrderWorkbenchScreenState
     }
     _showSnackBar(
       ok ? ref.tr('order_ship_success') : ref.tr('please_retry_later'),
+    );
+  }
+
+  Future<void> _markPaymentException(OrderModel order) async {
+    if (!_canMarkPaymentException(ref.read(currentUserProvider))) {
+      _showSnackBar(ref.tr('operator_permission_denied'));
+      return;
+    }
+    if (order.paymentId == null || order.paymentId!.trim().isEmpty) {
+      _showSnackBar(ref.tr('please_retry_later'));
+      return;
+    }
+
+    final controller =
+        TextEditingController(text: order.paymentAdminNote ?? '');
+    final reason = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(ref.tr('payment_mark_exception')),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          maxLines: 3,
+          decoration: InputDecoration(
+            labelText: ref.tr('payment_admin_note_label'),
+            hintText: ref.tr('payment_mark_exception_prompt'),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: Text(ref.tr('cancel')),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, controller.text),
+            child: Text(ref.tr('confirm')),
+          ),
+        ],
+      ),
+    );
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      controller.dispose();
+    });
+
+    if (reason == null || !mounted) {
+      return;
+    }
+
+    final trimmedReason = reason.trim();
+    if (trimmedReason.isEmpty) {
+      _showSnackBar(ref.tr('payment_mark_exception_reason_required'));
+      return;
+    }
+
+    final ok = await ref.read(orderProvider.notifier).markPaymentException(
+          order.id,
+          paymentId: order.paymentId!,
+          reason: trimmedReason,
+        );
+    if (!mounted) {
+      return;
+    }
+
+    _showSnackBar(
+      ok
+          ? ref.tr('payment_mark_exception_success')
+          : ref.tr('please_retry_later'),
     );
   }
 

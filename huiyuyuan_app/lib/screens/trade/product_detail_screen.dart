@@ -11,11 +11,163 @@ import '../../providers/cart_provider.dart';
 import '../../services/ai_service.dart';
 import '../../services/storage_service.dart';
 import '../../themes/colors.dart';
-import '../../themes/jewelry_theme.dart';
-import '../../widgets/common/glassmorphic_card.dart';
 import '../../widgets/image/product_image_view.dart';
 import '../../widgets/product_reviews_widget.dart';
 import 'checkout_screen.dart';
+
+class _ProductDetailBackdrop extends StatelessWidget {
+  const _ProductDetailBackdrop();
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: const BoxDecoration(
+        gradient: JewelryColors.jadeDepthGradient,
+      ),
+      child: Stack(
+        children: [
+          Positioned(
+            top: -160,
+            right: -130,
+            child: _DetailGlowOrb(
+              size: 340,
+              color: JewelryColors.primary.withOpacity(0.18),
+            ),
+          ),
+          Positioned(
+            left: -120,
+            top: 360,
+            child: _DetailGlowOrb(
+              size: 280,
+              color: JewelryColors.champagneGold.withOpacity(0.11),
+            ),
+          ),
+          Positioned.fill(
+            child: CustomPaint(
+              painter: _DetailBackdropPainter(),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DetailGlowOrb extends StatelessWidget {
+  const _DetailGlowOrb({
+    required this.size,
+    required this.color,
+  });
+
+  final double size;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: color,
+        boxShadow: [
+          BoxShadow(
+            color: color,
+            blurRadius: 100,
+            spreadRadius: 34,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DetailBackdropPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..strokeWidth = 0.8
+      ..color = JewelryColors.champagneGold.withOpacity(0.03);
+
+    for (var i = 0; i < 9; i++) {
+      final y = size.height * (0.1 + i * 0.11);
+      final path = Path()..moveTo(-24, y);
+      for (var x = -24.0; x < size.width + 24; x += 42) {
+        path.lineTo(x, y + ((x / size.width) - 0.5) * (i.isEven ? 12 : -12));
+      }
+      canvas.drawPath(path, paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _DetailBackdropPainter oldDelegate) => false;
+}
+
+class _DetailGlassPanel extends StatelessWidget {
+  const _DetailGlassPanel({
+    required this.child,
+    this.padding,
+    this.margin,
+  });
+
+  final Widget child;
+  final EdgeInsetsGeometry? padding;
+  final EdgeInsetsGeometry? margin;
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(26),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+        child: Container(
+          width: double.infinity,
+          margin: margin,
+          padding: padding ?? const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            gradient: JewelryColors.liquidGlassGradient,
+            borderRadius: BorderRadius.circular(26),
+            border: Border.all(
+              color: JewelryColors.champagneGold.withOpacity(0.14),
+            ),
+            boxShadow: JewelryShadows.liquidGlass,
+          ),
+          child: child,
+        ),
+      ),
+    );
+  }
+}
+
+class _DetailSectionTitle extends StatelessWidget {
+  const _DetailSectionTitle({
+    required this.icon,
+    required this.text,
+  });
+
+  final IconData icon;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 18, color: JewelryColors.champagneGold),
+        const SizedBox(width: 8),
+        Text(
+          text,
+          style: const TextStyle(
+            color: JewelryColors.jadeMist,
+            fontSize: 18,
+            fontWeight: FontWeight.w900,
+            letterSpacing: 0.4,
+          ),
+        ),
+      ],
+    );
+  }
+}
 
 /// Product detail screen.
 class ProductDetailScreen extends ConsumerStatefulWidget {
@@ -105,392 +257,458 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
     final localizedOrigin = widget.product.localizedOriginFor(currentLanguage);
 
     return Scaffold(
-      backgroundColor: context.adaptiveBackground,
-      body: CustomScrollView(
-        slivers: [
-          // Hero image gallery.
-          SliverAppBar(
-            expandedHeight: 400, // Taller image for lifestyle
-            pinned: true,
-            stretch: true,
-            backgroundColor: context.adaptiveSurface.withOpacity(0.9),
-            flexibleSpace: FlexibleSpaceBar(
-              background: Hero(
-                tag: 'product_image_${widget.product.id}',
-                child: widget.product.images.isNotEmpty
-                    ? Stack(
-                        children: [
-                          PageView.builder(
-                            controller: _pageController,
-                            itemCount: widget.product.images.length,
-                            onPageChanged: (index) {
-                              setState(() => _currentImagePage = index);
-                            },
-                            itemBuilder: (context, index) {
-                              return ProductImageView(
-                                product: widget.product,
-                                imageUrl: widget.product.images[index],
-                                memCacheWidth: 800,
-                              );
-                            },
-                          ),
-                          if (widget.product.images.length > 1)
-                            Positioned(
-                              bottom: 16,
-                              left: 0,
-                              right: 0,
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: List.generate(
-                                  widget.product.images.length,
-                                  (index) => AnimatedContainer(
-                                    duration: const Duration(milliseconds: 300),
-                                    margin: const EdgeInsets.symmetric(
-                                        horizontal: 3),
-                                    width: _currentImagePage == index ? 20 : 8,
-                                    height: 8,
-                                    decoration: BoxDecoration(
-                                      borderRadius: BorderRadius.circular(4),
-                                      color: _currentImagePage == index
-                                          ? JewelryColors.primary
-                                          : Colors.white.withOpacity(0.5),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                        ],
-                      )
-                    : ProductImageView(
-                        product: widget.product,
-                        memCacheWidth: 800,
-                      ),
-              ),
-            ),
-            actions: [
-              _buildTopGlassButton(
-                icon: _isFavorite ? Icons.favorite : Icons.favorite_border,
-                color: _isFavorite ? Colors.red : Colors.white,
-                onTap: _toggleFavorite,
-              ),
-              const SizedBox(width: 8),
-              _buildTopGlassButton(
-                icon: Icons.ios_share,
-                color: Colors.white,
-                onTap: () => _showShareSheet(),
-              ),
-              const SizedBox(width: 16),
-            ],
-          ),
-
-          SliverToBoxAdapter(
-            child: FadeTransition(
-              opacity: _fadeAnimation,
-              child: SlideTransition(
-                position: _slideAnimation,
-                child: Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Price and badges.
-                      PremiumCard(
-                        padding: const EdgeInsets.all(20),
-                        margin: const EdgeInsets.only(bottom: 12),
-                        borderRadius: 24,
-                        backgroundColor: context.adaptiveSurface,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              crossAxisAlignment: CrossAxisAlignment.end,
-                              children: [
-                                Text(
-                                  '¥${widget.product.price.toInt()}',
-                                  style: const TextStyle(
-                                    fontSize: 28,
-                                    fontWeight: FontWeight.bold,
-                                    color: Color(0xFFE53935),
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                if (widget.product.originalPrice != null)
-                                  Text(
-                                    '¥${widget.product.originalPrice!.toInt()}',
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      color: Colors.grey[500],
-                                      decoration: TextDecoration.lineThrough,
-                                    ),
-                                  ),
-                                const Spacer(),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 10, vertical: 6),
-                                  decoration: BoxDecoration(
-                                    color:
-                                        JewelryColors.primary.withOpacity(0.1),
-                                    borderRadius: BorderRadius.circular(20),
-                                  ),
-                                  child: Text(
-                                    ref.tr(
-                                      'admin_sold_inline',
-                                      params: {
-                                        'count': widget.product.salesCount
-                                            .toString(),
-                                      },
-                                    ),
-                                    style: const TextStyle(
-                                      color: JewelryColors.primary,
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 12),
-                            Text(
-                              localizedTitle,
-                              style: const TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            Row(
-                              children: [
-                                if (widget.product.isHot)
-                                  _buildTag(ref.tr('product_hot'), Colors.red),
-                                if (widget.product.isNew)
-                                  _buildTag(
-                                      ref.tr('product_new'), Colors.orange),
-                                _buildTag(localizedCategory, Colors.blue),
-                                _buildTag(
-                                    localizedMaterial, const Color(0xFF2E8B57)),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-
-                      // Product information.
-                      PremiumCard(
-                        padding: const EdgeInsets.all(20),
-                        margin: const EdgeInsets.only(bottom: 12),
-                        borderRadius: 24,
-                        backgroundColor: context.adaptiveSurface,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              ref.tr('product_info'),
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w700,
-                                color: context.adaptiveTextPrimary,
-                                letterSpacing: 0.5,
-                              ),
-                            ),
-                            const SizedBox(height: 16),
-                            _buildInfoRow(
-                                ref.tr('product_origin'),
-                                localizedOrigin.isNotEmpty
-                                    ? localizedOrigin
-                                    : ref.tr('product_unknown')),
-                            _buildInfoRow(
-                                ref.tr('product_material'), localizedMaterial),
-                            _buildInfoRow(
-                                ref.tr('product_stock'),
-                                ref.tr(
-                                  'product_stock_value',
-                                  params: {'count': widget.product.stock},
-                                )),
-                            _buildInfoRow(
-                              ref.tr('product_rating'),
-                              ref.tr(
-                                'product_rating_value',
-                                params: {
-                                  'score':
-                                      widget.product.rating.toStringAsFixed(1),
+      backgroundColor: JewelryColors.jadeBlack,
+      body: Stack(
+        children: [
+          const _ProductDetailBackdrop(),
+          CustomScrollView(
+            physics: const BouncingScrollPhysics(),
+            slivers: [
+              // Hero image gallery.
+              SliverAppBar(
+                expandedHeight: 430,
+                pinned: true,
+                stretch: true,
+                foregroundColor: JewelryColors.jadeMist,
+                backgroundColor: JewelryColors.deepJade.withOpacity(0.82),
+                flexibleSpace: FlexibleSpaceBar(
+                  background: Hero(
+                    tag: 'product_image_${widget.product.id}',
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        widget.product.images.isNotEmpty
+                            ? PageView.builder(
+                                controller: _pageController,
+                                itemCount: widget.product.images.length,
+                                onPageChanged: (index) {
+                                  setState(() => _currentImagePage = index);
                                 },
+                                itemBuilder: (context, index) {
+                                  return ProductImageView(
+                                    product: widget.product,
+                                    imageUrl: widget.product.images[index],
+                                    memCacheWidth: 900,
+                                  );
+                                },
+                              )
+                            : ProductImageView(
+                                product: widget.product,
+                                memCacheWidth: 900,
                               ),
+                        DecoratedBox(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: [
+                                Colors.black.withOpacity(0.1),
+                                Colors.transparent,
+                                JewelryColors.jadeBlack.withOpacity(0.86),
+                              ],
+                              stops: const [0.0, 0.46, 1.0],
                             ),
-                            if (widget.product.certificate != null)
-                              _buildInfoRow(ref.tr('product_cert_no'),
-                                  widget.product.certificate!),
-                          ],
+                          ),
                         ),
-                      ),
-
-                      // Product description.
-                      PremiumCard(
-                        padding: const EdgeInsets.all(20),
-                        margin: const EdgeInsets.only(bottom: 12),
-                        borderRadius: 24,
-                        backgroundColor: context.adaptiveSurface,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Text(
-                                  ref.tr('product_description'),
+                        Positioned(
+                          left: 20,
+                          right: 20,
+                          bottom: 26,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 7,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: JewelryColors.deepJade.withOpacity(
+                                    0.68,
+                                  ),
+                                  borderRadius: BorderRadius.circular(999),
+                                  border: Border.all(
+                                    color: JewelryColors.champagneGold
+                                        .withOpacity(0.18),
+                                  ),
+                                ),
+                                child: Text(
+                                  localizedMaterial,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
                                   style: TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.w700,
-                                    color: context.adaptiveTextPrimary,
-                                    letterSpacing: 0.5,
+                                    color: JewelryColors.champagneGold
+                                        .withOpacity(0.92),
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w800,
+                                    letterSpacing: 0.7,
+                                    decoration: TextDecoration.none,
                                   ),
                                 ),
-                                const Spacer(),
-                                GestureDetector(
-                                  onTap: _isGeneratingDesc
-                                      ? null
-                                      : _generateAIDescription,
-                                  child: AnimatedContainer(
-                                    duration: const Duration(milliseconds: 300),
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 12, vertical: 6),
-                                    decoration: BoxDecoration(
-                                      gradient: _isGeneratingDesc
-                                          ? null
-                                          : JewelryColors.primaryGradient,
-                                      color: _isGeneratingDesc
-                                          ? Colors.grey[300]
-                                          : null,
-                                      borderRadius: BorderRadius.circular(20),
-                                      boxShadow: _isGeneratingDesc
-                                          ? null
-                                          : [
-                                              BoxShadow(
-                                                color: JewelryColors.primary
-                                                    .withOpacity(0.3),
-                                                blurRadius: 8,
-                                                offset: const Offset(0, 2),
-                                              ),
-                                            ],
-                                    ),
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        if (_isGeneratingDesc)
-                                          const SizedBox(
-                                            width: 14,
-                                            height: 14,
-                                            child: CircularProgressIndicator(
-                                                strokeWidth: 2,
-                                                color: Colors.white),
-                                          )
-                                        else
-                                          const Icon(Icons.auto_awesome,
-                                              size: 14, color: Colors.white),
-                                        const SizedBox(width: 4),
-                                        Text(
-                                          _isGeneratingDesc
-                                              ? ref.tr('product_ai_generating')
-                                              : ref.tr('product_ai_optimize'),
-                                          style: const TextStyle(
-                                              color: Colors.white,
-                                              fontSize: 12,
-                                              fontWeight: FontWeight.bold),
-                                        ),
-                                      ],
+                              ),
+                              if (widget.product.images.length > 1) ...[
+                                const SizedBox(height: 14),
+                                Row(
+                                  children: List.generate(
+                                    widget.product.images.length,
+                                    (index) => AnimatedContainer(
+                                      duration:
+                                          const Duration(milliseconds: 300),
+                                      margin: const EdgeInsets.only(right: 6),
+                                      width:
+                                          _currentImagePage == index ? 26 : 8,
+                                      height: 8,
+                                      decoration: BoxDecoration(
+                                        borderRadius: BorderRadius.circular(8),
+                                        color: _currentImagePage == index
+                                            ? JewelryColors.champagneGold
+                                            : Colors.white.withOpacity(0.42),
+                                      ),
                                     ),
                                   ),
                                 ),
                               ],
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              _aiDescription ?? localizedDescription,
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: Colors.grey[700],
-                                height: 1.6,
-                              ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
-                      ),
+                      ],
+                    ),
+                  ),
+                ),
+                actions: [
+                  _buildTopGlassButton(
+                    icon: _isFavorite ? Icons.favorite : Icons.favorite_border,
+                    color: _isFavorite
+                        ? JewelryColors.nanHong
+                        : JewelryColors.jadeMist,
+                    onTap: _toggleFavorite,
+                  ),
+                  const SizedBox(width: 8),
+                  _buildTopGlassButton(
+                    icon: Icons.ios_share,
+                    color: JewelryColors.jadeMist,
+                    onTap: () => _showShareSheet(),
+                  ),
+                  const SizedBox(width: 16),
+                ],
+              ),
 
-                      // Service guarantees.
-                      PremiumCard(
-                        padding: const EdgeInsets.all(20),
-                        margin: const EdgeInsets.only(bottom: 24),
-                        borderRadius: 24,
-                        backgroundColor: context.adaptiveSurface,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              ref.tr('product_service_guarantee'),
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w700,
-                                color: context.adaptiveTextPrimary,
-                                letterSpacing: 0.5,
-                              ),
-                            ),
-                            const SizedBox(height: 20),
-                            Row(
+              SliverToBoxAdapter(
+                child: FadeTransition(
+                  opacity: _fadeAnimation,
+                  child: SlideTransition(
+                    position: _slideAnimation,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 14,
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Price and badges.
+                          _DetailGlassPanel(
+                            padding: const EdgeInsets.all(20),
+                            margin: const EdgeInsets.only(bottom: 14),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                _buildServiceItem(Icons.verified,
-                                    ref.tr('product_service_authentic')),
-                                _buildServiceItem(Icons.local_shipping,
-                                    ref.tr('product_service_shipping')),
-                                _buildServiceItem(Icons.refresh,
-                                    ref.tr('product_service_return')),
-                                _buildServiceItem(Icons.security,
-                                    ref.tr('product_service_compensation')),
+                                Row(
+                                  crossAxisAlignment: CrossAxisAlignment.end,
+                                  children: [
+                                    Text(
+                                      '¥${widget.product.price.toInt()}',
+                                      style: const TextStyle(
+                                        fontSize: 30,
+                                        fontWeight: FontWeight.w900,
+                                        color: JewelryColors.champagneGold,
+                                        height: 1,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    if (widget.product.originalPrice != null)
+                                      Text(
+                                        '¥${widget.product.originalPrice!.toInt()}',
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          color: JewelryColors.jadeMist
+                                              .withOpacity(0.36),
+                                          decoration:
+                                              TextDecoration.lineThrough,
+                                        ),
+                                      ),
+                                    const Spacer(),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 10, vertical: 6),
+                                      decoration: BoxDecoration(
+                                        color: JewelryColors.primary
+                                            .withOpacity(0.14),
+                                        borderRadius:
+                                            BorderRadius.circular(999),
+                                        border: Border.all(
+                                          color: JewelryColors.emeraldGlow
+                                              .withOpacity(0.18),
+                                        ),
+                                      ),
+                                      child: Text(
+                                        ref.tr(
+                                          'admin_sold_inline',
+                                          params: {
+                                            'count': widget.product.salesCount
+                                                .toString(),
+                                          },
+                                        ),
+                                        style: const TextStyle(
+                                          color: JewelryColors.emeraldGlow,
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 12),
+                                Text(
+                                  localizedTitle,
+                                  style: const TextStyle(
+                                    color: JewelryColors.jadeMist,
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.w900,
+                                    height: 1.25,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                Wrap(
+                                  spacing: 8,
+                                  runSpacing: 8,
+                                  children: [
+                                    if (widget.product.isHot)
+                                      _buildTag(
+                                        ref.tr('product_hot'),
+                                        JewelryColors.nanHong,
+                                      ),
+                                    if (widget.product.isNew)
+                                      _buildTag(
+                                        ref.tr('product_new'),
+                                        JewelryColors.champagneGold,
+                                      ),
+                                    _buildTag(
+                                      localizedCategory,
+                                      JewelryColors.emeraldGlow,
+                                    ),
+                                    _buildTag(
+                                      localizedMaterial,
+                                      JewelryColors.primary,
+                                    ),
+                                  ],
+                                ),
                               ],
                             ),
-                          ],
-                        ),
-                      ),
+                          ),
 
-                      // Review section.
-                      PremiumCard(
-                        padding: const EdgeInsets.symmetric(vertical: 20),
-                        margin: const EdgeInsets.only(bottom: 24),
-                        borderRadius: 24,
-                        backgroundColor: context.adaptiveSurface,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Padding(
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 20),
-                              child: Text(
-                                ref.tr('product_reviews'),
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w700,
-                                  color: context.adaptiveTextPrimary,
-                                  letterSpacing: 0.5,
+                          // Product information.
+                          _DetailGlassPanel(
+                            padding: const EdgeInsets.all(20),
+                            margin: const EdgeInsets.only(bottom: 14),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _DetailSectionTitle(
+                                  icon: Icons.verified_user_outlined,
+                                  text: ref.tr('product_info'),
                                 ),
-                              ),
+                                const SizedBox(height: 16),
+                                _buildInfoRow(
+                                    ref.tr('product_origin'),
+                                    localizedOrigin.isNotEmpty
+                                        ? localizedOrigin
+                                        : ref.tr('product_unknown')),
+                                _buildInfoRow(ref.tr('product_material'),
+                                    localizedMaterial),
+                                _buildInfoRow(
+                                    ref.tr('product_stock'),
+                                    ref.tr(
+                                      'product_stock_value',
+                                      params: {'count': widget.product.stock},
+                                    )),
+                                _buildInfoRow(
+                                  ref.tr('product_rating'),
+                                  ref.tr(
+                                    'product_rating_value',
+                                    params: {
+                                      'score': widget.product.rating
+                                          .toStringAsFixed(1),
+                                    },
+                                  ),
+                                ),
+                                if (widget.product.certificate != null)
+                                  _buildInfoRow(ref.tr('product_cert_no'),
+                                      widget.product.certificate!),
+                              ],
                             ),
-                            const SizedBox(height: 12),
-                            ProductReviewsWidget(productId: widget.product.id),
-                          ],
-                        ),
-                      ),
+                          ),
 
-                      const SizedBox(height: 100),
-                    ],
+                          // Product description.
+                          _DetailGlassPanel(
+                            padding: const EdgeInsets.all(20),
+                            margin: const EdgeInsets.only(bottom: 14),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    _DetailSectionTitle(
+                                      icon: Icons.auto_awesome_outlined,
+                                      text: ref.tr('product_description'),
+                                    ),
+                                    const Spacer(),
+                                    GestureDetector(
+                                      onTap: _isGeneratingDesc
+                                          ? null
+                                          : _generateAIDescription,
+                                      child: AnimatedContainer(
+                                        duration:
+                                            const Duration(milliseconds: 300),
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 12, vertical: 6),
+                                        decoration: BoxDecoration(
+                                          gradient: _isGeneratingDesc
+                                              ? null
+                                              : JewelryColors
+                                                  .emeraldLusterGradient,
+                                          color: _isGeneratingDesc
+                                              ? JewelryColors.darkDivider
+                                              : null,
+                                          borderRadius:
+                                              BorderRadius.circular(20),
+                                          boxShadow: _isGeneratingDesc
+                                              ? null
+                                              : [
+                                                  BoxShadow(
+                                                    color: JewelryColors.primary
+                                                        .withOpacity(0.18),
+                                                    blurRadius: 16,
+                                                    offset: const Offset(0, 8),
+                                                  ),
+                                                ],
+                                        ),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            if (_isGeneratingDesc)
+                                              const SizedBox(
+                                                width: 14,
+                                                height: 14,
+                                                child:
+                                                    CircularProgressIndicator(
+                                                        strokeWidth: 2,
+                                                        color: JewelryColors
+                                                            .jadeBlack),
+                                              )
+                                            else
+                                              const Icon(Icons.auto_awesome,
+                                                  size: 14,
+                                                  color:
+                                                      JewelryColors.jadeBlack),
+                                            const SizedBox(width: 4),
+                                            Text(
+                                              _isGeneratingDesc
+                                                  ? ref.tr(
+                                                      'product_ai_generating')
+                                                  : ref.tr(
+                                                      'product_ai_optimize'),
+                                              style: const TextStyle(
+                                                  color:
+                                                      JewelryColors.jadeBlack,
+                                                  fontSize: 12,
+                                                  fontWeight: FontWeight.w900),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  _aiDescription ?? localizedDescription,
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color:
+                                        JewelryColors.jadeMist.withOpacity(0.7),
+                                    height: 1.6,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+
+                          // Service guarantees.
+                          _DetailGlassPanel(
+                            padding: const EdgeInsets.all(20),
+                            margin: const EdgeInsets.only(bottom: 24),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _DetailSectionTitle(
+                                  icon: Icons.workspace_premium_outlined,
+                                  text: ref.tr('product_service_guarantee'),
+                                ),
+                                const SizedBox(height: 20),
+                                Row(
+                                  children: [
+                                    _buildServiceItem(Icons.verified,
+                                        ref.tr('product_service_authentic')),
+                                    _buildServiceItem(Icons.local_shipping,
+                                        ref.tr('product_service_shipping')),
+                                    _buildServiceItem(Icons.refresh,
+                                        ref.tr('product_service_return')),
+                                    _buildServiceItem(Icons.security,
+                                        ref.tr('product_service_compensation')),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+
+                          // Review section.
+                          _DetailGlassPanel(
+                            padding: const EdgeInsets.symmetric(vertical: 20),
+                            margin: const EdgeInsets.only(bottom: 24),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 20),
+                                  child: _DetailSectionTitle(
+                                    icon: Icons.rate_review_outlined,
+                                    text: ref.tr('product_reviews'),
+                                  ),
+                                ),
+                                const SizedBox(height: 12),
+                                ProductReviewsWidget(
+                                    productId: widget.product.id),
+                              ],
+                            ),
+                          ),
+
+                          const SizedBox(height: 100),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
               ),
-            ),
+            ],
           ),
         ],
       ),
       bottomNavigationBar: ClipRRect(
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
         child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+          filter: ImageFilter.blur(sigmaX: 22, sigmaY: 22),
           child: Container(
             padding: EdgeInsets.only(
               left: 20,
@@ -501,12 +719,17 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
                   : 16,
             ),
             decoration: BoxDecoration(
-              color: context.adaptiveSurface.withOpacity(0.9),
+              color: JewelryColors.deepJade.withOpacity(0.9),
+              border: Border(
+                top: BorderSide(
+                  color: JewelryColors.champagneGold.withOpacity(0.16),
+                ),
+              ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
-                  blurRadius: 20,
-                  offset: const Offset(0, -5),
+                  color: Colors.black.withOpacity(0.34),
+                  blurRadius: 34,
+                  offset: const Offset(0, -16),
                 ),
               ],
             ),
@@ -515,13 +738,19 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
                 // Quantity selector.
                 Container(
                   decoration: BoxDecoration(
-                    border: Border.all(color: Colors.grey[300]!),
-                    borderRadius: BorderRadius.circular(8),
+                    color: Colors.white.withOpacity(0.055),
+                    border: Border.all(
+                      color: JewelryColors.champagneGold.withOpacity(0.12),
+                    ),
+                    borderRadius: BorderRadius.circular(16),
                   ),
                   child: Row(
                     children: [
                       IconButton(
-                        icon: const Icon(Icons.remove),
+                        icon: const Icon(
+                          Icons.remove,
+                          color: JewelryColors.jadeMist,
+                        ),
                         onPressed: _quantity > 1
                             ? () => setState(() => _quantity--)
                             : null,
@@ -530,10 +759,16 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
                       Text(
                         '$_quantity',
                         style: const TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.bold),
+                          color: JewelryColors.champagneGold,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                       IconButton(
-                        icon: const Icon(Icons.add),
+                        icon: const Icon(
+                          Icons.add,
+                          color: JewelryColors.jadeMist,
+                        ),
                         onPressed: () => setState(() => _quantity++),
                         iconSize: 20,
                       ),
@@ -547,16 +782,22 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
                     style: OutlinedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       side: const BorderSide(
-                          color: JewelryColors.primary, width: 1.5),
+                        color: JewelryColors.emeraldGlow,
+                        width: 1.2,
+                      ),
                       shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16)),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
                       elevation: 0,
                     ),
                     onPressed: _addToCart,
-                    child: Text(ref.tr('product_add_to_cart'),
-                        style: const TextStyle(
-                            color: JewelryColors.primary,
-                            fontWeight: FontWeight.w600)),
+                    child: Text(
+                      ref.tr('product_add_to_cart'),
+                      style: const TextStyle(
+                        color: JewelryColors.emeraldGlow,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -564,9 +805,9 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
                 Expanded(
                   child: Container(
                     decoration: BoxDecoration(
-                      gradient: JewelryColors.primaryGradient,
+                      gradient: JewelryColors.emeraldLusterGradient,
                       borderRadius: BorderRadius.circular(16),
-                      boxShadow: JewelryShadows.light,
+                      boxShadow: JewelryShadows.emeraldHalo,
                     ),
                     child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
@@ -574,13 +815,19 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
                         shadowColor: Colors.transparent,
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16)),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
                         elevation: 0,
                       ),
                       onPressed: _buyNow,
-                      child: Text(ref.tr('product_buy_now'),
-                          style: const TextStyle(
-                              fontWeight: FontWeight.w600, fontSize: 16)),
+                      child: Text(
+                        ref.tr('product_buy_now'),
+                        style: const TextStyle(
+                          color: JewelryColors.jadeBlack,
+                          fontWeight: FontWeight.w900,
+                          fontSize: 16,
+                        ),
+                      ),
                     ),
                   ),
                 ),
@@ -605,8 +852,12 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
           child: Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: Colors.black.withOpacity(0.2),
+              color: JewelryColors.deepJade.withOpacity(0.56),
               shape: BoxShape.circle,
+              border: Border.all(
+                color: JewelryColors.champagneGold.withOpacity(0.16),
+              ),
+              boxShadow: JewelryShadows.liquidGlass,
             ),
             child: Icon(icon, color: color, size: 24),
           ),
@@ -618,15 +869,21 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
   Widget _buildTag(String text, Color color) {
     return Container(
       margin: const EdgeInsets.only(right: 8),
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(4),
-        border: Border.all(color: color.withOpacity(0.3)),
+        color: color.withOpacity(0.14),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: color.withOpacity(0.28)),
       ),
       child: Text(
         text,
-        style: TextStyle(color: color, fontSize: 12),
+        style: TextStyle(
+          color: color == JewelryColors.champagneGold
+              ? JewelryColors.champagneGold
+              : color,
+          fontSize: 12,
+          fontWeight: FontWeight.w700,
+        ),
       ),
     );
   }
@@ -635,15 +892,29 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            label,
-            style: TextStyle(color: Colors.grey[600], fontSize: 14),
+          SizedBox(
+            width: 88,
+            child: Text(
+              label,
+              style: TextStyle(
+                color: JewelryColors.champagneGold.withOpacity(0.62),
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
           ),
-          const SizedBox(width: 16),
-          Text(
-            value,
-            style: const TextStyle(fontSize: 14),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              value,
+              style: TextStyle(
+                color: JewelryColors.jadeMist.withOpacity(0.78),
+                fontSize: 14,
+                height: 1.35,
+              ),
+            ),
           ),
         ],
       ),
@@ -657,18 +928,23 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: JewelryColors.primary.withOpacity(0.08),
+              color: JewelryColors.primary.withOpacity(0.14),
               shape: BoxShape.circle,
+              border: Border.all(
+                color: JewelryColors.emeraldGlow.withOpacity(0.16),
+              ),
             ),
-            child: Icon(icon, color: JewelryColors.primary, size: 20),
+            child: Icon(icon, color: JewelryColors.emeraldGlow, size: 20),
           ),
           const SizedBox(height: 8),
           Text(
             text,
             style: TextStyle(
-                fontSize: 12,
-                color: context.adaptiveTextSecondary,
-                fontWeight: FontWeight.w500),
+              fontSize: 12,
+              color: JewelryColors.jadeMist.withOpacity(0.62),
+              fontWeight: FontWeight.w600,
+            ),
+            textAlign: TextAlign.center,
           ),
         ],
       ),
@@ -751,29 +1027,53 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
   void _showShareSheet() {
     showModalBottomSheet(
       context: context,
-      builder: (context) => Container(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              ref.tr('product_share'),
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+      backgroundColor: Colors.transparent,
+      builder: (context) => ClipRRect(
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+          child: Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: JewelryColors.deepJade.withOpacity(0.92),
+              border: Border(
+                top: BorderSide(
+                  color: JewelryColors.champagneGold.withOpacity(0.16),
+                ),
+              ),
             ),
-            const SizedBox(height: 20),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                _buildShareItem(
-                    Icons.chat, ref.tr('share_wechat'), Colors.green),
-                _buildShareItem(
-                    Icons.group, ref.tr('share_moments'), Colors.green),
-                _buildShareItem(Icons.qr_code, ref.tr('share_qq'), Colors.blue),
-                _buildShareItem(Icons.link, ref.tr('share_link'), Colors.grey),
+                Text(
+                  ref.tr('product_share'),
+                  style: const TextStyle(
+                    color: JewelryColors.jadeMist,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    _buildShareItem(
+                        Icons.chat, ref.tr('share_wechat'), Colors.green),
+                    _buildShareItem(
+                        Icons.group, ref.tr('share_moments'), Colors.green),
+                    _buildShareItem(
+                        Icons.qr_code, ref.tr('share_qq'), Colors.blue),
+                    _buildShareItem(
+                      Icons.link,
+                      ref.tr('share_link'),
+                      JewelryColors.champagneGold,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
               ],
             ),
-            const SizedBox(height: 20),
-          ],
+          ),
         ),
       ),
     );
@@ -799,11 +1099,19 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
             decoration: BoxDecoration(
               color: color.withOpacity(0.1),
               borderRadius: BorderRadius.circular(25),
+              border: Border.all(color: color.withOpacity(0.24)),
             ),
             child: Icon(icon, color: color),
           ),
           const SizedBox(height: 8),
-          Text(label, style: const TextStyle(fontSize: 12)),
+          Text(
+            label,
+            style: TextStyle(
+              color: JewelryColors.jadeMist.withOpacity(0.72),
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
         ],
       ),
     );

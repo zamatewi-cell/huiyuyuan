@@ -1,4 +1,4 @@
-﻿import 'dart:math' as math;
+import 'dart:math' as math;
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
@@ -18,29 +18,110 @@ class LoginAnimatedBackground extends ConsumerWidget {
     return AnimatedBuilder(
       animation: animation,
       builder: (context, child) {
-        return Container(
+        final phase = animation.value * 2 * math.pi;
+
+        return DecoratedBox(
           decoration: BoxDecoration(
             gradient: LinearGradient(
-              begin: Alignment(
-                math.cos(animation.value * 2 * math.pi),
-                math.sin(animation.value * 2 * math.pi),
-              ),
-              end: Alignment(
-                math.cos(animation.value * 2 * math.pi + math.pi),
-                math.sin(animation.value * 2 * math.pi + math.pi),
-              ),
+              begin: Alignment(math.cos(phase) * 0.72, -1),
+              end: Alignment(-math.sin(phase) * 0.72, 1),
               colors: const [
-                Color(0xFF0D1B2A),
-                Color(0xFF1B263B),
-                Color(0xFF1F4037),
-                Color(0xFF0D1B2A),
+                JewelryColors.jadeBlack,
+                JewelryColors.deepJade,
+                JewelryColors.jadeInk,
+                Color(0xFF12382D),
               ],
-              stops: const [0.0, 0.3, 0.7, 1.0],
+              stops: const [0.0, 0.38, 0.72, 1.0],
             ),
+          ),
+          child: CustomPaint(
+            painter: _LoginBackgroundPainter(animation.value),
+            child: const SizedBox.expand(),
           ),
         );
       },
     );
+  }
+}
+
+class _LoginBackgroundPainter extends CustomPainter {
+  const _LoginBackgroundPainter(this.phase);
+
+  final double phase;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final emeraldGlow = Paint()
+      ..shader = RadialGradient(
+        colors: [
+          JewelryColors.primary.withOpacity(0.28),
+          JewelryColors.primary.withOpacity(0.08),
+          Colors.transparent,
+        ],
+      ).createShader(
+        Rect.fromCircle(
+          center: Offset(size.width * 0.18, size.height * 0.16),
+          radius: size.shortestSide * 0.66,
+        ),
+      );
+    canvas.drawCircle(
+      Offset(size.width * 0.18, size.height * 0.16),
+      size.shortestSide * 0.66,
+      emeraldGlow,
+    );
+
+    final champagneGlow = Paint()
+      ..shader = RadialGradient(
+        colors: [
+          JewelryColors.champagneGold.withOpacity(0.2),
+          JewelryColors.goldDark.withOpacity(0.055),
+          Colors.transparent,
+        ],
+      ).createShader(
+        Rect.fromCircle(
+          center: Offset(size.width * 0.88, size.height * 0.82),
+          radius: size.shortestSide * 0.62,
+        ),
+      );
+    canvas.drawCircle(
+      Offset(size.width * 0.88, size.height * 0.82),
+      size.shortestSide * 0.62,
+      champagneGlow,
+    );
+
+    final wavePaint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.1
+      ..color = JewelryColors.champagneGold.withOpacity(0.055);
+
+    for (var i = 0; i < 7; i++) {
+      final yBase = size.height * (0.16 + i * 0.13);
+      final path = Path()..moveTo(-size.width * 0.18, yBase);
+      for (var x = -size.width * 0.18; x <= size.width * 1.18; x += 28) {
+        final wobble = math.sin((x / size.width * 2.4 * math.pi) +
+                phase * 2 * math.pi +
+                i * 0.65) *
+            (18 + i * 2);
+        path.lineTo(x, yBase + wobble);
+      }
+      canvas.drawPath(path, wavePaint);
+    }
+
+    final dustPaint = Paint()..style = PaintingStyle.fill;
+    for (var i = 0; i < 26; i++) {
+      final x = (size.width * ((i * 0.173 + phase * 0.035) % 1.0));
+      final y = size.height * ((i * 0.317 + 0.11) % 1.0);
+      final color = i.isEven
+          ? JewelryColors.emeraldGlow.withOpacity(0.16)
+          : JewelryColors.champagneGold.withOpacity(0.12);
+      dustPaint.color = color;
+      canvas.drawCircle(Offset(x, y), i % 3 == 0 ? 1.8 : 1.15, dustPaint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _LoginBackgroundPainter oldDelegate) {
+    return oldDelegate.phase != phase;
   }
 }
 
@@ -109,7 +190,7 @@ class LoginDecorations extends ConsumerWidget {
           right: 30,
           child: _LoginFloatingJewel(
             animation: animation,
-            color: JewelryColors.jadeite,
+            color: JewelryColors.emeraldGlow,
             size: 15,
           ),
         ),
@@ -118,7 +199,7 @@ class LoginDecorations extends ConsumerWidget {
           left: 40,
           child: _LoginFloatingJewel(
             animation: animation,
-            color: JewelryColors.gold,
+            color: JewelryColors.champagneGold,
             size: 10,
           ),
         ),
@@ -127,7 +208,7 @@ class LoginDecorations extends ConsumerWidget {
           right: 60,
           child: _LoginFloatingJewel(
             animation: animation,
-            color: JewelryColors.amethyst,
+            color: JewelryColors.primary,
             size: 12,
           ),
         ),
@@ -159,12 +240,18 @@ class _LoginFloatingJewel extends ConsumerWidget {
             height: size,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: color,
+              gradient: RadialGradient(
+                colors: [
+                  Colors.white.withOpacity(0.9),
+                  color.withOpacity(0.86),
+                  color.withOpacity(0.18),
+                ],
+              ),
               boxShadow: [
                 BoxShadow(
-                  color: color.withOpacity(0.5),
-                  blurRadius: 10,
-                  spreadRadius: 2,
+                  color: color.withOpacity(0.42),
+                  blurRadius: 16,
+                  spreadRadius: 1,
                 ),
               ],
             ),
@@ -202,12 +289,17 @@ class LoginBrandLogo extends ConsumerWidget {
           height: logoSize,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            gradient: JewelryColors.primaryGradient,
+            gradient: JewelryColors.emeraldLusterGradient,
             boxShadow: [
               BoxShadow(
-                color: JewelryColors.primary.withOpacity(0.4),
-                blurRadius: 30,
-                spreadRadius: 5,
+                color: JewelryColors.emeraldGlow.withOpacity(0.22),
+                blurRadius: 38,
+                spreadRadius: 2,
+              ),
+              BoxShadow(
+                color: Colors.black.withOpacity(0.35),
+                blurRadius: 28,
+                offset: const Offset(0, 16),
               ),
             ],
           ),
@@ -215,37 +307,47 @@ class LoginBrandLogo extends ConsumerWidget {
             alignment: Alignment.center,
             children: [
               Container(
+                width: logoSize * 0.9,
+                height: logoSize * 0.9,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: JewelryColors.champagneGold.withOpacity(0.18),
+                    width: 1,
+                  ),
+                ),
+              ),
+              Container(
                 width: ringSize,
                 height: ringSize,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   border: Border.all(
-                    color: Colors.white.withOpacity(0.3),
-                    width: 8,
+                    color: Colors.white.withOpacity(0.24),
+                    width: 7,
                   ),
                 ),
               ),
               ..._buildJadeBeads(logoSize),
               Icon(
-                Icons.auto_awesome,
-                color: Colors.white,
-                size: logoSize * 0.32,
+                Icons.diamond_outlined,
+                color: JewelryColors.champagneGold.withOpacity(0.96),
+                size: logoSize * 0.34,
               ),
             ],
           ),
         ),
         const SizedBox(height: 20),
         ShaderMask(
-          shaderCallback: (bounds) => const LinearGradient(
-            colors: [Colors.white, JewelryColors.gold],
-          ).createShader(bounds),
+          shaderCallback: (bounds) =>
+              JewelryColors.champagneGradient.createShader(bounds),
           child: Text(
             ref.tr('app_name'),
             style: TextStyle(
               fontSize: titleSize,
-              fontWeight: FontWeight.bold,
+              fontWeight: FontWeight.w800,
               color: Colors.white,
-              letterSpacing: compact ? 2.5 : 4,
+              letterSpacing: compact ? 3.2 : 4.6,
             ),
           ),
         ),
@@ -254,8 +356,8 @@ class LoginBrandLogo extends ConsumerWidget {
           ref.tr('app_slogan'),
           style: TextStyle(
             fontSize: 14,
-            color: Colors.white.withOpacity(0.7),
-            letterSpacing: 2,
+            color: JewelryColors.jadeMist.withOpacity(0.68),
+            letterSpacing: 2.4,
           ),
         ),
       ],
@@ -283,11 +385,15 @@ class LoginBrandLogo extends ConsumerWidget {
             height: beadSize,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: i.isEven ? JewelryColors.hetianYu : JewelryColors.jadeite,
+              gradient: RadialGradient(
+                colors: i.isEven
+                    ? const [Color(0xFFFFFAE8), JewelryColors.champagneGold]
+                    : const [JewelryColors.emeraldGlow, JewelryColors.primary],
+              ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.white.withOpacity(0.3),
-                  blurRadius: 3,
+                  color: Colors.white.withOpacity(0.25),
+                  blurRadius: 5,
                 ),
               ],
             ),
@@ -321,26 +427,20 @@ class LoginCardShell extends ConsumerWidget {
     );
 
     return ClipRRect(
-      borderRadius: BorderRadius.circular(28),
+      borderRadius: BorderRadius.circular(32),
       child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+        filter: ImageFilter.blur(sigmaX: 22, sigmaY: 22),
         child: Container(
           width: cardWidth,
           padding: EdgeInsets.all(screenWidth >= 1200 ? 32 : 28),
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                Colors.white.withOpacity(0.2),
-                Colors.white.withOpacity(0.1),
-              ],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            borderRadius: BorderRadius.circular(28),
+            gradient: JewelryColors.liquidGlassGradient,
+            borderRadius: BorderRadius.circular(32),
             border: Border.all(
-              color: Colors.white.withOpacity(0.3),
-              width: 1.5,
+              color: JewelryColors.champagneGold.withOpacity(0.18),
+              width: 1.2,
             ),
+            boxShadow: JewelryShadows.liquidGlass,
           ),
           child: Column(
             children: [
@@ -371,10 +471,14 @@ class LoginTabSelector extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Container(
-      height: 48,
+      height: 52,
+      padding: const EdgeInsets.all(5),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(24),
+        color: JewelryColors.deepJade.withOpacity(0.64),
+        borderRadius: BorderRadius.circular(26),
+        border: Border.all(
+          color: Colors.white.withOpacity(0.08),
+        ),
       ),
       child: Row(
         children: [
@@ -426,10 +530,20 @@ class _LoginTabButton extends ConsumerWidget {
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
+        duration: const Duration(milliseconds: 260),
+        curve: Curves.easeOutCubic,
         decoration: BoxDecoration(
-          gradient: selected ? JewelryColors.primaryGradient : null,
+          gradient: selected ? JewelryColors.emeraldLusterGradient : null,
           borderRadius: BorderRadius.circular(24),
+          boxShadow: selected
+              ? [
+                  BoxShadow(
+                    color: JewelryColors.emeraldGlow.withOpacity(0.18),
+                    blurRadius: 18,
+                    offset: const Offset(0, 8),
+                  ),
+                ]
+              : null,
         ),
         child: Center(
           child: Row(
@@ -438,15 +552,19 @@ class _LoginTabButton extends ConsumerWidget {
               Icon(
                 icon,
                 size: 16,
-                color: selected ? Colors.white : Colors.white60,
+                color: selected
+                    ? JewelryColors.jadeBlack
+                    : JewelryColors.jadeMist.withOpacity(0.58),
               ),
               const SizedBox(width: 4),
               Text(
                 label,
                 style: TextStyle(
                   fontSize: 13,
-                  color: selected ? Colors.white : Colors.white60,
-                  fontWeight: FontWeight.w600,
+                  color: selected
+                      ? JewelryColors.jadeBlack
+                      : JewelryColors.jadeMist.withOpacity(0.58),
+                  fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
                 ),
               ),
             ],
@@ -470,14 +588,14 @@ class LoginFooter extends ConsumerWidget {
             Icon(
               Icons.shield_outlined,
               size: 14,
-              color: Colors.white.withOpacity(0.4),
+              color: JewelryColors.champagneGold.withOpacity(0.38),
             ),
             const SizedBox(width: 6),
             Text(
               'login_security_footer'.tr,
               style: TextStyle(
                 fontSize: 12,
-                color: Colors.white.withOpacity(0.4),
+                color: JewelryColors.jadeMist.withOpacity(0.42),
               ),
             ),
           ],
@@ -487,7 +605,7 @@ class LoginFooter extends ConsumerWidget {
           ref.tr('compliance_copyright'),
           style: TextStyle(
             fontSize: 11,
-            color: Colors.white.withOpacity(0.3),
+            color: JewelryColors.jadeMist.withOpacity(0.3),
           ),
         ),
       ],

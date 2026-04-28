@@ -1,4 +1,4 @@
-﻿// 汇玉源 - 用户模型测试
+// 汇玉源 - 用户模型测试
 //
 // 测试内容:
 // - UserModel 的创建和字段验证
@@ -6,9 +6,23 @@
 // - JSON 序列化/反序列化
 // - 辅助方法测试
 import 'package:flutter_test/flutter_test.dart';
+import 'package:huiyuyuan/config/local_debug_config.dart';
 import 'package:huiyuyuan/models/user_model.dart';
 
+const Map<String, dynamic> _debugCredentialConfig = {
+  'ENABLE_LOCAL_CREDENTIAL_FALLBACK': true,
+  'ADMIN_PHONE': '18925816362',
+};
+
 void main() {
+  setUp(() {
+    LocalDebugConfig.instance.replaceValuesForTesting(_debugCredentialConfig);
+  });
+
+  tearDown(() {
+    LocalDebugConfig.instance.clearForTesting();
+  });
+
   group('UserType 枚举测试', () {
     test('应正确返回管理员类型', () {
       expect(UserType.admin.index, 0);
@@ -24,7 +38,7 @@ void main() {
       final admin = UserModel(
         id: 'admin_001',
         username: '超级管理员',
-        phone: '18937766669',
+        phone: '18925816362',
         userType: UserType.admin,
         isActive: true,
         token: 'test_token',
@@ -34,7 +48,7 @@ void main() {
 
       expect(admin.id, 'admin_001');
       expect(admin.username, '超级管理员');
-      expect(admin.phone, '18937766669');
+      expect(admin.phone, '18925816362');
       expect(admin.userType, UserType.admin);
       expect(admin.isActive, true);
       expect(admin.isAdmin, true);
@@ -81,7 +95,7 @@ void main() {
       final superAdmin = UserModel(
         id: 'admin_001',
         username: '管理员',
-        phone: '18937766669',
+        phone: '18925816362',
         userType: UserType.admin,
       );
       expect(superAdmin.isSuperAdmin, true);
@@ -272,11 +286,17 @@ void main() {
       expect(Platform.xiaohongshu.label, '小红书');
     });
 
-    test('联系状态应有正确标签', () {
-      expect(ContactStatus.pending.label, '待联系');
-      expect(ContactStatus.negotiating.label, '洽谈中');
-      expect(ContactStatus.cooperated.label, '已合作');
-      expect(ContactStatus.rejected.label, '已拒绝');
+    test('联系状态应有正确标签键', () {
+      expect(ContactStatus.pending.labelKey, 'shop_radar_status_pending');
+      expect(
+        ContactStatus.negotiating.labelKey,
+        'shop_radar_status_negotiating',
+      );
+      expect(
+        ContactStatus.cooperated.labelKey,
+        'shop_radar_status_cooperated',
+      );
+      expect(ContactStatus.rejected.labelKey, 'shop_radar_status_rejected');
     });
 
     test('isQualified 判断应正确', () {

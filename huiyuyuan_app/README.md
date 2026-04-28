@@ -83,9 +83,18 @@ python -m uvicorn main:app --reload --port 8000
 
 | 角色 | 账号 | 密码 | 验证码 |
 |------|------|------|--------|
-| **管理员** | 18937766669 | admin123 | 8888 |
+| **管理员** | 18925816362 | admin123 | 8888 |
 | **操作员** | 1-10（任意数字） | op123456 | — |
 | **消费者** | 任意手机号 | — | 8888（万能验证码） |
+
+---
+
+## ✅ 2026-04-08 稳定性修复
+
+- **认证与会话**：`logout`、`logout-others`、`refresh` 轮转、`reset-password`、`change-password` 已统一纳入会话失效链路，旧 token 不能继续使用。
+- **订单与支付**：下单数量增加下界校验，库存扣减改为条件更新；支付写路径统一显式落库，后台确认到账会拒绝已取消或争议中的支付单。
+- **安全与设备**：设备记录不再使用 `eval` 解析；登录与设备管理链路对 JWT / 会话校验保持一致。
+- **质量回归**：后端 `python -m pytest -q` 当前 `167 passed`；前端 `flutter test` 当前 `490 passed`；`dart analyze lib test tool --no-fatal-warnings` 为 `No issues found`。
 
 ---
 
@@ -236,15 +245,24 @@ flutter build web --no-tree-shake-icons --release
 flutter build windows --release       # 需 Visual Studio C++
 
 # 静态分析
-cd huiyuyuan_app && dart analyze lib/
+cd huiyuyuan_app && dart analyze lib test tool --no-fatal-warnings
 
 # 运行测试
-flutter test                          # 当前 449/449 全部通过
+flutter test                          # 当前 490/490 全部通过
 ```
 
 ---
 
 ## 📋 更新日志
+
+### v4.0.1 (2026-04-08)
+
+**安全加固 + 回归收口**
+
+- 🔒 JWT 新增 `sid` 会话标识，登出、退出其他设备、重置密码、修改密码、刷新轮转都会使旧会话失效
+- 🛒 下单数量校验与库存扣减逻辑收紧，修复负数数量和并发超卖风险
+- 💳 支付 DB 写路径统一显式 `commit()`，后台确认到账拒绝取消/争议支付，审计日志归属付款用户
+- 🧪 后端回归提升至 **167 passed**，前端全量测试提升至 **490 / 490**，静态分析为 **No issues found**
 
 ### v4.0.0 (2026-03-25)
 
@@ -292,8 +310,9 @@ flutter test                          # 当前 449/449 全部通过
 | 合作店铺 | 12 家 |
 | HTTP 端点 | 55 个 + 1 WebSocket |
 | AI 模型 | DashScope 千问（文本+视觉） |
-| 代码质量 | `flutter analyze` 0 issues |
-| 测试通过率 | 449 / 449（100%） |
+| 代码质量 | `dart analyze lib test tool --no-fatal-warnings` 无问题 |
+| 前端测试通过率 | 490 / 490（100%） |
+| 后端回归 | 167 passed |
 | 生产域名 | `https://汇玉源.top` |
 | 核心功能完成率 | ~88% |
 
@@ -304,9 +323,11 @@ flutter test                          # 当前 449/449 全部通过
 | 文档 | 说明 | 路径 |
 |------|------|------|
 | **CLAUDE.md** | 项目权威指南（最新架构/配置/命令） | [`../CLAUDE.md`](../CLAUDE.md) |
+| **AGENTS.md** | Codex/Agent 协作权威指南 | [`../AGENTS.md`](../AGENTS.md) |
 | 任务清单 | 待办/进行中/已完成 | [`../docs/planning/task.md`](../docs/planning/task.md) |
 | v4.0 总规划 | 多 Agent 协同开发规划 | [`../docs/planning/v4_master_plan.md`](../docs/planning/v4_master_plan.md) |
 | 部署指南 | 一键部署 + CI/CD + 运维 | [`../docs/guides/deployment_guide_updated.md`](../docs/guides/deployment_guide_updated.md) |
+| 生产安全清单 | 当前安全基线与服务器核查项 | [`../docs/guides/production_security_checklist_v2.md`](../docs/guides/production_security_checklist_v2.md) |
 | AI 服务指南 | DashScope 接入说明 | [`../docs/guides/ai_service_guide.md`](../docs/guides/ai_service_guide.md) |
 | 设计系统 | Liquid Glass 规范 | [`../docs/design/design_system.md`](../docs/design/design_system.md) |
 | 快速启动 | 本地环境搭建 | [`../docs/guides/快速启动指南.md`](../docs/guides/快速启动指南.md) |
@@ -314,4 +335,4 @@ flutter test                          # 当前 449/449 全部通过
 
 ---
 
-*文档版本: 4.0.0 | 最后更新: 2026-03-26*
+*文档版本: 4.0.1 | 最后更新: 2026-04-08*

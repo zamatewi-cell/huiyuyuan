@@ -56,8 +56,9 @@ class GlassmorphicCard extends StatelessWidget {
                 gradient: LinearGradient(
                   colors: isDark
                       ? [
-                          Colors.white.withOpacity(opacity * 0.5),
-                          Colors.white.withOpacity(opacity * 0.3),
+                          Colors.white.withOpacity(opacity * 0.42),
+                          JewelryColors.primary.withOpacity(opacity * 0.18),
+                          Colors.white.withOpacity(opacity * 0.18),
                         ]
                       : [
                           Colors.white.withOpacity(opacity + 0.1),
@@ -69,17 +70,21 @@ class GlassmorphicCard extends StatelessWidget {
                 borderRadius: BorderRadius.circular(borderRadius),
                 border: Border.all(
                   color: borderColor ??
-                      Colors.white.withOpacity(isDark ? 0.2 : 0.4),
+                      (isDark
+                          ? JewelryColors.champagneGold.withOpacity(0.16)
+                          : Colors.white.withOpacity(0.4)),
                   width: borderWidth,
                 ),
                 boxShadow: boxShadow ??
-                    [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
-                        blurRadius: 20,
-                        offset: const Offset(0, 10),
-                      ),
-                    ],
+                    (isDark
+                        ? JewelryShadows.liquidGlass
+                        : [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.1),
+                              blurRadius: 20,
+                              offset: const Offset(0, 10),
+                            ),
+                          ]),
               ),
               child: child,
             ),

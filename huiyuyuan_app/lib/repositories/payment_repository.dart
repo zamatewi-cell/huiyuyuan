@@ -1,4 +1,4 @@
-﻿library;
+library;
 
 import 'dart:convert';
 
@@ -157,11 +157,12 @@ class PaymentRepository {
 
   Future<bool> cancelPayment(String paymentId) async {
     try {
-      final response = await _dio.post('/cancel/$paymentId');
-      return _isSuccessStatus(response.statusCode);
+      final result =
+          await _api.post<dynamic>(ApiConfig.paymentCancel(paymentId));
+      return result.success;
     } catch (error) {
       debugPrint('[PaymentRepository] cancelPayment failed: $error');
-      return true;
+      return false;
     }
   }
 

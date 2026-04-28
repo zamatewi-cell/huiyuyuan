@@ -45,7 +45,10 @@ class _CaptchaWidgetState extends State<CaptchaWidget> {
 
   Future<void> _refresh() async {
     if (!mounted) return;
-    setState(() => _loading = true);
+    setState(() {
+      _loading = true;
+      _imageData = null;
+    });
 
     try {
       // 生成 UUID 作为 session_id
@@ -54,7 +57,10 @@ class _CaptchaWidgetState extends State<CaptchaWidget> {
       widget.onSessionIdChanged(_sessionId);
 
       final api = ApiService();
-      final res = await api.get('/api/auth/captcha?session_id=$_sessionId');
+      final res = await api.get(
+        '/api/auth/captcha',
+        params: {'session_id': _sessionId},
+      );
 
       if (res.success && res.data != null) {
         final data = res.data as Map<String, dynamic>;
@@ -62,8 +68,8 @@ class _CaptchaWidgetState extends State<CaptchaWidget> {
           _imageData = data['image'] as String?;
         });
       }
-    } catch (_) {
-      // 验证码获取失败，静默处理
+    } catch (error) {
+      debugPrint('[Captcha] load failed: $error');
     } finally {
       if (mounted) {
         setState(() => _loading = false);
@@ -151,10 +157,10 @@ class _CaptchaWidgetState extends State<CaptchaWidget> {
       fit: BoxFit.fill,
       errorBuilder: (_, __, ___) => Container(
         color: Colors.grey[800],
-        child: const Center(
+        child: Center(
           child: Text(
-            '点击刷新',
-            style: TextStyle(color: Colors.white70, fontSize: 10),
+            'login_captcha_load_fail'.tr,
+            style: const TextStyle(color: Colors.white70, fontSize: 10),
           ),
         ),
       ),

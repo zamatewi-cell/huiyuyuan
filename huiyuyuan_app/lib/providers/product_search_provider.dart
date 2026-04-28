@@ -2,6 +2,7 @@ library;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../l10n/product_translator.dart';
 import '../models/product_model.dart';
 import '../services/user_data_service.dart';
 import 'product_catalog_provider.dart';
@@ -44,7 +45,7 @@ class ProductSearchState {
     this.suggestions = const <ProductModel>[],
     this.isSearching = false,
     this.showResults = false,
-    this.filterCategory = '全部',
+    this.filterCategory = productCatalogAllCategory,
     this.sortType = ProductSearchSortType.relevance,
   });
 
@@ -93,7 +94,7 @@ class ProductSearchNotifier extends StateNotifier<ProductSearchState> {
       query: normalizedKeyword,
       isSearching: true,
       showResults: true,
-      filterCategory: '全部',
+      filterCategory: productCatalogAllCategory,
       sortType: ProductSearchSortType.relevance,
       suggestions: const <ProductModel>[],
     );
@@ -165,13 +166,13 @@ final productSearchFilteredResultsProvider =
     Provider.autoDispose<List<ProductModel>>((ref) {
   final state = ref.watch(productSearchProvider);
   final normalizedCategory = state.filterCategory;
-  final results = normalizedCategory == '全部'
+  final results = normalizedCategory == productCatalogAllCategory
       ? List<ProductModel>.from(state.results)
       : state.results
           .where(
             (product) =>
-                product.category == normalizedCategory ||
-                product.catL10n == normalizedCategory,
+                ProductTranslator.canonicalCategory(product.category) ==
+                normalizedCategory,
           )
           .toList(growable: false);
 
@@ -195,12 +196,18 @@ final productSearchResultCategoriesProvider =
     Provider.autoDispose<List<String>>((ref) {
   final results =
       ref.watch(productSearchProvider.select((state) => state.results));
-  final categories = <String>['全部'];
+  final categories = <String>[productCatalogAllCategory];
   final seen = <String>{};
 
   for (final product in results) {
-    if (seen.add(product.category)) {
-      categories.add(product.category);
+    final canonicalCategory = ProductTranslator.canonicalCategory(
+      product.category,
+    );
+    if (canonicalCategory.isEmpty) {
+      continue;
+    }
+    if (seen.add(canonicalCategory)) {
+      categories.add(canonicalCategory);
     }
   }
 

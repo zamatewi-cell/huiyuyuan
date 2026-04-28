@@ -24,8 +24,93 @@ import '../../widgets/common/error_handler.dart';
 import '../../widgets/common/notification_badge_icon.dart';
 import 'inventory_screen.dart';
 import 'admin_order_workbench_screen.dart';
+import 'payment_reconciliation_workbench_screen.dart';
 import '../notification/notification_screen.dart';
-import '../payment_management_screen.dart';
+
+class _AdminBackdrop extends StatelessWidget {
+  const _AdminBackdrop();
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: const BoxDecoration(
+        gradient: JewelryColors.jadeDepthGradient,
+      ),
+      child: Stack(
+        children: [
+          Positioned(
+            top: -150,
+            right: -130,
+            child: _AdminGlowOrb(
+              size: 350,
+              color: JewelryColors.emeraldGlow.withOpacity(0.1),
+            ),
+          ),
+          Positioned(
+            left: -150,
+            top: 360,
+            child: _AdminGlowOrb(
+              size: 300,
+              color: JewelryColors.champagneGold.withOpacity(0.1),
+            ),
+          ),
+          Positioned.fill(
+            child: CustomPaint(
+              painter: _AdminTracePainter(),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AdminGlowOrb extends StatelessWidget {
+  const _AdminGlowOrb({required this.size, required this.color});
+
+  final double size;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: color,
+        boxShadow: [
+          BoxShadow(color: color, blurRadius: 100, spreadRadius: 30),
+        ],
+      ),
+    );
+  }
+}
+
+class _AdminTracePainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 0.75
+      ..color = JewelryColors.champagneGold.withOpacity(0.035);
+
+    for (var i = 0; i < 8; i++) {
+      final y = size.height * (0.08 + i * 0.12);
+      final path = Path()..moveTo(-24, y);
+      path.quadraticBezierTo(
+        size.width * 0.52,
+        y + (i.isEven ? 32 : -30),
+        size.width + 24,
+        y,
+      );
+      canvas.drawPath(path, paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _AdminTracePainter oldDelegate) => false;
+}
 
 /// Admin dashboard screen.
 class AdminDashboard extends ConsumerStatefulWidget {
@@ -114,32 +199,37 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0D1B2A),
-      body: SafeArea(
-        child: Column(
-          children: [
-            // Sticky top section.
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: _buildHeader(),
+      backgroundColor: JewelryColors.jadeBlack,
+      body: Stack(
+        children: [
+          const Positioned.fill(child: _AdminBackdrop()),
+          SafeArea(
+            child: Column(
+              children: [
+                // Sticky top section.
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: _buildHeader(),
+                ),
+                // Tab bar.
+                _buildTabBar(),
+                // Tab content.
+                Expanded(
+                  child: TabBarView(
+                    controller: _tabController,
+                    children: widget.pageOverrides ??
+                        [
+                          _buildDashboardTab(),
+                          _buildProductManagementTab(),
+                          const InventoryScreen(),
+                          _buildOperatorTab(),
+                        ],
+                  ),
+                ),
+              ],
             ),
-            // Tab bar.
-            _buildTabBar(),
-            // Tab content.
-            Expanded(
-              child: TabBarView(
-                controller: _tabController,
-                children: widget.pageOverrides ??
-                    [
-                      _buildDashboardTab(),
-                      _buildProductManagementTab(),
-                      const InventoryScreen(),
-                      _buildOperatorTab(),
-                    ],
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -148,19 +238,22 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard>
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.06),
-        borderRadius: BorderRadius.circular(14),
+        color: JewelryColors.deepJade.withOpacity(0.5),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: JewelryColors.champagneGold.withOpacity(0.12),
+        ),
       ),
       child: TabBar(
         controller: _tabController,
         indicatorSize: TabBarIndicatorSize.tab,
         indicator: BoxDecoration(
-          gradient: JewelryColors.primaryGradient,
-          borderRadius: BorderRadius.circular(14),
+          gradient: JewelryColors.emeraldLusterGradient,
+          borderRadius: BorderRadius.circular(18),
         ),
-        labelColor: Colors.white,
-        unselectedLabelColor: Colors.white54,
-        labelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+        labelColor: JewelryColors.jadeBlack,
+        unselectedLabelColor: JewelryColors.jadeMist.withOpacity(0.58),
+        labelStyle: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13),
         dividerColor: Colors.transparent,
         tabs: [
           Tab(
@@ -233,23 +326,19 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard>
           width: 48,
           height: 48,
           decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [Color(0xFF10B981), Color(0xFF059669)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
+            gradient: JewelryColors.emeraldLusterGradient,
             borderRadius: BorderRadius.circular(14),
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFF10B981).withOpacity(0.3),
-                blurRadius: 12,
-                offset: const Offset(0, 4),
+                color: JewelryColors.emeraldGlow.withOpacity(0.25),
+                blurRadius: 18,
+                offset: const Offset(0, 9),
               ),
             ],
           ),
           child: const Icon(
             Icons.diamond_rounded,
-            color: Colors.white,
+            color: JewelryColors.jadeBlack,
             size: 22,
           ),
         ),
@@ -261,9 +350,9 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard>
               Text(
                 '$greeting, $roleLabel',
                 style: const TextStyle(
-                  color: Colors.white,
+                  color: JewelryColors.jadeMist,
                   fontSize: 18,
-                  fontWeight: FontWeight.bold,
+                  fontWeight: FontWeight.w900,
                   letterSpacing: 0.3,
                 ),
               ),
@@ -271,7 +360,7 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard>
               Text(
                 secondaryLabel,
                 style: TextStyle(
-                  color: Colors.white.withOpacity(0.4),
+                  color: JewelryColors.jadeMist.withOpacity(0.46),
                   fontSize: 12,
                 ),
               ),
@@ -290,14 +379,16 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard>
             width: 42,
             height: 42,
             decoration: BoxDecoration(
-              color: const Color(0xFF0F172A),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.white.withOpacity(0.06)),
+              color: JewelryColors.deepJade.withOpacity(0.58),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                color: JewelryColors.champagneGold.withOpacity(0.12),
+              ),
             ),
             child: NotificationBadgeIcon(
               icon: Icons.notifications_none_rounded,
               count: unreadNotifications,
-              color: Colors.white70,
+              color: JewelryColors.jadeMist,
               size: 20,
             ),
           ),
@@ -338,9 +429,19 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard>
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF0F172A),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withOpacity(0.06)),
+        gradient: LinearGradient(
+          colors: [
+            JewelryColors.deepJade.withOpacity(0.66),
+            JewelryColors.jadeSurface.withOpacity(0.42),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: JewelryColors.champagneGold.withOpacity(0.14),
+        ),
+        boxShadow: JewelryShadows.liquidGlass,
       ),
       child: Row(
         children: [
@@ -348,12 +449,15 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard>
             width: 44,
             height: 44,
             decoration: BoxDecoration(
-              color: const Color(0xFF06B6D4).withOpacity(0.12),
-              borderRadius: BorderRadius.circular(12),
+              color: JewelryColors.emeraldGlow.withOpacity(0.12),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: JewelryColors.emeraldGlow.withOpacity(0.18),
+              ),
             ),
             child: const Icon(
               Icons.store_rounded,
-              color: Color(0xFF06B6D4),
+              color: JewelryColors.emeraldGlow,
               size: 22,
             ),
           ),
@@ -364,15 +468,16 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard>
               children: [
                 Text(ref.tr('shop_main_name'),
                     style: const TextStyle(
-                        color: Colors.white,
+                        color: JewelryColors.jadeMist,
                         fontSize: 14,
-                        fontWeight: FontWeight.w600)),
+                        fontWeight: FontWeight.w900)),
                 const SizedBox(height: 3),
                 Text(
                   ref.tr('shop_status_desc').replaceFirst('{count}',
                       '${_stats?.totalProducts ?? catalogProductCount}'),
                   style: TextStyle(
-                      color: Colors.white.withOpacity(0.4), fontSize: 12),
+                      color: JewelryColors.jadeMist.withOpacity(0.48),
+                      fontSize: 12),
                 ),
               ],
             ),
@@ -380,21 +485,26 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard>
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
             decoration: BoxDecoration(
-              color: const Color(0xFF10B981).withOpacity(0.12),
+              color: JewelryColors.emeraldGlow.withOpacity(0.12),
               borderRadius: BorderRadius.circular(20),
-              border:
-                  Border.all(color: const Color(0xFF10B981).withOpacity(0.3)),
+              border: Border.all(
+                color: JewelryColors.emeraldGlow.withOpacity(0.3),
+              ),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.circle, color: Color(0xFF10B981), size: 6),
+                const Icon(
+                  Icons.circle,
+                  color: JewelryColors.emeraldGlow,
+                  size: 6,
+                ),
                 const SizedBox(width: 5),
                 Text(ref.tr('work_online'),
                     style: const TextStyle(
-                        color: Color(0xFF10B981),
+                        color: JewelryColors.emeraldGlow,
                         fontSize: 11,
-                        fontWeight: FontWeight.w500)),
+                        fontWeight: FontWeight.w800)),
               ],
             ),
           ),
@@ -493,8 +603,15 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard>
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF0F172A),
-        borderRadius: BorderRadius.circular(16),
+        gradient: LinearGradient(
+          colors: [
+            JewelryColors.deepJade.withOpacity(0.62),
+            accentColor.withOpacity(0.08),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(22),
         border: Border.all(color: accentColor.withOpacity(0.15)),
         boxShadow: [
           BoxShadow(
@@ -513,7 +630,9 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard>
               const SizedBox(width: 6),
               Text(title,
                   style: TextStyle(
-                      color: Colors.white.withOpacity(0.5), fontSize: 12)),
+                      color: JewelryColors.jadeMist.withOpacity(0.56),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700)),
             ],
           ),
           Column(
@@ -527,14 +646,14 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard>
                       style: TextStyle(
                           color: accentColor,
                           fontSize: 14,
-                          fontWeight: FontWeight.w500),
+                          fontWeight: FontWeight.w800),
                     ),
                   TextSpan(
                     text: value,
                     style: TextStyle(
                       color: accentColor,
                       fontSize: 26,
-                      fontWeight: FontWeight.bold,
+                      fontWeight: FontWeight.w900,
                       height: 1.1,
                     ),
                   ),
@@ -543,7 +662,8 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard>
               const SizedBox(height: 2),
               Text(subtitle,
                   style: TextStyle(
-                      color: Colors.white.withOpacity(0.3), fontSize: 11)),
+                      color: JewelryColors.jadeMist.withOpacity(0.38),
+                      fontSize: 11)),
             ],
           ),
         ],
@@ -570,9 +690,11 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard>
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF0F172A),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withOpacity(0.06)),
+        color: JewelryColors.deepJade.withOpacity(0.46),
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(
+          color: JewelryColors.champagneGold.withOpacity(0.1),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1121,14 +1243,15 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard>
             const SizedBox(width: 10),
             Expanded(
               child: _buildQuickActionCard(
-                label: ref.tr('payment_management_title'),
-                icon: Icons.qr_code_2_rounded,
+                label: ref.tr('payment_reconciliation_title'),
+                icon: Icons.fact_check_rounded,
                 color: const Color(0xFF14B8A6),
                 onTap: () {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (_) => const PaymentManagementScreen(),
+                      builder: (_) =>
+                          const PaymentReconciliationWorkbenchScreen(),
                     ),
                   );
                 },

@@ -65,11 +65,11 @@ void main() {
       );
       expect(
         container.read(productSearchResultCategoriesProvider),
-        ['鍏ㄩ儴', 'bracelet', 'necklace'],
+        [productCatalogAllCategory, '手链', '项链'],
       );
 
       container.read(productSearchProvider.notifier).setFilterCategory(
-            'bracelet',
+            '手链',
           );
       expect(
         container

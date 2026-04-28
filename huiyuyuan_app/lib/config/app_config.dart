@@ -6,6 +6,28 @@ import 'local_debug_config.dart';
 import 'secrets.dart';
 
 class AppConfig {
+  static const String _injectedEnableLocalCredentialFallback =
+      String.fromEnvironment(
+    'ENABLE_LOCAL_CREDENTIAL_FALLBACK',
+    defaultValue: '',
+  );
+  static const String _injectedAdminPhone = String.fromEnvironment(
+    'ADMIN_PHONE',
+    defaultValue: '',
+  );
+  static const String _injectedAdminPassword = String.fromEnvironment(
+    'ADMIN_PASSWORD',
+    defaultValue: '',
+  );
+  static const String _injectedAdminAuthCode = String.fromEnvironment(
+    'ADMIN_AUTH_CODE',
+    defaultValue: '',
+  );
+  static const String _injectedOperatorPassword = String.fromEnvironment(
+    'OPERATOR_PASSWORD',
+    defaultValue: '',
+  );
+
   static String get dashScopeApiKey {
     final injected = Secrets.dashScopeApiKey.trim();
     if (injected.isNotEmpty) {
@@ -67,31 +89,31 @@ class AppConfig {
   static const String dashScopeModel = 'qwen-plus';
 
   static const String appName = '汇玉源';
-  static const String appVersion = '3.0.3';
-  static const int appBuildNumber = 5;
+  static const String appVersion = '3.0.4';
+  static const int appBuildNumber = 6;
   static const String appDescription = '珠宝智能交易平台';
 
   static const int primaryColorValue = 0xFF2E8B57;
   static const int accentColorValue = 0xFFFFD700;
 
-  static String get adminPhone => const String.fromEnvironment(
-        'ADMIN_PHONE',
-        defaultValue: kReleaseMode ? '' : '18937766669',
+  static String get adminPhone => _readStringSetting(
+        injectedValue: _injectedAdminPhone,
+        debugConfigKey: 'ADMIN_PHONE',
       );
 
-  static String get adminPassword => const String.fromEnvironment(
-        'ADMIN_PASSWORD',
-        defaultValue: kReleaseMode ? '' : 'admin123',
+  static String get adminPassword => _readStringSetting(
+        injectedValue: _injectedAdminPassword,
+        debugConfigKey: 'ADMIN_PASSWORD',
       );
 
-  static String get adminAuthCode => const String.fromEnvironment(
-        'ADMIN_AUTH_CODE',
-        defaultValue: kReleaseMode ? '' : '8888',
+  static String get adminAuthCode => _readStringSetting(
+        injectedValue: _injectedAdminAuthCode,
+        debugConfigKey: 'ADMIN_AUTH_CODE',
       );
 
-  static String get operatorDefaultPassword => const String.fromEnvironment(
-        'OPERATOR_PASSWORD',
-        defaultValue: kReleaseMode ? '' : 'op123456',
+  static String get operatorDefaultPassword => _readStringSetting(
+        injectedValue: _injectedOperatorPassword,
+        debugConfigKey: 'OPERATOR_PASSWORD',
       );
 
   static const int connectTimeout = 30000;
@@ -99,5 +121,46 @@ class AppConfig {
 
   static bool get isDebugMode => kDebugMode;
 
-  static bool get allowLocalCredentialFallback => !kReleaseMode;
+  static bool get allowLocalCredentialFallback =>
+      !kReleaseMode &&
+      _readBoolSetting(
+        injectedValue: _injectedEnableLocalCredentialFallback,
+        debugConfigKey: 'ENABLE_LOCAL_CREDENTIAL_FALLBACK',
+      );
+
+  static bool get allowLocalAdminCredentialFallback =>
+      allowLocalCredentialFallback &&
+      adminPhone.isNotEmpty &&
+      adminPassword.isNotEmpty &&
+      adminAuthCode.isNotEmpty;
+
+  static bool get allowLocalOperatorCredentialFallback =>
+      allowLocalCredentialFallback && operatorDefaultPassword.isNotEmpty;
+
+  static String _readStringSetting({
+    required String injectedValue,
+    required String debugConfigKey,
+  }) {
+    final trimmedInjected = injectedValue.trim();
+    if (trimmedInjected.isNotEmpty) {
+      return trimmedInjected;
+    }
+
+    return (LocalDebugConfig.instance.getString(debugConfigKey) ?? '').trim();
+  }
+
+  static bool _readBoolSetting({
+    required String injectedValue,
+    required String debugConfigKey,
+  }) {
+    final normalized = injectedValue.trim().toLowerCase();
+    if (normalized.isNotEmpty) {
+      return normalized == 'true' ||
+          normalized == '1' ||
+          normalized == 'yes' ||
+          normalized == 'on';
+    }
+
+    return LocalDebugConfig.instance.getBool(debugConfigKey) ?? false;
+  }
 }

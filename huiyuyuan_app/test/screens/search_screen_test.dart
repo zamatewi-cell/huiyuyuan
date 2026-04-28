@@ -83,15 +83,26 @@ void main() {
         overrides: [
           productServiceProvider.overrideWithValue(service),
         ],
-        child: MaterialApp(
+        child: const MaterialApp(
           home: SearchScreen(initialQuery: 'search-alpha'),
         ),
       ),
     );
-    await tester.pumpAndSettle(const Duration(seconds: 2));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
 
-    expect(find.text('search-alpha'), findsOneWidget);
-    expect(find.text('search-beta'), findsNothing);
+    expect(
+      find.byWidgetPredicate(
+        (widget) => widget is Text && widget.data == 'search-alpha',
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.byWidgetPredicate(
+        (widget) => widget is Text && widget.data == 'search-beta',
+      ),
+      findsNothing,
+    );
   });
 }
 

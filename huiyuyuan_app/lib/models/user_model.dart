@@ -45,6 +45,9 @@ class UserModel {
   /// Operator number in the reserved 1-10 range.
   final int? operatorNumber;
 
+  /// Feature permissions granted to this account.
+  final List<String> permissions;
+
   UserModel({
     required this.id,
     required this.username,
@@ -56,6 +59,7 @@ class UserModel {
     this.lastLoginAt,
     this.paymentAccountId,
     this.operatorNumber,
+    this.permissions = const <String>[],
   });
 
   /// Whether the current user is an administrator.
@@ -67,6 +71,10 @@ class UserModel {
   /// Whether this is the built-in administrator account.
   bool get isSuperAdmin =>
       phone == AppConfig.adminPhone && userType == UserType.admin;
+
+  bool hasPermission(String permission) {
+    return isAdmin || permissions.contains(permission);
+  }
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
     return UserModel(
@@ -80,6 +88,7 @@ class UserModel {
       lastLoginAt: jsonAsNullableDateTime(json['last_login_at']),
       paymentAccountId: jsonAsNullableString(json['payment_account_id']),
       operatorNumber: jsonAsNullableInt(json['operator_number']),
+      permissions: jsonAsStringList(json['permissions']),
     );
   }
 
@@ -95,6 +104,7 @@ class UserModel {
       'last_login_at': lastLoginAt?.toIso8601String(),
       'payment_account_id': paymentAccountId,
       'operator_number': operatorNumber,
+      'permissions': permissions,
     };
   }
 

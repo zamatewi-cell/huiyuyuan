@@ -1,4 +1,4 @@
-﻿import 'package:huiyuyuan/l10n/string_extension.dart';
+import 'package:huiyuyuan/l10n/string_extension.dart';
 import 'package:huiyuyuan/l10n/translator_global.dart';
 import 'dart:ui';
 import 'package:flutter/foundation.dart';
@@ -23,6 +23,134 @@ import '../../widgets/common/glassmorphic_card.dart';
 import '../../widgets/animations/typing_indicator.dart';
 import '../../widgets/animations/blinking_cursor.dart';
 import '../../widgets/animations/fade_slide_transition.dart';
+
+class _AiConciergeBackdrop extends StatelessWidget {
+  const _AiConciergeBackdrop();
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: const BoxDecoration(
+        gradient: JewelryColors.jadeDepthGradient,
+      ),
+      child: Stack(
+        children: [
+          Positioned(
+            top: -150,
+            right: -120,
+            child: _AiGlowOrb(
+              size: 340,
+              color: JewelryColors.emeraldGlow.withOpacity(0.12),
+            ),
+          ),
+          Positioned(
+            left: -130,
+            top: 260,
+            child: _AiGlowOrb(
+              size: 300,
+              color: JewelryColors.champagneGold.withOpacity(0.12),
+            ),
+          ),
+          Positioned.fill(
+            child: CustomPaint(
+              painter: _AiWavePainter(),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AiGlowOrb extends StatelessWidget {
+  const _AiGlowOrb({
+    required this.size,
+    required this.color,
+  });
+
+  final double size;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: color,
+        boxShadow: [
+          BoxShadow(
+            color: color,
+            blurRadius: 100,
+            spreadRadius: 36,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AiWavePainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..strokeWidth = 0.8
+      ..color = JewelryColors.champagneGold.withOpacity(0.035)
+      ..style = PaintingStyle.stroke;
+
+    for (var i = 0; i < 8; i++) {
+      final y = size.height * (0.12 + i * 0.115);
+      final path = Path()..moveTo(-24, y);
+      for (var x = -24.0; x <= size.width + 24; x += 36) {
+        path.lineTo(x, y + ((x / size.width) - 0.5) * (i.isEven ? 14 : -14));
+      }
+      canvas.drawPath(path, paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _AiWavePainter oldDelegate) => false;
+}
+
+class _ConciergeCapability extends StatelessWidget {
+  const _ConciergeCapability({
+    required this.icon,
+    required this.label,
+  });
+
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      decoration: BoxDecoration(
+        color: JewelryColors.deepJade.withOpacity(0.56),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(
+          color: JewelryColors.champagneGold.withOpacity(0.14),
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: JewelryColors.champagneGold),
+          const SizedBox(width: 5),
+          Text(
+            label,
+            style: TextStyle(
+              color: JewelryColors.jadeMist.withOpacity(0.76),
+              fontSize: 11,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
 
 /// AI assistant screen.
 class AIAssistantScreen extends ConsumerStatefulWidget {
@@ -61,7 +189,7 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen>
   late Animation<double> _welcomeFadeAnimation;
   late Animation<Offset> _welcomeSlideAnimation;
 
-  String _welcomeMessage() => ref.tr('ai_welcome');
+  String _welcomeMessage() => TranslatorGlobal.instance.translate('ai_welcome');
 
   @override
   void initState() {
@@ -130,8 +258,6 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen>
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
     final aiOnline = _aiService.isOnlineConfigured;
     final aiStatusColor =
         aiOnline ? JewelryColors.success : JewelryColors.warning;
@@ -159,28 +285,34 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen>
         centerTitle: true,
         title: GlassmorphicCard(
           borderRadius: 20,
-          blur: 10,
-          opacity: 0.1,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          blur: 18,
+          opacity: 0.12,
+          borderColor: JewelryColors.champagneGold.withOpacity(0.16),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               Container(
                 padding: const EdgeInsets.all(4),
                 decoration: BoxDecoration(
-                  color: JewelryColors.primary.withOpacity(0.2),
+                  gradient: JewelryColors.emeraldLusterGradient,
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Icon(Icons.smart_toy,
-                    size: 16, color: JewelryColors.primary),
+                child: const Icon(
+                  Icons.auto_awesome,
+                  size: 16,
+                  color: JewelryColors.jadeBlack,
+                ),
               ),
               const SizedBox(width: 8),
               Text(
                 ref.tr('ai_title'),
                 style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                    color: JewelryColors.textPrimary),
+                  fontSize: 14,
+                  fontWeight: FontWeight.w900,
+                  color: JewelryColors.jadeMist,
+                  letterSpacing: 0.4,
+                ),
               ),
               const SizedBox(width: 6),
               // Online status indicator.
@@ -215,37 +347,21 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen>
             icon: Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: (isDark ? Colors.white : Colors.black).withOpacity(0.1),
+                color: JewelryColors.deepJade.withOpacity(0.7),
                 shape: BoxShape.circle,
+                border: Border.all(
+                  color: JewelryColors.champagneGold.withOpacity(0.14),
+                ),
               ),
               child: Icon(
                 Icons.delete_outline,
                 size: 20,
-                color: isDark ? Colors.white70 : Colors.black54,
+                color: JewelryColors.jadeMist.withOpacity(0.72),
               ),
             ),
             onPressed: () {
               if (_messages.length <= 1) return;
-              showDialog(
-                context: context,
-                builder: (context) => AlertDialog(
-                  title: Text(ref.tr('ai_clear')),
-                  content: Text(ref.tr('ai_clear_confirm')),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(context),
-                      child: Text(ref.tr('cancel')),
-                    ),
-                    TextButton(
-                      onPressed: () {
-                        Navigator.pop(context);
-                        _clearChat();
-                      },
-                      child: Text(ref.tr('confirm')),
-                    ),
-                  ],
-                ),
-              );
+              _clearChat();
             },
             tooltip: ref.tr('ai_clear'),
           ),
@@ -255,55 +371,27 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen>
       body: Stack(
         children: [
           // Background layer.
-          Container(
-            decoration: BoxDecoration(
-              gradient: isDark
-                  ? JewelryColors.darkGradient
-                  : LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        Colors.blue[50]!,
-                        Colors.purple[50]!,
-                        Colors.white,
-                      ],
-                    ),
-            ),
-          ),
-
-          // Decorative particles.
-          Positioned(
-            top: -100,
-            right: -100,
-            child: Container(
-              width: 300,
-              height: 300,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: JewelryColors.primary.withOpacity(0.05),
-                boxShadow: [
-                  BoxShadow(
-                    color: JewelryColors.primary.withOpacity(0.05),
-                    blurRadius: 100,
-                    spreadRadius: 50,
-                  ),
-                ],
-              ),
-            ),
-          ),
+          const _AiConciergeBackdrop(),
 
           Column(
             children: [
               const SizedBox(height: 100), // AppBar高度占位
 
+              _buildConciergeIntro(
+                aiOnline: aiOnline,
+                statusText: aiStatusText,
+                statusColor: aiStatusColor,
+              ),
+
               // Suggested prompts.
-              _buildQuickQuestions(isDark),
+              _buildQuickQuestions(),
 
               // Message list.
               Expanded(
                 child: ListView.builder(
                   controller: _scrollController,
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                   itemCount:
                       _messages.length + (_isLoading || _isStreaming ? 1 : 0),
                   itemBuilder: (context, index) {
@@ -320,17 +408,17 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen>
                         opacity: _welcomeFadeAnimation,
                         child: SlideTransition(
                           position: _welcomeSlideAnimation,
-                          child: _buildMessageBubble(_messages[index], isDark),
+                          child: _buildMessageBubble(_messages[index]),
                         ),
                       );
                     }
-                    return _buildMessageBubble(_messages[index], isDark);
+                    return _buildMessageBubble(_messages[index]);
                   },
                 ),
               ),
 
               // Composer.
-              _buildInputArea(isDark),
+              _buildInputArea(),
             ],
           ),
         ],
@@ -339,7 +427,177 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen>
   }
 
   /// Suggested prompt section backed by preset questions.
-  Widget _buildQuickQuestions(bool isDark) {
+  Widget _buildConciergeIntro({
+    required bool aiOnline,
+    required String statusText,
+    required Color statusColor,
+  }) {
+    if (_messages.length > 1) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 2, 16, 14),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(30),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              gradient: JewelryColors.liquidGlassGradient,
+              borderRadius: BorderRadius.circular(30),
+              border: Border.all(
+                color: JewelryColors.champagneGold.withOpacity(0.16),
+              ),
+              boxShadow: JewelryShadows.liquidGlass,
+            ),
+            child: Stack(
+              children: [
+                Positioned(
+                  right: -24,
+                  top: -36,
+                  child: Container(
+                    width: 122,
+                    height: 122,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: JewelryColors.champagneGold.withOpacity(0.16),
+                      ),
+                    ),
+                  ),
+                ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          width: 44,
+                          height: 44,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            gradient: JewelryColors.emeraldLusterGradient,
+                            boxShadow: JewelryShadows.emeraldHalo,
+                          ),
+                          child: const Icon(
+                            Icons.diamond_outlined,
+                            color: JewelryColors.jadeBlack,
+                            size: 24,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'PRIVATE GEM ADVISOR',
+                                style: TextStyle(
+                                  color: JewelryColors.emeraldGlow
+                                      .withOpacity(0.7),
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: 2.0,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                ref.tr('ai_title'),
+                                style: const TextStyle(
+                                  color: JewelryColors.jadeMist,
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.w900,
+                                  height: 1.1,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: statusColor.withOpacity(0.12),
+                            borderRadius: BorderRadius.circular(999),
+                            border: Border.all(
+                              color: statusColor.withOpacity(0.24),
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Container(
+                                width: 7,
+                                height: 7,
+                                decoration: BoxDecoration(
+                                  color: statusColor,
+                                  shape: BoxShape.circle,
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: statusColor.withOpacity(0.45),
+                                      blurRadius: 8,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                statusText,
+                                style: TextStyle(
+                                  color: statusColor,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      aiOnline
+                          ? '从预算、材质、寓意、送礼场景到真伪风险，我会像私顾一样帮你缩小选择范围。'
+                          : '当前使用离线兜底建议，仍可提供选购方向、材质知识和场景化推荐。',
+                      style: TextStyle(
+                        color: JewelryColors.jadeMist.withOpacity(0.68),
+                        fontSize: 13,
+                        height: 1.55,
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    const Row(
+                      children: [
+                        _ConciergeCapability(
+                          icon: Icons.search_rounded,
+                          label: '甄选',
+                        ),
+                        SizedBox(width: 8),
+                        _ConciergeCapability(
+                          icon: Icons.verified_user_outlined,
+                          label: '鉴别',
+                        ),
+                        SizedBox(width: 8),
+                        _ConciergeCapability(
+                          icon: Icons.card_giftcard_outlined,
+                          label: '送礼',
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildQuickQuestions() {
     if (_messages.length > 1) return const SizedBox.shrink();
 
     final questions = [
@@ -354,7 +612,7 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen>
     ];
 
     return SizedBox(
-      height: 50,
+      height: 54,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -367,13 +625,15 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen>
               avatar: Icon(q['icon'] as IconData,
                   size: 16, color: JewelryColors.primary),
               label: Text(q['label'] as String),
-              backgroundColor:
-                  (isDark ? Colors.white : Colors.black).withOpacity(0.05),
-              labelStyle: TextStyle(
-                color: isDark ? Colors.white : JewelryColors.textPrimary,
+              backgroundColor: JewelryColors.deepJade.withOpacity(0.68),
+              labelStyle: const TextStyle(
+                color: JewelryColors.jadeMist,
                 fontSize: 12,
+                fontWeight: FontWeight.w600,
               ),
-              side: BorderSide.none,
+              side: BorderSide(
+                color: JewelryColors.champagneGold.withOpacity(0.12),
+              ),
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(20)),
               onPressed: () {
@@ -388,7 +648,7 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen>
   }
 
   /// Message bubble.
-  Widget _buildMessageBubble(ChatMessage message, bool isDark) {
+  Widget _buildMessageBubble(ChatMessage message) {
     final isUser = message.isUser;
 
     // Extract product ids embedded in AI messages.
@@ -399,164 +659,176 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen>
         sanitizeUtf16(_productContextService.stripProductTags(message.content));
 
     return FadeSlideTransition(
-        key: ValueKey(message.id),
-        beginOffset: const Offset(0, 0.1),
-        child: Padding(
-          padding: const EdgeInsets.only(bottom: 20),
-          child: Row(
-            mainAxisAlignment:
-                isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (!isUser) ...[
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    gradient: JewelryColors.primaryGradient,
-                    shape: BoxShape.circle,
-                    boxShadow: JewelryShadows.primaryGlow,
-                  ),
-                  child: const Icon(Icons.smart_toy, size: 16, color: Colors.white),
+      key: ValueKey(message.id),
+      beginOffset: const Offset(0, 0.1),
+      child: Padding(
+        padding: const EdgeInsets.only(bottom: 20),
+        child: Row(
+          mainAxisAlignment:
+              isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (!isUser) ...[
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  gradient: JewelryColors.emeraldLusterGradient,
+                  shape: BoxShape.circle,
+                  boxShadow: JewelryShadows.emeraldHalo,
                 ),
-                const SizedBox(width: 12),
-              ],
-              Flexible(
-                child: Column(
-                  crossAxisAlignment: isUser
-                      ? CrossAxisAlignment.end
-                      : CrossAxisAlignment.start,
-                  children: [
-                    // Message image rendered from memory bytes for web support.
-                    if (isUser && message.imageBytes != null)
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 8),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(12),
-                          child: ConstrainedBox(
-                            constraints: const BoxConstraints(
-                                maxWidth: 250, maxHeight: 250),
-                            child: Image.memory(
-                              message.imageBytes!,
-                              fit: BoxFit.contain,
-                            ),
-                          ),
-                        ),
-                      ),
-                    // Message body.
-                    isUser
-                        ? Container(
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              gradient: JewelryColors.primaryGradient,
-                              borderRadius: const BorderRadius.only(
-                                topLeft: Radius.circular(20),
-                                topRight: Radius.circular(20),
-                                bottomLeft: Radius.circular(20),
-                                bottomRight: Radius.circular(4),
-                              ),
-                              boxShadow: JewelryShadows.primaryGlow,
-                            ),
-                            child: Text(
-                              message.content,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 15,
-                                height: 1.5,
-                              ),
-                            ),
-                          )
-                        : GlassmorphicCard(
-                            borderRadius: 20,
-                            blur: 10,
-                            opacity: isDark ? 0.15 : 0.6,
-                            padding: const EdgeInsets.all(16),
-                            child: MarkdownBody(
-                              data: cleanContent,
-                              selectable: true,
-                              styleSheet: MarkdownStyleSheet(
-                                p: TextStyle(
-                                  color: isDark
-                                      ? Colors.white.withOpacity(0.9)
-                                      : Colors.black87,
-                                  fontSize: 15,
-                                  height: 1.5,
-                                ),
-                                strong: TextStyle(
-                                  color: isDark ? Colors.white : Colors.black87,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                                listBullet: TextStyle(
-                                  color:
-                                      isDark ? Colors.white70 : Colors.black54,
-                                ),
-                                h1: TextStyle(
-                                    color:
-                                        isDark ? Colors.white : Colors.black87,
-                                    fontSize: 20),
-                                h2: TextStyle(
-                                    color:
-                                        isDark ? Colors.white : Colors.black87,
-                                    fontSize: 18),
-                                h3: TextStyle(
-                                    color:
-                                        isDark ? Colors.white : Colors.black87,
-                                    fontSize: 16),
-                                code: TextStyle(
-                                  color: JewelryColors.primary,
-                                  backgroundColor:
-                                      JewelryColors.primary.withOpacity(0.1),
-                                ),
-                              ),
-                            ),
-                          ),
-
-                    // Product recommendation card.
-                    if (!isUser && productIds.isNotEmpty)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 12),
-                        child: Column(
-                          children: productIds
-                              .map((id) => _buildProductCard(id, isDark))
-                              .toList(),
-                        ),
-                      ),
-
-                    // Copy action for AI replies.
-                    if (!isUser && message.id != 'welcome')
-                      Padding(
-                        padding: const EdgeInsets.only(top: 6),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            _buildActionChip(
-                              icon: Icons.copy,
-                              label: ref.tr('ai_copy'),
-                              onTap: () => _copyMessage(cleanContent),
-                            ),
-                          ],
-                        ),
-                      ),
-                  ],
+                child: const Icon(
+                  Icons.auto_awesome,
+                  size: 16,
+                  color: JewelryColors.jadeBlack,
                 ),
               ),
-              if (isUser) ...[
-                const SizedBox(width: 12),
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: isDark ? Colors.grey[700] : Colors.grey[200],
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    Icons.person,
-                    size: 16,
-                    color: isDark ? Colors.white60 : Colors.grey,
+              const SizedBox(width: 12),
+            ],
+            Flexible(
+              child: Column(
+                crossAxisAlignment:
+                    isUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+                children: [
+                  // Message image rendered from memory bytes for web support.
+                  if (isUser && message.imageBytes != null)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(18),
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(
+                            maxWidth: 250,
+                            maxHeight: 250,
+                          ),
+                          child: Image.memory(
+                            message.imageBytes!,
+                            fit: BoxFit.contain,
+                          ),
+                        ),
+                      ),
+                    ),
+                  // Message body.
+                  isUser
+                      ? Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            gradient: JewelryColors.emeraldLusterGradient,
+                            borderRadius: const BorderRadius.only(
+                              topLeft: Radius.circular(22),
+                              topRight: Radius.circular(22),
+                              bottomLeft: Radius.circular(22),
+                              bottomRight: Radius.circular(6),
+                            ),
+                            boxShadow: JewelryShadows.emeraldHalo,
+                          ),
+                          child: Text(
+                            message.content,
+                            style: const TextStyle(
+                              color: JewelryColors.jadeBlack,
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                              height: 1.5,
+                            ),
+                          ),
+                        )
+                      : GlassmorphicCard(
+                          borderRadius: 22,
+                          blur: 18,
+                          opacity: 0.18,
+                          borderColor:
+                              JewelryColors.champagneGold.withOpacity(0.14),
+                          padding: const EdgeInsets.all(16),
+                          child: MarkdownBody(
+                            data: cleanContent,
+                            selectable: true,
+                            styleSheet: MarkdownStyleSheet(
+                              p: TextStyle(
+                                color: JewelryColors.jadeMist.withOpacity(0.9),
+                                fontSize: 15,
+                                height: 1.55,
+                              ),
+                              strong: const TextStyle(
+                                color: JewelryColors.champagneGold,
+                                fontWeight: FontWeight.w900,
+                              ),
+                              listBullet: TextStyle(
+                                color: JewelryColors.jadeMist.withOpacity(0.64),
+                              ),
+                              h1: const TextStyle(
+                                color: JewelryColors.jadeMist,
+                                fontSize: 20,
+                                fontWeight: FontWeight.w900,
+                              ),
+                              h2: const TextStyle(
+                                color: JewelryColors.jadeMist,
+                                fontSize: 18,
+                                fontWeight: FontWeight.w900,
+                              ),
+                              h3: const TextStyle(
+                                color: JewelryColors.jadeMist,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w800,
+                              ),
+                              code: TextStyle(
+                                color: JewelryColors.emeraldGlow,
+                                backgroundColor:
+                                    JewelryColors.emeraldGlow.withOpacity(0.08),
+                              ),
+                            ),
+                          ),
+                        ),
+
+                  // Product recommendation card.
+                  if (!isUser && productIds.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 12),
+                      child: Column(
+                        children: productIds
+                            .map((id) => _buildProductCard(id))
+                            .toList(),
+                      ),
+                    ),
+
+                  // Copy action for AI replies.
+                  if (!isUser && message.id != 'welcome')
+                    Padding(
+                      padding: const EdgeInsets.only(top: 6),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          _buildActionChip(
+                            icon: Icons.copy,
+                            label: ref.tr('ai_copy'),
+                            onTap: () => _copyMessage(cleanContent),
+                          ),
+                        ],
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            if (isUser) ...[
+              const SizedBox(width: 12),
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: JewelryColors.deepJade.withOpacity(0.82),
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: JewelryColors.champagneGold.withOpacity(0.16),
                   ),
                 ),
-              ],
+                child: Icon(
+                  Icons.person_outline,
+                  size: 16,
+                  color: JewelryColors.jadeMist.withOpacity(0.72),
+                ),
+              ),
             ],
-          ),
-        ));
+          ],
+        ),
+      ),
+    );
   }
 
   void _ensureRecommendedProductLoaded(String productId) {
@@ -582,7 +854,7 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen>
   }
 
   /// Builds a product recommendation card.
-  Widget _buildProductCard(String productId, bool isDark) {
+  Widget _buildProductCard(String productId) {
     _ensureRecommendedProductLoaded(productId);
     final product = _recommendedProducts[productId];
     final isLoading = _loadingRecommendedProducts.contains(productId);
@@ -596,12 +868,13 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen>
         margin: const EdgeInsets.only(bottom: 8),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF1E2A3A) : Colors.white,
-          borderRadius: BorderRadius.circular(16),
+          gradient: JewelryColors.liquidGlassGradient,
+          borderRadius: BorderRadius.circular(18),
           border: Border.all(
-            color: JewelryColors.primary.withOpacity(0.3),
+            color: JewelryColors.champagneGold.withOpacity(0.14),
             width: 1,
           ),
+          boxShadow: JewelryShadows.liquidGlass,
         ),
         child: Row(
           children: [
@@ -620,7 +893,7 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen>
                     .translate('loading_recommended_products'),
                 style: TextStyle(
                   fontSize: 13,
-                  color: isDark ? Colors.white70 : Colors.black54,
+                  color: JewelryColors.jadeMist.withOpacity(0.68),
                 ),
               ),
             ),
@@ -634,17 +907,24 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen>
       child: Container(
         margin: const EdgeInsets.only(bottom: 8),
         decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF1E2A3A) : Colors.white,
-          borderRadius: BorderRadius.circular(16),
+          gradient: LinearGradient(
+            colors: [
+              JewelryColors.deepJade.withOpacity(0.92),
+              JewelryColors.jadeSurface.withOpacity(0.62),
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(18),
           border: Border.all(
-            color: JewelryColors.primary.withOpacity(0.3),
+            color: JewelryColors.champagneGold.withOpacity(0.15),
             width: 1,
           ),
           boxShadow: [
             BoxShadow(
-              color: JewelryColors.primary.withOpacity(0.1),
-              blurRadius: 12,
-              offset: const Offset(0, 4),
+              color: JewelryColors.jadeBlack.withOpacity(0.28),
+              blurRadius: 22,
+              offset: const Offset(0, 12),
             ),
           ],
         ),
@@ -664,9 +944,14 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen>
                 errorBuilder: (_, __, ___) => Container(
                   width: 100,
                   height: 100,
-                  color: JewelryColors.primary.withOpacity(0.1),
-                  child: const Icon(Icons.diamond,
-                      color: JewelryColors.primary, size: 40),
+                  decoration: const BoxDecoration(
+                    gradient: JewelryColors.emeraldLusterGradient,
+                  ),
+                  child: const Icon(
+                    Icons.diamond,
+                    color: JewelryColors.jadeBlack,
+                    size: 40,
+                  ),
                 ),
               ),
             ),
@@ -679,10 +964,10 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen>
                   children: [
                     Text(
                       product.titleL10n,
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                        color: isDark ? Colors.white : Colors.black87,
+                        fontWeight: FontWeight.w900,
+                        color: JewelryColors.jadeMist,
                       ),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
@@ -692,7 +977,7 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen>
                       '${product.matL10n} · ${product.catL10n}',
                       style: TextStyle(
                         fontSize: 12,
-                        color: isDark ? Colors.white54 : Colors.grey,
+                        color: JewelryColors.jadeMist.withOpacity(0.54),
                       ),
                     ),
                     const SizedBox(height: 6),
@@ -702,8 +987,8 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen>
                           '¥${product.price.toInt()}',
                           style: const TextStyle(
                             fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFFE53935),
+                            fontWeight: FontWeight.w900,
+                            color: JewelryColors.champagneGold,
                           ),
                         ),
                         const SizedBox(width: 6),
@@ -713,24 +998,30 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen>
                             '¥${product.originalPrice!.toInt()}',
                             style: TextStyle(
                               fontSize: 12,
-                              color: isDark ? Colors.white38 : Colors.grey,
+                              color: JewelryColors.jadeMist.withOpacity(0.34),
                               decoration: TextDecoration.lineThrough,
                             ),
                           ),
                         const Spacer(),
                         Container(
-                          padding:
-                              const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 3),
                           decoration: BoxDecoration(
-                            gradient: JewelryColors.primaryGradient,
+                            color:
+                                JewelryColors.champagneGold.withOpacity(0.14),
                             borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color:
+                                  JewelryColors.champagneGold.withOpacity(0.18),
+                            ),
                           ),
                           child: Text(
                             ref.tr('common_view_detail'),
                             style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600),
+                              color: JewelryColors.champagneGold,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w800,
+                            ),
                           ),
                         ),
                       ],
@@ -765,19 +1056,26 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen>
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
         decoration: BoxDecoration(
-          color: JewelryColors.primary.withOpacity(0.08),
+          color: JewelryColors.deepJade.withOpacity(0.64),
           borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: JewelryColors.champagneGold.withOpacity(0.12),
+          ),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 12, color: JewelryColors.primary.withOpacity(0.7)),
+            Icon(
+              icon,
+              size: 12,
+              color: JewelryColors.champagneGold.withOpacity(0.78),
+            ),
             const SizedBox(width: 4),
             Text(
               label,
               style: TextStyle(
                 fontSize: 11,
-                color: JewelryColors.primary.withOpacity(0.7),
+                color: JewelryColors.jadeMist.withOpacity(0.7),
               ),
             ),
           ],
@@ -813,8 +1111,6 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen>
 
   /// Streaming response bubble.
   Widget _buildStreamingBubble() {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
     return Padding(
       padding: const EdgeInsets.only(bottom: 20),
       child: Row(
@@ -823,18 +1119,23 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen>
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              gradient: JewelryColors.primaryGradient,
+              gradient: JewelryColors.emeraldLusterGradient,
               shape: BoxShape.circle,
-              boxShadow: JewelryShadows.primaryGlow,
+              boxShadow: JewelryShadows.emeraldHalo,
             ),
-            child: const Icon(Icons.smart_toy, size: 16, color: Colors.white),
+            child: const Icon(
+              Icons.auto_awesome,
+              size: 16,
+              color: JewelryColors.jadeBlack,
+            ),
           ),
           const SizedBox(width: 12),
           Flexible(
             child: GlassmorphicCard(
-              borderRadius: 20,
-              blur: 10,
-              opacity: isDark ? 0.15 : 0.6,
+              borderRadius: 22,
+              blur: 18,
+              opacity: 0.18,
+              borderColor: JewelryColors.champagneGold.withOpacity(0.14),
               padding: const EdgeInsets.all(16),
               child: SelectableText.rich(
                 TextSpan(
@@ -842,11 +1143,9 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen>
                     TextSpan(
                       text: sanitizeUtf16(_streamingContent),
                       style: TextStyle(
-                        color: isDark
-                            ? Colors.white.withOpacity(0.9)
-                            : Colors.black87,
+                        color: JewelryColors.jadeMist.withOpacity(0.9),
                         fontSize: 15,
-                        height: 1.5,
+                        height: 1.55,
                       ),
                     ),
                     // Show the blinking cursor only while streaming.
@@ -877,17 +1176,22 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen>
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              gradient: JewelryColors.primaryGradient,
+              gradient: JewelryColors.emeraldLusterGradient,
               shape: BoxShape.circle,
-              boxShadow: JewelryShadows.primaryGlow,
+              boxShadow: JewelryShadows.emeraldHalo,
             ),
-            child: const Icon(Icons.smart_toy, size: 16, color: Colors.white),
+            child: const Icon(
+              Icons.auto_awesome,
+              size: 16,
+              color: JewelryColors.jadeBlack,
+            ),
           ),
           const SizedBox(width: 12),
           GlassmorphicCard(
-            borderRadius: 20,
-            blur: 10,
-            opacity: 0.6,
+            borderRadius: 22,
+            blur: 18,
+            opacity: 0.18,
+            borderColor: JewelryColors.champagneGold.withOpacity(0.14),
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             child: Row(
               mainAxisSize: MainAxisSize.min,
@@ -896,7 +1200,7 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen>
                   ref.tr('ai_thinking'),
                   style: TextStyle(
                     fontSize: 12,
-                    color: JewelryColors.primary.withOpacity(0.6),
+                    color: JewelryColors.jadeMist.withOpacity(0.64),
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -914,21 +1218,37 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen>
   }
 
   /// Input area.
-  Widget _buildInputArea(bool isDark) {
+  Widget _buildInputArea() {
+    final isBusy = _isLoading || _isStreaming;
+
     return ClipRRect(
-      borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
         child: Container(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+          padding: const EdgeInsets.fromLTRB(16, 14, 16, 30),
           decoration: BoxDecoration(
-            color: (isDark ? Colors.black : Colors.white).withOpacity(0.7),
+            gradient: LinearGradient(
+              colors: [
+                JewelryColors.deepJade.withOpacity(0.88),
+                JewelryColors.jadeBlack.withOpacity(0.94),
+              ],
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+            ),
             border: Border(
               top: BorderSide(
-                color: (isDark ? Colors.white : Colors.black).withOpacity(0.1),
+                color: JewelryColors.champagneGold.withOpacity(0.12),
                 width: 0.5,
               ),
             ),
+            boxShadow: [
+              BoxShadow(
+                color: JewelryColors.jadeBlack.withOpacity(0.36),
+                blurRadius: 28,
+                offset: const Offset(0, -12),
+              ),
+            ],
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -953,8 +1273,10 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen>
                             top: 0,
                             right: 0,
                             child: GestureDetector(
-                              onTap: () =>
-                                  setState(() => _selectedImage = null),
+                              onTap: () => setState(() {
+                                _selectedImage = null;
+                                _selectedImageBytes = null;
+                              }),
                               child: Container(
                                 decoration: const BoxDecoration(
                                   color: Colors.black54,
@@ -978,13 +1300,15 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen>
                     child: Container(
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                        color: (isDark ? Colors.white : Colors.black)
-                            .withOpacity(0.05),
+                        color: JewelryColors.deepJade.withOpacity(0.76),
                         shape: BoxShape.circle,
+                        border: Border.all(
+                          color: JewelryColors.champagneGold.withOpacity(0.14),
+                        ),
                       ),
                       child: Icon(
                         Icons.image_outlined,
-                        color: isDark ? Colors.white70 : Colors.black54,
+                        color: JewelryColors.jadeMist.withOpacity(0.72),
                         size: 22,
                       ),
                     ),
@@ -993,12 +1317,10 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen>
                   Expanded(
                     child: Container(
                       decoration: BoxDecoration(
-                        color: (isDark ? Colors.white : Colors.black)
-                            .withOpacity(0.05),
+                        color: JewelryColors.jadeSurface.withOpacity(0.5),
                         borderRadius: BorderRadius.circular(24),
                         border: Border.all(
-                          color: (isDark ? Colors.white : Colors.black)
-                              .withOpacity(0.1),
+                          color: JewelryColors.champagneGold.withOpacity(0.12),
                         ),
                       ),
                       child: TextField(
@@ -1006,8 +1328,7 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen>
                         decoration: InputDecoration(
                           hintText: ref.tr('ai_input_hint'),
                           hintStyle: TextStyle(
-                            color: (isDark ? Colors.white : Colors.black)
-                                .withOpacity(0.4),
+                            color: JewelryColors.jadeMist.withOpacity(0.42),
                           ),
                           contentPadding: const EdgeInsets.symmetric(
                             horizontal: 20,
@@ -1015,8 +1336,8 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen>
                           ),
                           border: InputBorder.none,
                         ),
-                        style: TextStyle(
-                          color: isDark ? Colors.white : Colors.black87,
+                        style: const TextStyle(
+                          color: JewelryColors.jadeMist,
                         ),
                         maxLines: null,
                         textInputAction: TextInputAction.send,
@@ -1026,28 +1347,37 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen>
                   ),
                   const SizedBox(width: 12),
                   GestureDetector(
-                    onTap: (_isLoading || _isStreaming) ? null : _sendMessage,
+                    onTap: isBusy ? null : _sendMessage,
                     child: Container(
                       width: 48,
                       height: 48,
                       decoration: BoxDecoration(
-                        gradient: (_isLoading || _isStreaming)
+                        gradient: isBusy
                             ? LinearGradient(
-                                colors: [Colors.grey[400]!, Colors.grey[500]!],
+                                colors: [
+                                  JewelryColors.jadeSurface.withOpacity(0.7),
+                                  JewelryColors.deepJade.withOpacity(0.7),
+                                ],
                               )
-                            : JewelryColors.primaryGradient,
+                            : JewelryColors.emeraldLusterGradient,
                         shape: BoxShape.circle,
                         boxShadow: [
                           BoxShadow(
-                            color: (_isLoading || _isStreaming)
-                                ? Colors.grey.withOpacity(0.2)
-                                : JewelryColors.primary.withOpacity(0.3),
-                            blurRadius: 10,
-                            offset: const Offset(0, 4),
+                            color: isBusy
+                                ? JewelryColors.jadeBlack.withOpacity(0.18)
+                                : JewelryColors.emeraldGlow.withOpacity(0.22),
+                            blurRadius: 16,
+                            offset: const Offset(0, 8),
                           ),
                         ],
                       ),
-                      child: const Icon(Icons.send, color: Colors.white, size: 20),
+                      child: Icon(
+                        Icons.send,
+                        color: isBusy
+                            ? JewelryColors.jadeMist.withOpacity(0.42)
+                            : JewelryColors.jadeBlack,
+                        size: 20,
+                      ),
                     ),
                   ),
                 ],
@@ -1273,33 +1603,35 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen>
 
   /// Clears the conversation.
   void _clearChat() {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: isDark ? const Color(0xFF1E1E2E) : Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        backgroundColor: JewelryColors.deepJade,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         title: Row(
           children: [
-            const Icon(Icons.delete_outline, color: JewelryColors.error, size: 22),
+            const Icon(
+              Icons.delete_outline,
+              color: JewelryColors.error,
+              size: 22,
+            ),
             const SizedBox(width: 8),
             Text(
               ref.tr('ai_clear'),
-              style: TextStyle(color: isDark ? Colors.white : Colors.black87),
+              style: const TextStyle(color: JewelryColors.jadeMist),
             ),
           ],
         ),
         content: Text(
           ref.tr('ai_clear_confirm'),
-          style: TextStyle(color: isDark ? Colors.white70 : Colors.black54),
+          style: TextStyle(color: JewelryColors.jadeMist.withOpacity(0.68)),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: Text(
               ref.tr('cancel'),
-              style: TextStyle(color: isDark ? Colors.white54 : Colors.black45),
+              style: TextStyle(color: JewelryColors.jadeMist.withOpacity(0.56)),
             ),
           ),
           TextButton(

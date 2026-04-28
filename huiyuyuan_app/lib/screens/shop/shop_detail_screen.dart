@@ -16,6 +16,94 @@ import '../../models/json_parsing.dart';
 import '../../models/user_model.dart';
 import '../../services/ai_service.dart';
 import '../../services/contact_service.dart';
+import '../../widgets/common/glassmorphic_card.dart';
+
+class _ShopDetailBackdrop extends StatelessWidget {
+  const _ShopDetailBackdrop();
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration:
+          const BoxDecoration(gradient: JewelryColors.jadeDepthGradient),
+      child: Stack(
+        children: [
+          Positioned(
+            top: -150,
+            right: -120,
+            child: _ShopDetailGlowOrb(
+              size: 340,
+              color: JewelryColors.emeraldGlow.withOpacity(0.1),
+            ),
+          ),
+          Positioned(
+            left: -150,
+            bottom: 120,
+            child: _ShopDetailGlowOrb(
+              size: 300,
+              color: JewelryColors.champagneGold.withOpacity(0.08),
+            ),
+          ),
+          Positioned.fill(
+            child: CustomPaint(painter: _ShopDetailTracePainter()),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ShopDetailGlowOrb extends StatelessWidget {
+  const _ShopDetailGlowOrb({
+    required this.size,
+    required this.color,
+  });
+
+  final double size;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: color,
+        boxShadow: [
+          BoxShadow(color: color, blurRadius: 100, spreadRadius: 30),
+        ],
+      ),
+    );
+  }
+}
+
+class _ShopDetailTracePainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 0.75
+      ..color = JewelryColors.champagneGold.withOpacity(0.035);
+
+    for (var i = 0; i < 7; i++) {
+      final y = size.height * (0.1 + i * 0.13);
+      final path = Path()..moveTo(-24, y);
+      path.cubicTo(
+        size.width * 0.2,
+        y - 30,
+        size.width * 0.72,
+        y + 34,
+        size.width + 24,
+        y,
+      );
+      canvas.drawPath(path, paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _ShopDetailTracePainter oldDelegate) => false;
+}
 
 class ShopDetailScreen extends ConsumerStatefulWidget {
   final ShopModel shop;
@@ -111,23 +199,83 @@ class _ShopDetailScreenState extends ConsumerState<ShopDetailScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0D1B2A),
-      body: CustomScrollView(
-        slivers: [
-          _buildAppBar(),
-          SliverToBoxAdapter(child: _buildShopHeader()),
-          SliverToBoxAdapter(child: _buildTabBar()),
-          SliverFillRemaining(
-            child: TabBarView(
-              controller: _tabController,
-              children: [
-                _buildInfoTab(),
-                _buildContactTab(),
-                _buildAITab(),
-              ],
-            ),
+      backgroundColor: JewelryColors.jadeBlack,
+      body: Stack(
+        children: [
+          const Positioned.fill(child: _ShopDetailBackdrop()),
+          CustomScrollView(
+            slivers: [
+              _buildAppBar(),
+              SliverToBoxAdapter(child: _buildShopHeader()),
+              SliverToBoxAdapter(child: _buildTabBar()),
+              SliverFillRemaining(
+                child: TabBarView(
+                  controller: _tabController,
+                  children: [
+                    _buildInfoTab(),
+                    _buildContactTab(),
+                    _buildAITab(),
+                  ],
+                ),
+              ),
+            ],
           ),
         ],
+      ),
+    );
+  }
+
+  TextStyle get _titleStyle => const TextStyle(
+        color: JewelryColors.jadeMist,
+        fontSize: 16,
+        fontWeight: FontWeight.w900,
+      );
+
+  TextStyle get _bodyStyle => TextStyle(
+        color: JewelryColors.jadeMist.withOpacity(0.66),
+        fontSize: 13,
+        height: 1.45,
+      );
+
+  Widget _pill({
+    required Widget child,
+    required Color color,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.12),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: color.withOpacity(0.2)),
+      ),
+      child: child,
+    );
+  }
+
+  Widget _glassSection({required Widget child}) {
+    return GlassmorphicCard(
+      padding: const EdgeInsets.all(16),
+      borderRadius: 22,
+      blur: 16,
+      opacity: 0.17,
+      borderColor: JewelryColors.champagneGold.withOpacity(0.12),
+      child: child,
+    );
+  }
+
+  Widget _glassDivider() {
+    return Divider(
+      height: 1,
+      color: JewelryColors.champagneGold.withOpacity(0.1),
+    );
+  }
+
+  void _showStyledSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: JewelryColors.emeraldShadow,
+        behavior: SnackBarBehavior.floating,
       ),
     );
   }
@@ -137,7 +285,7 @@ class _ShopDetailScreenState extends ConsumerState<ShopDetailScreen>
       expandedHeight: 120,
       floating: false,
       pinned: true,
-      backgroundColor: Colors.transparent,
+      backgroundColor: JewelryColors.jadeBlack.withOpacity(0.88),
       flexibleSpace: ClipRRect(
         child: BackdropFilter(
           filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
@@ -145,8 +293,8 @@ class _ShopDetailScreenState extends ConsumerState<ShopDetailScreen>
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [
-                  JewelryColors.primary.withOpacity(0.9),
-                  JewelryColors.primaryDark.withOpacity(0.9),
+                  JewelryColors.jadeBlack.withOpacity(0.72),
+                  JewelryColors.deepJade.withOpacity(0.72),
                 ],
               ),
             ),
@@ -154,21 +302,36 @@ class _ShopDetailScreenState extends ConsumerState<ShopDetailScreen>
         ),
       ),
       leading: IconButton(
-        icon: Icon(Icons.arrow_back_ios, color: Colors.white),
+        icon: const Icon(Icons.arrow_back_ios, color: JewelryColors.jadeMist),
         onPressed: () => Navigator.pop(context),
       ),
-      title: Text(
-        widget.shop.name,
-        style:
-            const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+      title: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+        decoration: BoxDecoration(
+          color: JewelryColors.deepJade.withOpacity(0.62),
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(
+            color: JewelryColors.champagneGold.withOpacity(0.14),
+          ),
+        ),
+        child: Text(
+          widget.shop.name,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(
+            color: JewelryColors.jadeMist,
+            fontWeight: FontWeight.w900,
+            fontSize: 16,
+          ),
+        ),
       ),
       actions: [
         IconButton(
-          icon: Icon(Icons.share, color: Colors.white),
+          icon: const Icon(Icons.share, color: JewelryColors.jadeMist),
           onPressed: () {},
         ),
         IconButton(
-          icon: Icon(Icons.more_vert, color: Colors.white),
+          icon: const Icon(Icons.more_vert, color: JewelryColors.jadeMist),
           onPressed: () {},
         ),
       ],
@@ -176,21 +339,13 @@ class _ShopDetailScreenState extends ConsumerState<ShopDetailScreen>
   }
 
   Widget _buildShopHeader() {
-    return Container(
-      margin: EdgeInsets.all(16),
-      padding: EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            JewelryColors.primary.withOpacity(0.2),
-            JewelryColors.gold.withOpacity(0.1),
-          ],
-        ),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: JewelryColors.primary.withOpacity(0.3),
-        ),
-      ),
+    return GlassmorphicCard(
+      margin: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
+      borderRadius: 28,
+      blur: 18,
+      opacity: 0.2,
+      borderColor: JewelryColors.emeraldGlow.withOpacity(0.18),
       child: Column(
         children: [
           Row(
@@ -200,12 +355,23 @@ class _ShopDetailScreenState extends ConsumerState<ShopDetailScreen>
                 width: 70,
                 height: 70,
                 decoration: BoxDecoration(
-                  gradient: JewelryColors.primaryGradient,
+                  gradient: JewelryColors.champagneGradient,
                   borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: JewelryColors.champagneGold.withOpacity(0.28),
+                      blurRadius: 20,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
                 ),
-                child: Icon(Icons.store, color: Colors.white, size: 32),
+                child: const Icon(
+                  Icons.store,
+                  color: JewelryColors.jadeBlack,
+                  size: 32,
+                ),
               ),
-              SizedBox(width: 16),
+              const SizedBox(width: 16),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -215,64 +381,58 @@ class _ShopDetailScreenState extends ConsumerState<ShopDetailScreen>
                         Text(
                           widget.shop.name,
                           style: const TextStyle(
-                            color: Colors.white,
+                            color: JewelryColors.jadeMist,
                             fontSize: 18,
-                            fontWeight: FontWeight.bold,
+                            fontWeight: FontWeight.w900,
                           ),
                         ),
-                        SizedBox(width: 8),
-                        Container(
-                          padding:
-                              EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: widget.shop.platformColor.withOpacity(0.2),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
+                        const SizedBox(width: 8),
+                        _pill(
+                          color: widget.shop.platformColor,
                           child: Text(
                             widget.shop.platform,
                             style: TextStyle(
                               color: widget.shop.platformColor,
                               fontSize: 10,
-                              fontWeight: FontWeight.w500,
+                              fontWeight: FontWeight.w800,
                             ),
                           ),
                         ),
                       ],
                     ),
-                    SizedBox(height: 4),
+                    const SizedBox(height: 4),
                     Text(
                       widget.shop.category,
                       style: TextStyle(
-                        color: Colors.white.withOpacity(0.6),
+                        color: JewelryColors.jadeMist.withOpacity(0.62),
                         fontSize: 13,
                       ),
                     ),
-                    SizedBox(height: 8),
+                    const SizedBox(height: 8),
                     Row(
                       children: [
-                        Icon(Icons.star, color: JewelryColors.gold, size: 16),
-                        SizedBox(width: 4),
+                        const Icon(
+                          Icons.star,
+                          color: JewelryColors.champagneGold,
+                          size: 16,
+                        ),
+                        const SizedBox(width: 4),
                         Text(
                           widget.shop.rating.toStringAsFixed(1),
                           style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
+                            color: JewelryColors.jadeMist,
+                            fontWeight: FontWeight.w900,
                           ),
                         ),
-                        SizedBox(width: 12),
-                        Container(
-                          padding:
-                              EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: widget.shop.contactStatus.color
-                                .withOpacity(0.2),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
+                        const SizedBox(width: 12),
+                        _pill(
+                          color: widget.shop.contactStatus.color,
                           child: Text(
                             ref.tr(widget.shop.contactStatus.labelKey),
                             style: TextStyle(
                               color: widget.shop.contactStatus.color,
                               fontSize: 11,
+                              fontWeight: FontWeight.w800,
                             ),
                           ),
                         ),
@@ -283,7 +443,7 @@ class _ShopDetailScreenState extends ConsumerState<ShopDetailScreen>
               ),
             ],
           ),
-          SizedBox(height: 16),
+          const SizedBox(height: 16),
           // 数据统计
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -312,16 +472,16 @@ class _ShopDetailScreenState extends ConsumerState<ShopDetailScreen>
         Text(
           value,
           style: const TextStyle(
-            color: Colors.white,
+            color: JewelryColors.champagneGold,
             fontSize: 18,
-            fontWeight: FontWeight.bold,
+            fontWeight: FontWeight.w900,
           ),
         ),
-        SizedBox(height: 4),
+        const SizedBox(height: 4),
         Text(
           label,
           style: TextStyle(
-            color: Colors.white.withOpacity(0.5),
+            color: JewelryColors.jadeMist.withOpacity(0.5),
             fontSize: 12,
           ),
         ),
@@ -333,23 +493,28 @@ class _ShopDetailScreenState extends ConsumerState<ShopDetailScreen>
     return Container(
       width: 1,
       height: 30,
-      color: Colors.white.withOpacity(0.1),
+      color: JewelryColors.champagneGold.withOpacity(0.12),
     );
   }
 
   Widget _buildTabBar() {
     return Container(
-      margin: EdgeInsets.symmetric(horizontal: 16),
+      margin: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.06),
-        borderRadius: BorderRadius.circular(12),
+        color: JewelryColors.jadeBlack.withOpacity(0.24),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: JewelryColors.champagneGold.withOpacity(0.12),
+        ),
       ),
       child: TabBar(
         controller: _tabController,
-        indicatorColor: JewelryColors.primary,
+        indicatorColor: JewelryColors.emeraldGlow,
         indicatorWeight: 3,
-        labelColor: Colors.white,
-        unselectedLabelColor: Colors.white54,
+        labelColor: JewelryColors.emeraldGlow,
+        unselectedLabelColor: JewelryColors.jadeMist.withOpacity(0.52),
+        labelStyle: const TextStyle(fontWeight: FontWeight.w900),
+        unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500),
         tabs: [
           Tab(text: ref.tr('shop_detail_info_tab')),
           Tab(text: ref.tr('shop_detail_contacts_tab')),
@@ -361,13 +526,13 @@ class _ShopDetailScreenState extends ConsumerState<ShopDetailScreen>
 
   Widget _buildInfoTab() {
     return SingleChildScrollView(
-      padding: EdgeInsets.all(16),
+      padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // AI 评估卡片
           _buildEvaluationCard(),
-          SizedBox(height: 16),
+          const SizedBox(height: 16),
           // 基本信息
           _buildInfoSection(ref.tr('shop_detail_basic_info'), [
             _buildInfoRow(
@@ -397,59 +562,57 @@ class _ShopDetailScreenState extends ConsumerState<ShopDetailScreen>
   }
 
   Widget _buildEvaluationCard() {
-    return Container(
-      padding: EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            JewelryColors.gold.withOpacity(0.15),
-            JewelryColors.gold.withOpacity(0.05),
-          ],
-        ),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: JewelryColors.gold.withOpacity(0.3)),
-      ),
+    return GlassmorphicCard(
+      padding: const EdgeInsets.all(16),
+      borderRadius: 24,
+      blur: 16,
+      opacity: 0.17,
+      borderColor: JewelryColors.champagneGold.withOpacity(0.18),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(Icons.psychology, color: JewelryColors.gold),
-              SizedBox(width: 8),
+              const Icon(
+                Icons.psychology,
+                color: JewelryColors.champagneGold,
+              ),
+              const SizedBox(width: 8),
               Text(
                 ref.tr('shop_detail_ai_report'),
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: _titleStyle,
               ),
             ],
           ),
-          SizedBox(height: 16),
+          const SizedBox(height: 16),
           if (_isEvaluating)
-            Center(
-              child: CircularProgressIndicator(color: JewelryColors.gold),
+            const Center(
+              child: CircularProgressIndicator(
+                color: JewelryColors.champagneGold,
+              ),
             )
           else if (_evaluation != null) ...[
             Row(
               children: [
                 Container(
-                  padding: EdgeInsets.all(16),
+                  padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: JewelryColors.gold.withOpacity(0.2),
+                    color: JewelryColors.champagneGold.withOpacity(0.14),
                     shape: BoxShape.circle,
+                    border: Border.all(
+                      color: JewelryColors.champagneGold.withOpacity(0.24),
+                    ),
                   ),
                   child: Text(
                     '${_evaluation!['score']}',
                     style: const TextStyle(
-                      color: Colors.white,
+                      color: JewelryColors.champagneGold,
                       fontSize: 24,
-                      fontWeight: FontWeight.bold,
+                      fontWeight: FontWeight.w900,
                     ),
                   ),
                 ),
-                SizedBox(width: 16),
+                const SizedBox(width: 16),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -457,16 +620,16 @@ class _ShopDetailScreenState extends ConsumerState<ShopDetailScreen>
                       Text(
                         jsonAsString(_evaluation!['decision']),
                         style: const TextStyle(
-                          color: Colors.white,
+                          color: JewelryColors.jadeMist,
                           fontSize: 18,
-                          fontWeight: FontWeight.bold,
+                          fontWeight: FontWeight.w900,
                         ),
                       ),
-                      SizedBox(height: 4),
+                      const SizedBox(height: 4),
                       Text(
                         jsonAsString(_evaluation!['suggestedAction']),
                         style: TextStyle(
-                          color: Colors.white.withOpacity(0.6),
+                          color: JewelryColors.jadeMist.withOpacity(0.62),
                           fontSize: 12,
                         ),
                       ),
@@ -475,22 +638,28 @@ class _ShopDetailScreenState extends ConsumerState<ShopDetailScreen>
                 ),
               ],
             ),
-            SizedBox(height: 12),
+            const SizedBox(height: 12),
             Wrap(
               spacing: 8,
               runSpacing: 8,
               children: (_evaluation!['reasons'] as List<dynamic>? ?? [])
                   .map((reason) => Container(
-                        padding:
-                            EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.1),
+                          color: JewelryColors.jadeBlack.withOpacity(0.22),
                           borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color:
+                                JewelryColors.champagneGold.withOpacity(0.12),
+                          ),
                         ),
                         child: Text(
                           reason.toString(),
                           style: TextStyle(
-                            color: Colors.white.withOpacity(0.8),
+                            color: JewelryColors.jadeMist.withOpacity(0.78),
                             fontSize: 11,
                           ),
                         ),
@@ -504,25 +673,19 @@ class _ShopDetailScreenState extends ConsumerState<ShopDetailScreen>
   }
 
   Widget _buildInfoSection(String title, List<Widget> children) {
-    return Container(
-      padding: EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.06),
-        borderRadius: BorderRadius.circular(16),
-      ),
+    return _glassSection(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             title,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-            ),
+            style: _titleStyle,
           ),
-          SizedBox(height: 12),
-          ...children,
+          const SizedBox(height: 12),
+          for (var i = 0; i < children.length; i++) ...[
+            children[i],
+            if (i != children.length - 1) _glassDivider(),
+          ],
         ],
       ),
     );
@@ -530,20 +693,26 @@ class _ShopDetailScreenState extends ConsumerState<ShopDetailScreen>
 
   Widget _buildInfoRow(IconData icon, String label, String value) {
     return Padding(
-      padding: EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
         children: [
-          Icon(icon, color: JewelryColors.primary, size: 20),
-          SizedBox(width: 12),
+          Icon(icon, color: JewelryColors.emeraldGlow, size: 20),
+          const SizedBox(width: 12),
           Text(
             label,
-            style:
-                TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 14),
+            style: TextStyle(
+              color: JewelryColors.jadeMist.withOpacity(0.62),
+              fontSize: 14,
+            ),
           ),
-          Spacer(),
+          const Spacer(),
           Text(
             value,
-            style: const TextStyle(color: Colors.white, fontSize: 14),
+            style: const TextStyle(
+              color: JewelryColors.jadeMist,
+              fontSize: 14,
+              fontWeight: FontWeight.w800,
+            ),
           ),
         ],
       ),
@@ -552,10 +721,12 @@ class _ShopDetailScreenState extends ConsumerState<ShopDetailScreen>
 
   Widget _buildContactTab() {
     if (_isLoadingContacts) {
-      return Center(child: CircularProgressIndicator());
+      return const Center(
+        child: CircularProgressIndicator(color: JewelryColors.emeraldGlow),
+      );
     }
     return ListView.builder(
-      padding: EdgeInsets.all(16),
+      padding: const EdgeInsets.all(16),
       itemCount: _contactRecords.length + 1,
       itemBuilder: (context, index) {
         if (index == 0) {
@@ -568,17 +739,18 @@ class _ShopDetailScreenState extends ConsumerState<ShopDetailScreen>
 
   Widget _buildAddRecordButton() {
     return Container(
-      margin: EdgeInsets.only(bottom: 16),
+      margin: const EdgeInsets.only(bottom: 16),
       child: ElevatedButton.icon(
         onPressed: () {},
-        icon: Icon(Icons.add),
+        icon: const Icon(Icons.add),
         label: Text(ref.tr('shop_detail_add_contact_record')),
         style: ElevatedButton.styleFrom(
-          backgroundColor: JewelryColors.primary,
-          foregroundColor: Colors.white,
-          padding: EdgeInsets.symmetric(vertical: 14),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+          backgroundColor: JewelryColors.emeraldLuster,
+          foregroundColor: JewelryColors.jadeBlack,
+          elevation: 0,
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.all(Radius.circular(12)),
           ),
         ),
       ),
@@ -586,13 +758,13 @@ class _ShopDetailScreenState extends ConsumerState<ShopDetailScreen>
   }
 
   Widget _buildContactRecordCard(Map<String, String> record) {
-    return Container(
-      margin: EdgeInsets.only(bottom: 12),
-      padding: EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.06),
-        borderRadius: BorderRadius.circular(12),
-      ),
+    return GlassmorphicCard(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      borderRadius: 22,
+      blur: 16,
+      opacity: 0.17,
+      borderColor: JewelryColors.champagneGold.withOpacity(0.12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -602,41 +774,42 @@ class _ShopDetailScreenState extends ConsumerState<ShopDetailScreen>
               Text(
                 record['action'] ?? '',
                 style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
+                  color: JewelryColors.jadeMist,
+                  fontWeight: FontWeight.w900,
                 ),
               ),
               Text(
                 record['date'] ?? '',
                 style: TextStyle(
-                  color: Colors.white.withOpacity(0.5),
+                  color: JewelryColors.jadeMist.withOpacity(0.5),
                   fontSize: 12,
                 ),
               ),
             ],
           ),
-          SizedBox(height: 8),
+          const SizedBox(height: 8),
           Container(
-            padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             decoration: BoxDecoration(
-              color: JewelryColors.primary.withOpacity(0.2),
+              color: JewelryColors.emeraldGlow.withOpacity(0.12),
               borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: JewelryColors.emeraldGlow.withOpacity(0.2),
+              ),
             ),
             child: Text(
               record['result'] ?? '',
               style: const TextStyle(
-                color: JewelryColors.primary,
+                color: JewelryColors.emeraldGlow,
                 fontSize: 12,
+                fontWeight: FontWeight.w800,
               ),
             ),
           ),
-          SizedBox(height: 8),
+          const SizedBox(height: 8),
           Text(
             record['note'] ?? '',
-            style: TextStyle(
-              color: Colors.white.withOpacity(0.7),
-              fontSize: 13,
-            ),
+            style: _bodyStyle,
           ),
         ],
       ),
@@ -645,71 +818,69 @@ class _ShopDetailScreenState extends ConsumerState<ShopDetailScreen>
 
   Widget _buildAITab() {
     return SingleChildScrollView(
-      padding: EdgeInsets.all(16),
+      padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // 话术生成
-          Container(
-            padding: EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.06),
-              borderRadius: BorderRadius.circular(16),
-            ),
+          _glassSection(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   children: [
-                    Icon(Icons.auto_awesome, color: JewelryColors.gold),
-                    SizedBox(width: 8),
+                    const Icon(
+                      Icons.auto_awesome,
+                      color: JewelryColors.champagneGold,
+                    ),
+                    const SizedBox(width: 8),
                     Text(
                       ref.tr('shop_detail_ai_dialogue_title'),
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
+                      style: _titleStyle,
                     ),
                   ],
                 ),
-                SizedBox(height: 16),
+                const SizedBox(height: 16),
                 if (_generatedDialogue != null)
                   Container(
-                    padding: EdgeInsets.all(12),
+                    padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: JewelryColors.primary.withOpacity(0.1),
+                      color: JewelryColors.jadeBlack.withOpacity(0.28),
                       borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: JewelryColors.champagneGold.withOpacity(0.12),
+                      ),
                     ),
                     child: Text(
                       _generatedDialogue!,
                       style: TextStyle(
-                        color: Colors.white.withOpacity(0.9),
+                        color: JewelryColors.jadeMist.withOpacity(0.86),
                         fontSize: 14,
                         height: 1.6,
                       ),
                     ),
                   ),
-                SizedBox(height: 16),
+                const SizedBox(height: 16),
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
                     onPressed: _isGenerating ? null : _generateDialogue,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: JewelryColors.gold,
-                      foregroundColor: Colors.black87,
-                      padding: EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                      backgroundColor: JewelryColors.champagneGold,
+                      foregroundColor: JewelryColors.jadeBlack,
+                      elevation: 0,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: const RoundedRectangleBorder(
+                        borderRadius: BorderRadius.all(Radius.circular(12)),
                       ),
                     ),
                     child: _isGenerating
-                        ? SizedBox(
+                        ? const SizedBox(
                             width: 20,
                             height: 20,
                             child: CircularProgressIndicator(
                               strokeWidth: 2,
-                              color: Colors.black54,
+                              color: JewelryColors.jadeBlack,
                             ),
                           )
                         : Text(
@@ -722,17 +893,13 @@ class _ShopDetailScreenState extends ConsumerState<ShopDetailScreen>
               ],
             ),
           ),
-          SizedBox(height: 16),
+          const SizedBox(height: 16),
           // 快捷操作
           Text(
             ref.tr('admin_quick_actions'),
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-            ),
+            style: _titleStyle,
           ),
-          SizedBox(height: 12),
+          const SizedBox(height: 12),
           Row(
             children: [
               Expanded(
@@ -741,16 +908,14 @@ class _ShopDetailScreenState extends ConsumerState<ShopDetailScreen>
                   ref.tr('shop_detail_copy_dialogue'),
                   () {
                     if (_generatedDialogue != null) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(ref.tr('shop_detail_dialogue_copied')),
-                        ),
+                      _showStyledSnackBar(
+                        ref.tr('shop_detail_dialogue_copied'),
                       );
                     }
                   },
                 ),
               ),
-              SizedBox(width: 12),
+              const SizedBox(width: 12),
               Expanded(
                 child: _buildQuickAction(
                   Icons.share,
@@ -766,23 +931,25 @@ class _ShopDetailScreenState extends ConsumerState<ShopDetailScreen>
   }
 
   Widget _buildQuickAction(IconData icon, String label, VoidCallback onTap) {
-    return GestureDetector(
+    return GlassmorphicCard(
+      padding: EdgeInsets.zero,
+      borderRadius: 18,
+      blur: 14,
+      opacity: 0.16,
+      borderColor: JewelryColors.champagneGold.withOpacity(0.12),
       onTap: onTap,
       child: Container(
-        padding: EdgeInsets.symmetric(vertical: 16),
-        decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.06),
-          borderRadius: BorderRadius.circular(12),
-        ),
+        padding: const EdgeInsets.symmetric(vertical: 16),
         child: Column(
           children: [
-            Icon(icon, color: JewelryColors.primary),
-            SizedBox(height: 8),
+            Icon(icon, color: JewelryColors.emeraldGlow),
+            const SizedBox(height: 8),
             Text(
               label,
               style: TextStyle(
-                color: Colors.white.withOpacity(0.7),
+                color: JewelryColors.jadeMist.withOpacity(0.72),
                 fontSize: 13,
+                fontWeight: FontWeight.w700,
               ),
             ),
           ],
