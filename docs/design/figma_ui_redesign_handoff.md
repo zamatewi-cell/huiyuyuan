@@ -1,24 +1,35 @@
 # HuiYuYuan Figma Redesign Handoff
 
-Last updated: 2026-04-22
+Last updated: 2026-04-28
 
 ## Purpose
 
-This file is the design handoff for continuing the HuiYuYuan Figma redesign in a new Codex thread when the current thread cannot access `use_figma` / `create_new_file`.
+This file is the design handoff for continuing the HuiYuYuan Figma redesign in a new Codex thread or a design-only workflow.
 
-The next thread should treat this file as the canonical art direction and execution brief.
+The Flutter implementation has already shipped to production on 2026-04-28. Future Figma work should align with the production UI and the design system in `docs/design/design_system.md`.
 
 ## Project Context
 
 - Brand: HuiYuYuan / 汇玉源
 - Product type: premium jewelry intelligent trading platform
 - Stack context: Flutter frontend + FastAPI backend
-- Design system direction: dark theme + liquid glass + emerald brand color + restrained champagne gold
+- Design direction: dark theme + liquid glass + emerald brand color + restrained champagne gold
 - Target feeling: premium, curated, intimate, elegant, refined
+
+Production references:
+
+- `https://汇玉源.top`
+- `https://xn--lsws2cdzg.top`
+
+Implementation notes:
+
+- Web should update as static assets; do not design a web update modal.
+- Mobile can keep update/download/install flows.
+- Browser Service Worker cache can temporarily show older UI after release.
 
 ## Existing Good Direction
 
-The earlier successful direction was built around:
+The earlier successful Figma direction was built around:
 
 - `Home / Curation`
 - `AI Concierge`
@@ -31,7 +42,7 @@ Those screens established the right visual language:
 - high-end editorial typography
 - jewelry-brand atmosphere rather than generic e-commerce
 
-If screenshots of those screens are available, they should be treated as higher priority than any text instruction in this file.
+If screenshots of those screens are available, they should be treated as higher priority than any abstract prompt.
 
 ## Visual Language
 
@@ -63,12 +74,10 @@ Use clean sans-serif for UI labels, metadata, buttons, and forms.
 - Input radius: `14-16`
 - Soft shadows only
 - Thin light edge highlights
-- Background blur feel should be elegant and subtle
+- Background blur should feel elegant and subtle
 - Avoid overusing glow, gradients, or loud reflections
 
 ## Absolute Avoid List
-
-Do not produce any of the following:
 
 - blue-purple AI aesthetic
 - generic e-commerce template layout
@@ -95,7 +104,7 @@ These are references for structure and mood only. The final design should feel c
 
 ## Page Scope To Continue
 
-Continue with these three pages:
+Continue with these pages first:
 
 1. `Login / Welcome`
 2. `Product Detail`
@@ -124,7 +133,7 @@ Desktop should be split layout:
 
 - Title: `汇玉源`
 - Subtitle: `AI 珠宝顾问与交易平台`
-- Supporting line: something close to `甄选、咨询、交易，一处完成`
+- Supporting line: `甄选、咨询、交易，一处完成`
 - Inputs: phone number, verification code
 - Actions:
   - primary CTA for login / code flow
@@ -135,8 +144,8 @@ Desktop should be split layout:
 
 Add 3 subtle trust points:
 
-- `12家合作店铺`
-- `AI智能挑选`
+- `12 家合作店铺`
+- `AI 智能挑选`
 - `交易更安心`
 
 ### Tone
@@ -153,10 +162,7 @@ This page should feel like luxury brand onboarding, not a discount signup page.
 
 - immersive hero image area
 - dark exhibition / product photography mood
-- floating glass icon buttons for:
-  - back
-  - favorite
-  - share
+- floating glass icon buttons for back, favorite, share
 
 ### Product Info Order
 
@@ -166,7 +172,7 @@ This page should feel like luxury brand onboarding, not a discount signup page.
 - spec summary
 - inventory status
 
-Use serif for the product title and gold for price emphasis.
+Use serif for the product title and restrained gold for price emphasis.
 
 ### AI Concierge Block
 
@@ -177,7 +183,7 @@ Include:
 - title: `问问 AI 这件适合谁`
 - three quick chips:
   - `适合送长辈吗`
-  - `日常佩戴会不会夸张`
+  - `日常佩戴会不会太张扬`
   - `同价位还有什么推荐`
 
 ### Detail Sections
@@ -219,26 +225,18 @@ The page should feel like assisted luxury decision-making, not hard-sell retail.
 ### Sidebar
 
 - dark matte / frosted appearance
-- subtle emerald or gold selected state
-- not a standard SaaS sidebar
+- emerald active indicator
+- restrained icons
+- no bright SaaS blue
 
-### Top Bar
+### KPI Row
 
-Include:
+Use glass cards for:
 
-- search
-- time range
-- notifications
-- current admin avatar
-
-### KPI Cards
-
-Four cards:
-
-- `今日成交额`
+- `今日订单`
 - `待确认付款`
-- `待发货订单`
-- `AI咨询转化`
+- `库存预警`
+- `AI 咨询转化`
 
 ### Main Workspace
 
@@ -246,67 +244,23 @@ Do not make this a plain table dashboard.
 
 Suggested middle layout:
 
-- left: pending orders
-- center: payment review and anomaly alerts
-- right: store performance and low stock warnings
+- left: operations queue / order workbench
+- right: payment reconciliation / inventory alerts
+- bottom: activity stream or trend chart
 
-### Lower Section
-
-Include:
-
-- recent transaction activity timeline
-- inventory / hot materials module
-
-### Tone
-
-This page should feel more restrained and operational than the consumer screens, but still clearly belong to the same brand system.
+The page should feel operational and restrained, while clearly belonging to the same luxury brand system.
 
 ## Motion / Polish Guidance
 
-- entry animation: slight rise + fade
-- hover state: subtle edge highlight
+- page load: gentle stagger, not flashy
+- product hero: subtle light sweep or soft reveal
 - AI module: very soft breathing glow at most
 - no exaggerated 3D
 - no futuristic neon sci-fi effects
 
-## Execution Rules For The Next Thread
+## Current Design Debt
 
-The next thread should follow these rules exactly:
-
-- do not invent a new visual direction
-- do not produce multiple style branches
-- do not default to a generic commerce or admin template
-- keep all three pages in one coherent visual system
-- prioritize polish, spacing, hierarchy, and material quality over quantity of UI elements
-
-## Recommended New Thread Prompt
-
-Use this as the opening message in the next thread:
-
-```text
-Please read D:/huiyuyuan_project/docs/design/figma_ui_redesign_handoff.md first and follow it as the design brief.
-
-You are continuing an existing HuiYuYuan Figma redesign direction, not inventing a new style.
-
-Important:
-- strictly keep the dark + emerald + champagne gold + liquid glass luxury jewelry aesthetic
-- do not use blue-purple AI visuals
-- do not use generic e-commerce or admin dashboard templates
-- produce only one coherent design direction
-
-After reading the handoff file, continue the Figma work for these screens:
-1. Login / Welcome
-2. Product Detail
-3. Admin / Dashboard
-
-If screenshots of the previous Home / Curation and AI Concierge screens are provided, use those as the highest-priority visual reference.
-```
-
-## What The User Should Also Provide
-
-To maximize visual continuity, the user should attach:
-
-- screenshots of the earlier `Home / Curation` screen
-- screenshots of the earlier `AI Concierge` screen
-
-Those screenshots matter more than any abstract style prompt.
+- Build a proper Figma component library from production Flutter tokens.
+- Map `GlassmorphicCard`, gradient buttons, status chips, product cards, and admin KPI cards to named Figma components.
+- Add responsive desktop/mobile variants for login, product detail, and admin workbench.
+- Capture production screenshots after each major release and attach them to the Figma draft.

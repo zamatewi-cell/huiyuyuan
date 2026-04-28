@@ -1,6 +1,6 @@
 ﻿# 汇玉源当前状态速览
 
-> 更新时间：2026-04-14
+> 更新时间：2026-04-28
 > 目的：给后续接手开发、验收、上线的人一个 3-5 分钟可读完的状态摘要。
 
 ---
@@ -10,8 +10,18 @@
 - 线上域名：[https://xn--lsws2cdzg.top](https://xn--lsws2cdzg.top)
 - 服务器侧状态：`nginx=active`，`huiyuyuan-backend=active`
 - 服务器本机健康检查：`/api/health` 正常，`db=true`，`redis=true`
-- 最近一次上线：2026-04-01，只发布了前端 Web 静态资源，没有改动线上后端代码
-- 当前版本适合“小范围内部试运行”，不建议直接当“面对外部客户的正式商用版”
+- 最近一次上线：2026-04-28，已同步后端、Nginx 与 Flutter Web 静态资源
+- 当前版本适合“小范围内部试运行”和真实业务流程演练，不建议直接当“面对外部客户的大规模正式商用版”
+- 最新完整状态请优先阅读：`docs/project_status_20260428.md`
+
+### 1.1 2026-04-28 最新补充
+
+- Flutter Web 已完成 Liquid Glass UI 重构并上线，覆盖登录、商品、购物车、订单、支付、个人中心、AI、店铺、AR、管理端和操作员端等主要页面。
+- 后端已部署订单/支付/权限相关增强，Alembic 当前 head 为 `20260415_0009_operator_permissions`。
+- Web 端更新提示已关闭，移动端保留更新下载/安装能力。
+- 本轮部署从干净 release worktree 执行，没有从脏工作区直接发版。
+- GitHub 账号处于申诉状态，当前分支 `codex/ui-redesign-release-check` 尚未推送远端。
+- 浏览器若仍看到旧页面，优先按 Flutter Web Service Worker 缓存处理：强刷、无痕窗口或清理站点缓存。
 
 ---
 

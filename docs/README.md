@@ -1,96 +1,88 @@
-# 📚 汇玉源项目文档中心
+# 汇玉源文档中心
 
-> 所有项目文档统一管理于此目录。
-> 最后更新: 2026-04-08
+> 最后更新：2026-04-28
+> 说明：所有当前有效的项目文档统一放在 `docs/` 下；`docs/reference/` 和 `docs/reference/archive/` 仅作历史参考。
 
 ---
 
-## 📁 目录结构
+## 当前必读
+
+| 文档 | 说明 | 状态 |
+|------|------|------|
+| [项目状态总览 2026-04-28](project_status_20260428.md) | UI 重构上线后的真实状态、验证结果、风险和后续建议 | 当前权威 |
+| [当前状态速览](current_status_20260402.md) | 历史状态速览，已补充 2026-04-28 最新结论 | 当前可读 |
+| [生产部署指南](guides/deployment_guide_updated.md) | 服务器路径、部署命令、验证与排障 | 当前权威 |
+| [生产安全清单](guides/production_security_checklist_v2.md) | 生产安全基线、账号、JWT、CORS、数据库等检查 | 当前权威 |
+| [AI 服务指南](guides/ai_service_guide.md) | DashScope 文本/视觉能力、前后端配置方式 | 当前权威 |
+| [设计系统](design/design_system.md) | Liquid Glass 视觉规范与 Flutter 落地规则 | 当前权威 |
+| [Figma UI 重构交接](design/figma_ui_redesign_handoff.md) | Figma/视觉继续设计时的方向与范围 | 当前可用 |
+
+---
+
+## 目录结构
 
 ```text
 docs/
-├── planning/                    # 📋 规划文档（活跃维护）
-│   ├── v4_master_plan.md           # ★ v4.0 总规划（多Agent协同，当前主文档）
-│   └── task.md                     # 任务清单与进度
-├── guides/                      # 📖 操作指南
-│   ├── ai_service_guide.md         # AI 服务架构（DashScope + 离线兜底）
-│   ├── deployment_guide_updated.md # ★ 当前权威生产部署指南
-│   ├── deployment_guide.md         # 已归并到 deployment_guide_updated.md
-│   ├── production_security_checklist_v2.md # ★ 当前权威安全清单
-│   ├── production_security_checklist_20260402.md # 已归并到 production_security_checklist_v2.md
-│   ├── production_checklist.md     # 生产部署检查清单
-│   ├── payment_guide.md            # 支付集成指南
-│   ├── testing_guide.md            # 测试指南
-│   ├── device_test_cases.md        # 设备测试用例
-│   └── 快速启动指南.md              # Windows/Android/Web 本地运行方法
-├── design/                      # 🎨 设计文档
-│   └── design_system.md            # Liquid Glass 设计系统（含 Flutter 实现规范）
-├── agent_a_docs/                # 🤖 Agent A - 后端架构师
-├── agent_b_docs/                # 🤖 Agent B - 前端质量工程师
-├── agent_c_docs/                # 🤖 Agent C - 测试与安全专家
-├── agent_d_docs/                # 🤖 Agent D - DevOps 运维
-├── agent_e_docs/                # 🤖 Agent E - 生产发布工程师
-└── reference/                   # 📦 归档参考（历史版本，不再维护）
-    ├── v3_implementation_plan.md        # v3.0 实施计划
-    ├── v3_task.md                       # v3.0 任务清单
-    ├── v3.0_feature_matrix_20260201.csv # v3.0 功能矩阵
-    ├── UI优化方案.md                    # v2→v3 UI 优化方案（已落地）
-    ├── 项目评估报告.md                  # v2.0 评估报告（历史快照）
-    └── archive/                         # 更早期规划归档
-        ├── v3.1_upgrade_plan.md
-        ├── v3.2_upgrade_plan.md
-        ├── v3.3_enterprise_plan.md
-        ├── implementation_plan.md
-        ├── next_steps_action_plan.md
-        └── next_dev_prompt.md
+├── project_status_20260428.md        # 最新项目状态总览
+├── current_status_20260402.md        # 状态速览，含历史复盘
+├── README.md                         # 文档入口
+├── design/                           # 设计系统与 Figma 交接
+├── guides/                           # 部署、测试、安全、AI、支付等指南
+├── planning/                         # 规划、任务清单、技术债
+├── reference/                        # 历史参考资料
+└── reference/archive/                # 更早版本归档
 ```
 
 ---
 
-## 🔗 快速跳转
+## 常用链接
 
-| 文档 | 说明 | 状态 |
-|------|------|------|
-| [v4 总规划](planning/v4_master_plan.md) | 多Agent协同、后端模块化、PostgreSQL、安全加固 | 🔄 当前主规划 |
-| [任务清单](planning/task.md) | 项目待办/进行中/已完成任务 | 🔄 活跃维护 |
-| [生产部署指南](guides/deployment_guide_updated.md) | 一键部署、CI/CD、服务器运维 | ✅ 当前权威 |
-| [生产安全清单](guides/production_security_checklist_v2.md) | 服务器与应用层安全基线 | ✅ 当前权威 |
-| [AI 服务指南](guides/ai_service_guide.md) | DashScope 接入、接口说明、离线兜底 | ✅ 已定稿 |
-| [设计系统](design/design_system.md) | Liquid Glass 风格规范 + Flutter 实现代码 | ✅ 已定稿 |
-| [测试指南](guides/testing_guide.md) | 功能测试用例、AI 降级测试 | ✅ 可参考 |
-| [设备测试](guides/device_test_cases.md) | 真机测试用例集 | ✅ 可参考 |
-| [快速启动](guides/快速启动指南.md) | 本地环境搭建与运行 | ✅ 可参考 |
-| [部署清单](guides/production_checklist.md) | 上线前完整检查清单 | 📋 待执行 |
-| [支付指南](guides/payment_guide.md) | 微信/支付宝支付集成指南 | 📋 待执行 |
+### 发版与运维
 
-### Agent 工作文档
-
-| Agent | 角色 | 文档 |
-|-------|------|------|
-| A | 后端架构师 | [identity](agent_a_docs/identity.md) / [changelog](agent_a_docs/change_log.md) / [roadmap](agent_a_docs/roadmap.md) |
-| B | 前端质量工程师 | [identity](agent_b_docs/identity.md) / [changelog](agent_b_docs/change_log.md) / [roadmap](agent_b_docs/roadmap.md) |
-| C | 测试与安全专家 | [identity](agent_c_docs/identity.md) / [changelog](agent_c_docs/change_log.md) / [roadmap](agent_c_docs/roadmap.md) |
-| D | DevOps 运维 | [identity](agent_d_docs/identity.md) / [changelog](agent_d_docs/change_log.md) / [roadmap](agent_d_docs/roadmap.md) |
-| E | 生产发布工程师 | [identity](agent_e_docs/identity.md) / [changelog](agent_e_docs/change_log.md) / [roadmap](agent_e_docs/roadmap.md) |
-
----
-
-## 📊 项目状态速览 (2026-04-08)
-
-| 指标 | 数值 |
+| 文档 | 用途 |
 |------|------|
-| 当前版本 | v4.0 稳定化收尾 |
-| 页面/屏幕 | 23+ |
-| 测试状态 | ✅ backend `167 passed` / flutter `490 passed` |
-| 静态检查 | ✅ `dart analyze lib test tool --no-fatal-warnings` |
-| 服务器 | ✅ xn--lsws2cdzg.top 运行中 |
-| 多Agent协同 | A(后端) B(前端) C(测试) D(运维) E(发布) |
-| 主规划文档 | `planning/v4_master_plan.md` |
+| [生产部署指南](guides/deployment_guide_updated.md) | 日常发版入口，包含 `scripts/deploy.ps1` 用法 |
+| [回滚指南](guides/rollback_guide.md) | 生产异常时回滚后端或静态资源 |
+| [生产检查清单](guides/production_checklist.md) | 上线前后人工检查项 |
+| [域名与 SSL 指南](guides/domain_and_ssl_setup_guide.md) | 域名、HTTPS、证书相关排障 |
+
+### 产品与设计
+
+| 文档 | 用途 |
+|------|------|
+| [设计系统](design/design_system.md) | 色彩、玻璃态、字体、组件规范 |
+| [Figma UI 重构交接](design/figma_ui_redesign_handoff.md) | 后续继续补 Figma 设计时使用 |
+| [UI 优化指南](ui_optimization_guide.md) | 局部页面优化方法 |
+| [UI 优化策略](ui_optimization_strategies.md) | 更完整的视觉优化策略 |
+
+### 开发与测试
+
+| 文档 | 用途 |
+|------|------|
+| [快速启动指南](guides/快速启动指南.md) | Windows / Chrome / Android 启动方式 |
+| [测试指南](guides/testing_guide.md) | 前后端测试命令与场景 |
+| [设备测试用例](guides/device_test_cases.md) | 真机与多端测试清单 |
+| [AI 服务指南](guides/ai_service_guide.md) | DashScope 配置和降级策略 |
+| [支付指南](guides/payment_guide.md) | 支付接入方向与约束 |
+
+### 规划
+
+| 文档 | 用途 |
+|------|------|
+| [v4 总体规划](planning/v4_master_plan.md) | v4 架构与协作总览 |
+| [任务清单](planning/task.md) | 当前任务、已完成事项和待办 |
+| [后续任务](planning/follow_up_tasks.md) | 后续迭代候选池 |
 
 ---
 
-## 🗂️ 文档归并说明（2026-04-08）
+## 当前项目状态摘要
 
-- `guides/deployment_guide_updated.md` 为当前唯一生产部署权威文档；`guides/deployment_guide.md` 已保留为旧链接跳转说明。
-- `guides/production_security_checklist_v2.md` 为当前唯一安全基线文档；`guides/production_security_checklist_20260402.md` 已保留为归并说明。
-- `CLAUDE.md` 与 `AGENTS.md` 已同步到同一修复基线，后续状态更新应保持同日同步。
+- 生产站点已部署：`https://xn--lsws2cdzg.top`
+- 服务器：`47.112.98.191`
+- 后端：FastAPI + PostgreSQL + Redis，systemd 服务 `huiyuyuan-backend`
+- 前端：Flutter Web 已完成 Liquid Glass UI 重构并上线
+- AI：DashScope 千问文本与视觉能力，前端/后端均有离线兜底
+- 支付：当前为人工确认到账闭环，未接入第三方自动回调
+- GitHub：账号申诉中，本地提交尚未推送远端
+
+更多细节见：[项目状态总览 2026-04-28](project_status_20260428.md)。

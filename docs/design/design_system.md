@@ -1,114 +1,153 @@
-## Design System: HuiYuYuan
-> 📍 **汇玉源珠宝智能交易平台** | 最后更新: 2026-02-22
+# 汇玉源设计系统
 
-### Pattern
-- **Name:** Feature-Rich Showcase
-- **CTA Placement:** Above fold
-- **Sections:** Hero > Features > CTA
+> 最后更新：2026-04-28
+> 当前方向：Liquid Glass / 深玉翡翠 / 香槟金 / 高端珠宝交易体验
 
-### Style
-- **Name:** Liquid Glass
-- **Keywords:** Flowing glass, morphing, smooth transitions, fluid effects, translucent, animated blur, iridescent, chromatic aberration
-- **Best For:** Premium SaaS, high-end e-commerce, creative platforms, branding experiences, luxury portfolios
-- **Performance:** ⚠ Moderate-Poor | **Accessibility:** ⚠ Text contrast
+---
 
-### Colors
-| Role | Hex | Flutter 常量 | 用途 |
-|------|-----|-------------|------|
-| Primary | #2E8B57 | `JewelryColors.primary` | 主操作、强调色（海绿色） |
-| Gold Accent | #FFD700 | `JewelryColors.gold` | 价格、评分、徽章 |
-| CTA | #CA8A04 | `JewelryColors.ctaGold` | 按钮、购买行动 |
-| Background Light | #FAFAF9 | `JewelryColors.bgLight` | 浅色模式背景 |
-| Background Dark | #1A1A2E | `JewelryColors.bgDark` | 深色模式背景 |
-| Text | #0C0A09 | — | 正文深色 |
-| Glass Surface | rgba(255,255,255,0.15) | — | 毛玻璃卡片填充 |
+## 设计定位
 
-*Notes: Sea-green primary + gold accent for premium jewelry brand*
+汇玉源不是通用电商模板，也不是 SaaS 控制台。当前 UI 应该表达：
 
-### Typography
-- **Heading:** Cormorant（Web） / 系统默认衬线（Flutter）
-- **Body:** Montserrat（Web） / 系统默认（Flutter）
-- **Mood:** luxury, high-end, fashion, elegant, refined, premium
-- **Best For:** Fashion brands, luxury e-commerce, jewelry, high-end services
-- **Google Fonts:** https://fonts.google.com/share?selection.family=Cormorant:wght@400;500;600;700|Montserrat:wght@300;400;500;600;700
-- **CSS Import:**
-```css
-@import url('https://fonts.googleapis.com/css2?family=Cormorant:wght@400;500;600;700&family=Montserrat:wght@300;400;500;600;700&display=swap');
-```
+- 高端珠宝品牌的安静奢华
+- 玉石、翡翠、黄金等东方材质的温润感
+- AI 顾问式交易，而不是强促销货架
+- 深色沉浸场景中的玻璃态层次
 
-### Key Effects
-Morphing elements (SVG/CSS), fluid animations (400-600ms curves), dynamic blur (backdrop-filter), color transitions
+关键词：
 
-### Flutter 实现规范
+- `Liquid Glass`
+- `Dark Jade`
+- `Emerald Glow`
+- `Champagne Gold`
+- `Concierge Commerce`
 
-#### 毛玻璃卡片
+---
+
+## 色彩
+
+| 角色 | Hex | Flutter 常量 | 用途 |
+|------|-----|--------------|------|
+| 深色背景 | `#1A1A2E` | `JewelryColors.bgDark` | 页面底色、沉浸式背景 |
+| 翡翠主色 | `#2E8B57` | `JewelryColors.primary` | 主按钮、选中态、品牌强调 |
+| 深玉辅助 | `#0B2A24` / `#12352F` | 视页面而定 | 背景渐变、暗部玻璃 |
+| 香槟金 | `#D8B76A` / `#FFD700` | `JewelryColors.gold` | 价格、徽章、细节高光 |
+| CTA 金 | `#CA8A04` | `JewelryColors.ctaGold` | 购买、确认、重点动作 |
+| 浅色背景 | `#FAFAF9` | `JewelryColors.bgLight` | 少量浅色模式或内容底 |
+| 主文本 | `#F8FAFC` / `#0C0A09` | 视主题而定 | 标题、正文 |
+| 次级文本 | `rgba(248,250,252,0.72)` | 视主题而定 | 描述、元信息 |
+
+使用原则：
+
+- 深色页面中避免纯黑大面积铺底，优先使用深蓝黑、深玉绿、微弱径向光。
+- 金色只做点睛，避免大面积饱和黄。
+- 绿色发光要克制，避免赛博霓虹感。
+
+---
+
+## 玻璃态规则
+
+玻璃态卡片推荐：
+
+- 圆角：`20-24`
+- 输入框圆角：`14-16`
+- 边框：`rgba(255,255,255,0.12-0.24)`
+- 卡片填充：深色半透明，不使用廉价白玻璃
+- 阴影：柔和、低透明，不做厚重黑影
+- 模糊：`sigma 12-24`，以层次感为主，不追求强磨砂
+
+Flutter 示例：
+
 ```dart
-// 使用 GlassmorphicCard 组件
 GlassmorphicCard(
-  blur: 12,
-  opacity: 0.15,
-  borderRadius: 16,
+  blur: 18,
+  opacity: 0.16,
+  borderRadius: 24,
   child: content,
 )
-
-// 或手动实现
-ClipRRect(
-  borderRadius: BorderRadius.circular(16),
-  child: BackdropFilter(
-    filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-    child: Container(
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.15),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withOpacity(0.3)),
-      ),
-    ),
-  ),
-)
 ```
 
-#### 自适应主题颜色
-```dart
-// 使用扩展方法，自动适配深色/浅色模式
-context.adaptiveBackground   // 页面背景
-context.adaptiveCard         // 卡片背景
-context.adaptiveText         // 主文字
-context.adaptiveSubtext      // 次级文字
-context.adaptiveBorder       // 边框颜色
-```
+---
 
-#### 渐变按钮
-```dart
-GradientButton(
-  text: '立即购买',
-  icon: Icons.shopping_cart,
-  gradient: JewelryColors.primaryGradient,  // 绿色渐变
-  // 或 JewelryColors.goldGradient          // 金色渐变（操作员专用）
-  onPressed: () {},
-)
-```
+## 字体与排版
 
-### 动画规范
-| 动效 | 时长 | 曲线 |
-|------|------|------|
-| 页面切换 | 300ms | `Curves.easeInOut` |
-| 卡片悬停/点击 | 150ms | `Curves.easeOut` |
-| 背景渐变循环 | 10s | `repeat` |
-| 浮动装饰 | 3s | `Curves.easeInOut` (reverse) |
-| 打字机效果 | 20ms/字符 | — |
+Figma/Web 方向：
 
-### Avoid (Anti-patterns)
-- Vibrant & Block-based backgrounds
-- Playful colors (不符合高端珠宝调性)
-- 未经 `adaptiveXxx` 扩展的硬编码颜色
-- 深色模式下使用纯黑背景（应使用 #1A1A2E）
+- 标题：`Cormorant`
+- 正文/UI：`Montserrat`
 
-### Pre-Delivery Checklist
-- [x] No emojis as icons (use Flutter Icons / SVG)
-- [x] Hover states with smooth transitions (150-300ms)
-- [x] Light mode: text contrast 4.5:1 minimum
-- [x] Dark mode: fully adapted (all screens)
-- [x] Responsive: tested on 360px-414px mobile widths
-- [x] prefers-reduced-motion: Flutter platform check
-- [ ] Focus states visible for keyboard nav (Web/Desktop)
+Flutter 方向：
+
+- 尊重现有工程字体栈，不强行引入会增加包体或加载风险的远程字体。
+- 通过字号、字重、字距、留白和层级模拟高端感。
+
+排版原则：
+
+- 商品名、价格、活动主标题可以更具编辑感。
+- 管理后台仍保持清晰可读，避免为了“高级”牺牲信息密度。
+- 移动端首屏要有呼吸感，避免卡片堆满。
+
+---
+
+## 页面模式
+
+### 用户端
+
+- 首页/商城：沉浸背景 + 分类胶囊 + 玻璃商品卡
+- 商品详情：展陈式主视觉 + AI 顾问块 + 购买决策辅助
+- 订单/支付：强调状态、金额、凭证、下一步动作
+- 个人中心：资产/权益/入口统一玻璃卡结构
+
+### 管理端
+
+- 保留数据密度，但避免传统白底后台。
+- KPI、订单、库存、支付对账使用深色玻璃面板。
+- 状态颜色要功能明确，不用过多花色。
+
+### AI 场景
+
+- 表达“珠宝顾问”而不是“机器人聊天框”。
+- 欢迎语、推荐问题、图片分析入口要和商品决策相关。
+
+---
+
+## 动效
+
+| 动效 | 建议时长 | 用途 |
+|------|----------|------|
+| 页面进入 | `280-420ms` | 轻微上浮/淡入 |
+| 卡片 hover/press | `140-220ms` | Web/桌面反馈 |
+| 背景微光 | `8-14s` | 非关键装饰 |
+| 列表 stagger | `40-80ms` 间隔 | 重要页面首屏 |
+
+动效原则：
+
+- 动效要服务层次和注意力，不做无意义飘动。
+- 背景光斑和漂浮元素要少，避免审美疲劳。
+- 移动端性能优先，复杂模糊和动画不要叠太多层。
+
+---
+
+## 避免项
+
+- 蓝紫 AI 模板感
+- 白底通用电商详情页
+- 高饱和糖果色
+- 厚重黑影和廉价荧光
+- 过度 cyberpunk
+- 每个页面重复同一套卡片构图
+- 用图标/emoji 代替正式视觉系统
+
+---
+
+## 交付检查
+
+- [x] 主要用户端页面完成深色 Liquid Glass 视觉重构
+- [x] 管理端/操作员端关键页面完成新版视觉
+- [x] Web 端更新提示关闭，仅移动端保留更新入口
+- [x] 登录、商品、订单、支付、个人中心、AI 等核心流已纳入 i18n guard
+- [x] Web 生产构建已部署
+- [ ] 消化设计预览页中的 const/info lint
+- [ ] 建立 Figma 与 Flutter 组件的一对一命名映射
+- [ ] 后续补充正式品牌图形资产和商品摄影规范
 

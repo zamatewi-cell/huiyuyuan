@@ -1,6 +1,6 @@
 ﻿# 汇玉源 - 生产部署指南
 
-> 更新日期：2026-04-08
+> 更新日期：2026-04-28
 > 当前生产服务器：`47.112.98.191`
 > 当前生产域名：`https://汇玉源.top` / `https://xn--lsws2cdzg.top`
 
@@ -25,6 +25,18 @@
 ```
 
 当前公网入口已经切换为域名 + HTTPS。日常发版以 `scripts/deploy.ps1` 为准。
+
+## 2026-04-28 发布基线
+
+- 最近一次生产同步：2026-04-28 15:37 左右
+- 发布方式：从干净 release worktree 执行，不从脏工作区直接部署
+- 发布内容：后端、Nginx、Flutter Web
+- 未发布内容：APK，避免把旧 APK 误作为新版本分发
+- Alembic 当前 head：`20260415_0009_operator_permissions`
+- Web 静态目录：`/var/www/huiyuyuan/`
+- 本轮验证记录：见 `docs/project_status_20260428.md`
+
+如果 GitHub 暂时不可用，可以先从本地干净快照发版；但账号恢复后必须补推分支并创建 PR，避免生产与远端代码长期漂移。
 
 ## 2026-04-08 发布前回归基线
 
@@ -74,16 +86,24 @@
 `scripts/deploy.ps1` 现在会执行这些动作：
 
 1. 校验 SSH 连通性
-2. 可选执行 `dart analyze`
-3. 可选执行 `flutter build web --release`
-4. 同步后端源码到 `/srv/huiyuyuan/backend`
-5. 在服务器执行 `pip install -r requirements.txt`
-6. 在服务器执行 `alembic upgrade head`
-7. 重启 `huiyuyuan-backend`
-8. 上传 `nginx_current.conf` 到 `/etc/nginx/conf.d/huiyuyuan.conf`
-9. `nginx -t` 成功后 reload Nginx
-10. 上传前端构建产物到 `/var/www/huiyuyuan/`
-11. 校验本机后端健康检查 `http://127.0.0.1:8000/api/health`
+2. Web 发布前自动执行 `flutter pub get`
+3. 可选执行 `flutter analyze --no-fatal-infos lib/`
+4. 可选执行 `flutter build web --no-tree-shake-icons --release`
+5. 同步后端源码到 `/srv/huiyuyuan/backend`
+6. 在服务器执行 `pip install -r requirements.txt`
+7. 在服务器执行 `alembic upgrade head`
+8. 重启 `huiyuyuan-backend`
+9. 上传 `nginx_current.conf` 到 `/etc/nginx/conf.d/huiyuyuan.conf`
+10. `nginx -t` 成功后 reload Nginx
+11. 上传前端构建产物到 `/var/www/huiyuyuan/`
+12. 额外上传独立下载页 `download.html`
+13. 校验本机后端健康检查 `http://127.0.0.1:8000/api/health`
+
+脚本已经处理 Windows 到 Linux 的常见边界：
+
+- 多行 SSH 命令会去掉 CRLF，避免远端 bash 收到 `$'\r'`
+- SSH 和 Flutter 命令按退出码判断，不把正常 stderr 日志误判为失败
+- Web 构建成功以退出码和 `build/web/index.html`、`build/web/main.dart.js` 是否存在为准
 
 ---
 
@@ -205,6 +225,8 @@ Windows 本地可以直接用：
 | 502 Bad Gateway | 检查 `huiyuyuan-backend` 是否运行、Nginx upstream 是否指向 `127.0.0.1:8000` |
 | HTTPS 可访问但接口报跨域 | 检查 `/srv/huiyuyuan/backend/.env` 中 `ALLOWED_ORIGINS` |
 | HTTPS 证书续期异常 | 检查 `/var/www/certbot/.well-known/acme-challenge/` 和 cron 配置 |
+| 页面仍是旧版 UI | 优先清浏览器缓存/Service Worker，或用无痕窗口验证 |
+| 本机域名解析到 `198.18.x.x` | 多为代理/虚拟网卡接管 DNS；用服务器本机或 `47.112.98.191` + Host 头交叉验证 |
 
 ---
 

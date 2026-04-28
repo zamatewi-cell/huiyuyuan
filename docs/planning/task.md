@@ -1,10 +1,30 @@
 ﻿# 汇玉源珠宝智能交易平台 - 任务清单
 
-> 📍 **唯一活跃任务文档** | 最后更新: 2026-02-25
+> 📍 **唯一活跃任务文档** | 最后更新: 2026-04-28
 
 ---
 
 ## ✅ 已完成任务
+
+### 🚀 2026-04-28 UI 重构与生产同步
+
+- [x] Flutter Web 完成 Liquid Glass UI 重构并部署到生产
+- [x] 主要用户端页面完成新版视觉：登录、商品列表、商品详情、购物车、结算、支付、订单、物流、评价、个人中心、收藏、浏览记录、地址、通知、AI 助手、店铺详情、店铺雷达、AR 试戴
+- [x] 管理端和操作员端关键页面完成新版视觉：管理员仪表盘、订单工作台、库存、支付对账、操作员工作台
+- [x] Web 端关闭更新弹窗，移动端保留更新下载/安装能力
+- [x] 后端部署订单/支付/权限增强，Alembic head 升级到 `20260415_0009_operator_permissions`
+- [x] Nginx 与 Web 静态资源完成生产同步，`/api/health` 验证通过
+- [x] 修复 `scripts/deploy.ps1` 在 Windows/SSH/Flutter 输出捕获下的发版稳定性问题
+- [x] 清理根目录临时 SQL、排查 shell、Figma cookie、release_artifacts 等仓库污染文件
+- [x] 新增 `docs/project_status_20260428.md` 作为本轮上线后的状态总览
+
+### 📌 2026-04-28 当前仍需跟进
+
+- [ ] GitHub 账号恢复后推送 `codex/ui-redesign-release-check` 并创建 PR
+- [ ] 给临时脚本、release artifacts、Figma cookie 等补充 `.gitignore` 防误提交规则
+- [ ] 内部试运行 3-5 天，重点验证下单、支付凭证、管理员确认到账、发货、评价
+- [ ] 接入微信支付/支付宝正式回调与验签
+- [ ] 补齐阿里云 SMS 正式资质、Android Release 签名和线上告警
 
 ### 🏗️ 基础架构
 - [x] Flutter 项目重构 + SDK 配置 (compileSdk 36)
