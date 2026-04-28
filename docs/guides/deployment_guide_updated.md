@@ -1,6 +1,6 @@
 ﻿# 汇玉源 - 生产部署指南
 
-> 更新日期：2026-03-25
+> 更新日期：2026-04-08
 > 当前生产服务器：`47.112.98.191`
 > 当前生产域名：`https://汇玉源.top` / `https://xn--lsws2cdzg.top`
 
@@ -25,6 +25,16 @@
 ```
 
 当前公网入口已经切换为域名 + HTTPS。日常发版以 `scripts/deploy.ps1` 为准。
+
+## 2026-04-08 发布前回归基线
+
+- 后端：`cd D:/huiyuyuan_project/huiyuyuan_app/backend && python -m pytest -q`，当前基线为 `167 passed`
+- 前端：`cd D:/huiyuyuan_project/huiyuyuan_app && flutter test`，当前基线为 `490 passed`
+- 静态检查：`cd D:/huiyuyuan_project/huiyuyuan_app && dart analyze lib test tool --no-fatal-warnings`
+- 重点验收：
+  - 登出、退出其他设备、重置密码、修改密码后，旧 token 不可继续访问
+  - 支付取消 / 争议单不可被后台误确认到账
+  - 订单负数数量与异常库存扣减已被后端拦截
 
 ---
 

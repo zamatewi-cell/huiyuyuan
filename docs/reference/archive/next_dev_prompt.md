@@ -56,7 +56,7 @@
 - 后端：FastAPI + PostgreSQL 14 + Redis，已部署于阿里云 ECS 47.98.188.141
 
 ## ⚠️ 注意事项
-- **登录**：useMockApi=true，万能验证码 8888，管理员账号 18937766669/admin123
+- **登录**：useMockApi=true，万能验证码 8888，管理员账号 18925816362/admin123
 - **AI 降级**：DeepSeek → Gemini → 离线，三级自动切换，无需手动干预
 - **一键部署**：完成开发后运行 `.\scripts\deploy.ps1` 或按 Ctrl+Shift+B 自动部署到服务器
 - 深色模式已全面适配，新页面使用 `context.adaptiveBackground`、`context.adaptiveCard` 等扩展方法

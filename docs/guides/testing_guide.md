@@ -1,5 +1,19 @@
 # 汇玉源 - 真机测试指南
-> 最后更新: 2026-02-22
+> 最后更新: 2026-04-08
+
+## ✅ 当前自动化基线（2026-04-08）
+
+- 后端回归：`cd D:/huiyuyuan_project/huiyuyuan_app/backend && python -m pytest -q` -> `167 passed`
+- 前端回归：`cd D:/huiyuyuan_project/huiyuyuan_app && flutter test` -> `490 passed`
+- 静态检查：`cd D:/huiyuyuan_project/huiyuyuan_app && dart analyze lib test tool --no-fatal-warnings` -> `No issues found`
+
+## 🔐 本轮高风险回归点（2026-04-08）
+
+- 管理员登录必须填写验证码 `8888`；留空不应放行。
+- `logout`、`logout-others`、`reset-password`、`change-password` 后，旧 access / refresh token 必须失效。
+- `refresh` 成功后，旧 access token 与旧 refresh token 都不可重放。
+- 下单数量必须 `>= 1`；负数和 `0` 应被后端直接拒绝。
+- 已取消、超时或争议中的支付单，不可再被后台误确认到账。
 
 ## 📱 测试环境准备
 
@@ -27,7 +41,7 @@ flutter devices
 |------|------|----------|
 | 1 | 打开应用 | 显示登录页面，渐变背景动画 |
 | 2 | 选择"管理员"标签 | 切换到管理员登录表单 |
-| 3 | 输入手机号 `18937766669` | 手机号正确显示 |
+| 3 | 输入手机号 `18925816362` | 手机号正确显示 |
 | 4 | 输入密码 `admin123` | 密码以 * 显示 |
 | 5 | 输入验证码 `8888` | 验证码正确显示 |
 | 6 | 点击登录 | 成功跳转到主页面 |
@@ -44,7 +58,7 @@ flutter devices
 ### 测试用例 1.3：用户（手机号）登录
 | 步骤 | 操作 | 预期结果 |
 |------|------|----------|
-| 1 | 在"用户"标签下输入手机号 `18937766669` | 手机号正确显示 |
+| 1 | 在"用户"标签下输入手机号 `18925816362` | 手机号正确显示 |
 | 2 | 输入万能验证码 `8888` | 验证码显示 |
 | 3 | 点击"验证并登录" | 成功跳转到商城首页 |
 | 4 | 也可使用手机号后4位 `6669` 作为验证码 | 同样登录成功 |
@@ -250,6 +264,13 @@ flutter devices
 
 ### 运行自动化测试
 ```bash
+# 后端
+cd D:/huiyuyuan_project/huiyuyuan_app/backend
+python -m pytest -q
+
+# 前端
+cd D:/huiyuyuan_project/huiyuyuan_app
+
 # 运行所有测试
 flutter test
 
@@ -261,14 +282,15 @@ flutter test test/integration/ai_chat_flow_test.dart
 
 ### 代码静态分析
 ```bash
-flutter analyze
+cd D:/huiyuyuan_project/huiyuyuan_app
+dart analyze lib test tool --no-fatal-warnings
 ```
 
 ## 🔧 常见问题排查
 
 ### 登录失败
 - 检查输入内容是否正确
-- 确认手机号格式 `18937766669`
+- 确认手机号格式 `18925816362`
 - 管理员密码 `admin123`，验证码 `8888`
 - 操作员密码 `op123456`
 

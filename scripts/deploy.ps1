@@ -345,6 +345,9 @@ systemctl restart ${SERVICE_NAME}'
         Invoke-SCP -Source $nginxCurrent -Dest $NGINX_REMOTE_CONF
         Invoke-SCP -Source $nginxSnippet -Dest $NGINX_SNIPPET_REMOTE
 
+        # Remove potential UTF-8 BOM that breaks nginx
+        Invoke-SSH "sed -i '1s/^\xEF\xBB\xBF//' $NGINX_REMOTE_CONF 2>/dev/null || true"
+
         $nginxTest = Invoke-SSH "nginx -t 2>&1"
         if ($nginxTest -notmatch "successful" -and -not $DryRun) {
             throw "nginx -t failed: $nginxTest"
@@ -370,6 +373,14 @@ systemctl restart ${SERVICE_NAME}'
         }
 
         Invoke-SCP -Source "$WEB_LOCAL\*" -Dest "${WEB_REMOTE}/"
+
+        # 上传独立下载页面（不在 Flutter 构建产物中）
+        $DOWNLOAD_PAGE = Join-Path $PSScriptRoot "..\huiyuyuan_app\web\download.html" | Resolve-Path
+        if (Test-Path $DOWNLOAD_PAGE) {
+            Invoke-SCP -Source $DOWNLOAD_PAGE -Dest "${WEB_REMOTE}/download.html"
+            Write-Ok "download.html uploaded"
+        }
+
         Write-Ok "web assets uploaded"
 
         Invoke-SSH "nginx -t 2>&1 && systemctl reload nginx" | Out-Null
@@ -384,7 +395,11 @@ systemctl restart ${SERVICE_NAME}'
             Invoke-SSH "mkdir -p /var/www/huiyuyuan/downloads"
             Invoke-SCP -Source $apkLocal -Dest "/var/www/huiyuyuan/downloads/huiyuyuan-latest.apk"
             $apkSize = [math]::Round((Get-Item $apkLocal).Length / 1MB, 1)
+            $apkHash = (Get-FileHash -Path $apkLocal -Algorithm SHA256).Hash.ToLowerInvariant()
+            $remoteApkSize = Invoke-SSH "stat -c %s /var/www/huiyuyuan/downloads/huiyuyuan-latest.apk 2>/dev/null || echo 0"
             Write-Ok "APK distributed (${apkSize}MB) → /downloads/huiyuyuan-latest.apk"
+            Write-Info "APK SHA256: ${apkHash}"
+            Write-Info "Remote APK size: ${remoteApkSize} bytes"
         } else {
             Write-Host "  [skip] no release APK found at ${apkLocal}" -ForegroundColor Yellow
             Write-Host "  Hint: run 'flutter build apk --release' first" -ForegroundColor Gray

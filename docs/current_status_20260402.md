@@ -1,6 +1,6 @@
 ﻿# 汇玉源当前状态速览
 
-> 更新时间：2026-04-02
+> 更新时间：2026-04-14
 > 目的：给后续接手开发、验收、上线的人一个 3-5 分钟可读完的状态摘要。
 
 ---
@@ -92,11 +92,12 @@
 
 ## 4. TLS / 公网探测说明
 
-本地机器对线上域名的 TLS 探测曾失败，表现为域名被解析到 `198.18.x.x`，这不是 ECS 上 FastAPI / Gunicorn / Nginx 的应用链路问题。
+本地机器对线上域名的 TLS 探测曾失败，表现为域名被解析到 `198.18.x.x`。`2026-04-10` 复核确认，这类 `198.18.x.x` 结果来自本机代理 / VPN 虚拟网卡接管 DNS 或 HTTPS 路径，不是 ECS 上 FastAPI / Gunicorn / Nginx 的应用链路问题。
 
 当前判断：
 
 - 如果本地开了代理，或代理 / DNS 接管了 HTTPS 路径，本机 `curl`/浏览器探测结果不应作为线上服务是否健康的唯一依据
+- 如果同一时间手机或服务器本机仍然把 `xn--lsws2cdzg.top` 解析到 `47.112.98.191`，应优先按“本地网络环境差异”处理，而不是误判为线上 DNS 漂移
 - 服务器侧检查才是准信号：
   - `systemctl is-active nginx`
   - `systemctl is-active huiyuyuan-backend`
@@ -108,14 +109,82 @@
 
 ---
 
-## 5. 当前已知边界
+## 5. 2026-04-10 安卓真机排障复盘
 
-### 5.1 可以接受的边界
+### 5.1 现象
+
+- Windows 本机开启代理 / VPN 虚拟网卡后，`xn--lsws2cdzg.top` 曾被解析到 `198.18.0.188`
+- Android Release APK 安装到真机后，注册 / 登录链路偶发弹出“网络连接异常”
+- 同一时间 Web 端页面可正常打开，图形验证码在浏览器中显示正常
+- 手机上的图形验证码一度显示异常，本质上不是前端组件绘制坏了，而是验证码接口请求链路不稳定
+
+### 5.2 当时最容易误判的点
+
+- 容易误以为“构建 APK 时开着 VPN，解析到的 `198.18.x.x` 被写进了包里”
+- 复核代码后确认：生产 APK 仍然使用固定域名 `https://xn--lsws2cdzg.top`，不是“构建时先解析成 IP 再写死”
+- 也容易误以为“验证码组件坏了”，但网页端正常说明验证码图片本身是可生成的，问题更靠近 Android 原生网络访问链路
+
+### 5.3 实际排查路径
+
+- 用完整路径 `C:\Users\zrx-pc\AppData\Local\Android\Sdk\platform-tools\adb.exe` 安装 APK，绕过本机 `adb` 未加入 `PATH` 的问题
+- 真机复现后抓 `adb logcat`，定位到 `DioExceptionType.connectionError` 与 `SocketException: Connection reset by peer`
+- 核对线上服务器：
+  - `nginx`、`huiyuyuan-backend` 服务都在运行
+  - `http://127.0.0.1:8000/api/health` 正常
+  - 服务器本机直打 `/api/auth/send-sms` 正常
+- 交叉验证后确认：问题不在“后端接口不可用”，而在“Android 原生客户端访问 HTTPS 域名时的 TLS / 连接路径”
+
+### 5.4 最终修复
+
+- 在前端 `ApiService` 中补上“生产域名 HTTPS 失败时，回退到固定生产 IP `47.112.98.191`”的兜底逻辑
+- 回退时不是盲目信任证书，而是校验证书指纹、主题与有效期，只接受当前线上证书
+- 在验证码组件中把 `session_id` 改为标准 query 参数传递，并补齐失败日志，避免验证码加载异常时无可读线索
+- 把仓库中的 Nginx 配置同步到线上实际配置，补齐 `ssl_ecdh_curve`，消除仓库配置与现网配置漂移
+
+### 5.5 验证结果
+
+- `2026-04-10` 重新打包 Release APK 并安装到真机
+- 真机上图形验证码恢复正常显示
+- 用户已确认可以正常登录
+- 同日后续补充修复：
+  - AI 助手代理请求已切回统一 API 网络层，复用生产 HTTPS 的固定 IP 回退能力
+  - 结算页金额中的异常符号 `楼` 已恢复为 `¥`
+  - 收款码图片的 `/uploads/...` 公网访问已恢复，根因是 Nginx 通配静态资源规则误拦截了 `payment_qrcodes/*.jpg`
+- 结论：这次问题应归类为“Android 原生客户端访问生产 HTTPS 域名时的连接兼容性问题”，不是“构建时 DNS 被写进 APK”
+
+### 5.6 后续建议
+
+- 本机如果开着代理 / VPN，先不要用本机解析结果直接判断线上服务故障
+- 后续若再出现“网页端正常、Android 原生端偶发连接异常”，优先看：
+  - `adb logcat`
+  - 线上 `nginx` error log
+  - 服务器本机直连 `/api/health` 与业务接口结果
+- 下载页统一指向 `/downloads/huiyuyuan-latest.apk`，避免页面仍停留在旧版本化文件名
+
+### 5.7 下载页补充复盘（2026-04-14）
+
+- 用户反馈 Web 登录页点击“下载App”后，没有跳转到下载页，而是下载了一个名为 `download` 的未知文件
+- 线上排查确认：`/download` 当时返回了 `HTTP 200`，但 `Content-Type` 被 Nginx 发成了 `application/octet-stream`，浏览器因此把页面当成二进制附件下载
+- 同时，Flutter Web 登录页按钮原本直接打开 `https://xn--lsws2cdzg.top/download`，因此会稳定触发上述错误表现
+- 修复动作：
+  - 把 Web 端登录页“下载App”按钮改为显式跳转 `https://xn--lsws2cdzg.top/download.html`
+  - 在线上 Nginx 的 `location = /download` 中显式补齐 `default_type text/html;` 与 `charset utf-8;`
+  - 重新构建并发布 Web 静态资源到 `/var/www/huiyuyuan/`
+- 复核结果：
+  - `https://xn--lsws2cdzg.top/download` 现已返回 `Content-Type: text/html; charset=utf-8`
+  - `https://xn--lsws2cdzg.top/download.html` 正常打开
+  - `https://xn--lsws2cdzg.top/downloads/huiyuyuan-latest.apk` 继续返回 `HTTP 200`
+
+---
+
+## 6. 当前已知边界
+
+### 6.1 可以接受的边界
 
 - Flutter Web 自动化验收在少数页面存在语义层抖动，人工复核可兜底
 - 首次访问如果浏览器缓存了旧 service worker，可能需要强刷一次页面才能看到最新包
 
-### 5.2 还不建议当成正式对外商用版的原因
+### 6.2 还不建议当成正式对外商用版的原因
 
 - 这套系统虽然前后端主链路已经能跑，但仍然更适合“小团队内部使用”而不是“对外公开大规模商用”
 - 自动化回归还不算完全稳定
@@ -125,7 +194,7 @@
 
 ---
 
-## 6. 是否可以先内部使用
+## 7. 是否可以先内部使用
 
 结论：**可以，适合 3-10 人级别的内部试运行。**
 
@@ -143,7 +212,7 @@
 
 ---
 
-## 7. 下一步建议
+## 8. 下一步建议
 
 如果继续往“更稳的内部正式版”推进，优先顺序建议是：
 

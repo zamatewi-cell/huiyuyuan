@@ -1,7 +1,7 @@
 # 📚 汇玉源项目文档中心
 
 > 所有项目文档统一管理于此目录。
-> 最后更新: 2026-03-25
+> 最后更新: 2026-04-08
 
 ---
 
@@ -13,8 +13,11 @@ docs/
 │   ├── v4_master_plan.md           # ★ v4.0 总规划（多Agent协同，当前主文档）
 │   └── task.md                     # 任务清单与进度
 ├── guides/                      # 📖 操作指南
-│   ├── ai_service_guide.md         # AI 服务架构（OpenRouter + 离线兜底）
-│   ├── deployment_guide.md         # 部署指南（一键部署 + CI/CD + 运维）
+│   ├── ai_service_guide.md         # AI 服务架构（DashScope + 离线兜底）
+│   ├── deployment_guide_updated.md # ★ 当前权威生产部署指南
+│   ├── deployment_guide.md         # 已归并到 deployment_guide_updated.md
+│   ├── production_security_checklist_v2.md # ★ 当前权威安全清单
+│   ├── production_security_checklist_20260402.md # 已归并到 production_security_checklist_v2.md
 │   ├── production_checklist.md     # 生产部署检查清单
 │   ├── payment_guide.md            # 支付集成指南
 │   ├── testing_guide.md            # 测试指南
@@ -50,8 +53,9 @@ docs/
 |------|------|------|
 | [v4 总规划](planning/v4_master_plan.md) | 多Agent协同、后端模块化、PostgreSQL、安全加固 | 🔄 当前主规划 |
 | [任务清单](planning/task.md) | 项目待办/进行中/已完成任务 | 🔄 活跃维护 |
-| [部署指南](guides/deployment_guide.md) | 一键部署、CI/CD、服务器运维 | ✅ 已定稿 |
-| [AI 服务指南](guides/ai_service_guide.md) | OpenRouter 多模态接入、接口说明、离线兜底 | ✅ 已定稿 |
+| [生产部署指南](guides/deployment_guide_updated.md) | 一键部署、CI/CD、服务器运维 | ✅ 当前权威 |
+| [生产安全清单](guides/production_security_checklist_v2.md) | 服务器与应用层安全基线 | ✅ 当前权威 |
+| [AI 服务指南](guides/ai_service_guide.md) | DashScope 接入、接口说明、离线兜底 | ✅ 已定稿 |
 | [设计系统](design/design_system.md) | Liquid Glass 风格规范 + Flutter 实现代码 | ✅ 已定稿 |
 | [测试指南](guides/testing_guide.md) | 功能测试用例、AI 降级测试 | ✅ 可参考 |
 | [设备测试](guides/device_test_cases.md) | 真机测试用例集 | ✅ 可参考 |
@@ -71,13 +75,22 @@ docs/
 
 ---
 
-## 📊 项目状态速览 (2026-03-25)
+## 📊 项目状态速览 (2026-04-08)
 
 | 指标 | 数值 |
 |------|------|
-| 当前版本 | v3.x → v4.0 升级中 |
+| 当前版本 | v4.0 稳定化收尾 |
 | 页面/屏幕 | 23+ |
-| 编译状态 | ✅ 0 error / 0 warning |
+| 测试状态 | ✅ backend `167 passed` / flutter `490 passed` |
+| 静态检查 | ✅ `dart analyze lib test tool --no-fatal-warnings` |
 | 服务器 | ✅ xn--lsws2cdzg.top 运行中 |
 | 多Agent协同 | A(后端) B(前端) C(测试) D(运维) E(发布) |
 | 主规划文档 | `planning/v4_master_plan.md` |
+
+---
+
+## 🗂️ 文档归并说明（2026-04-08）
+
+- `guides/deployment_guide_updated.md` 为当前唯一生产部署权威文档；`guides/deployment_guide.md` 已保留为旧链接跳转说明。
+- `guides/production_security_checklist_v2.md` 为当前唯一安全基线文档；`guides/production_security_checklist_20260402.md` 已保留为归并说明。
+- `CLAUDE.md` 与 `AGENTS.md` 已同步到同一修复基线，后续状态更新应保持同日同步。

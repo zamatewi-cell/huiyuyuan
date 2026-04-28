@@ -390,7 +390,7 @@ async def client():
 @pytest.fixture
 async def auth_headers(client):
     resp = await client.post("/api/auth/login", json={
-        "phone": "18937766669", "password": "admin123"
+        "phone": "18925816362", "password": "admin123"
     })
     token = resp.json()["token"]
     return {"Authorization": f"Bearer {token}"}

@@ -2,7 +2,7 @@
 
 本文件为 AI 编码助手在此仓库中工作时的权威参考指南。
 
-> 最后更新：2026-03-25
+> 最后更新：2026-04-08
 
 ---
 
@@ -353,7 +353,7 @@ python -c "import secrets; print(secrets.token_hex(32))"
 
 | 角色 | 手机号 / 账号 | 密码 | 验证码 |
 |------|--------------|------|--------|
-| **管理员** | `18937766669` | `admin123` | `8888` |
+| **管理员** | `18925816362` | `admin123` | `8888` |
 | **操作员** | `1`~`10`（任意编号） | `op123456` | — |
 | **普通用户** | 任意手机号 | — | `8888`（开发模式万能码） |
 
@@ -370,6 +370,7 @@ python -c "import secrets; print(secrets.token_hex(32))"
 | 任务清单 | `docs/planning/task.md` | 待办 / 进行中 / 已完成任务 |
 | **快速启动指南** | `docs/guides/快速启动指南.md` | Windows / Chrome / APK 三种启动方式 |
 | **生产部署指南** ⭐ | `docs/guides/deployment_guide_updated.md` | 当前权威部署文档 |
+| **生产安全清单** ⭐ | `docs/guides/production_security_checklist_v2.md` | 当前权威安全基线 |
 | **AI 服务指南** ⭐ | `docs/guides/ai_service_guide.md` | DashScope 配置与运行逻辑 |
 | 真机测试指南 | `docs/guides/testing_guide.md` | 功能测试用例集 |
 | 生产检查清单 | `docs/guides/production_checklist.md` | 上线前检查项 |
@@ -420,6 +421,13 @@ python -c "import secrets; print(secrets.token_hex(32))"
 | 生产域名 | `https://汇玉源.top`（HTTPS 已启用） |
 | 核心功能完成率 | ~99% |
 | 上线就绪率 | ~88%（待支付接入 / 阿里云 SMS 资质 / Android 签名） |
+
+## 最近修复（2026-04-08）
+
+- **会话安全**：JWT 令牌已绑定 `sid` 会话，`logout`、`logout-others`、`refresh` 轮转、`reset-password`、`change-password` 都会让旧会话失效。
+- **交易安全**：下单数量强制 `>= 1`，库存扣减改为条件更新；后台确认到账会校验支付状态，已取消/争议支付不能再误确认。
+- **支付与设备**：设备记录不再使用 `eval` 反序列化；支付 DB 写路径显式 `commit()`，审计日志统一记到付款用户。
+- **质量基线**：后端 `python -m pytest -q` 当前 `167 passed`；前端 `flutter test` 当前 `490 passed`；`dart analyze lib test tool --no-fatal-warnings` 为 `No issues found`。
 
 ### 待完成的关键事项（P0 / P1）
 
