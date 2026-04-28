@@ -1,7 +1,11 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
 """Auth endpoint tests."""
 import pytest
 from httpx import AsyncClient
+from starlette.requests import Request
+
+from routers.auth import _extract_client_ip
+from store import TOKENS_DB
 
 
 class FakeRedis:
@@ -50,7 +54,7 @@ async def _send_sms_code(client: AsyncClient, phone: str, action: str) -> str:
 @pytest.mark.asyncio
 async def test_admin_login_success(client: AsyncClient):
     resp = await client.post("/api/auth/login", json={
-        "username": "18937766669",
+        "username": "18925816362",
         "password": "admin123",
         "type": "admin",
         "captcha": "8888",
@@ -66,7 +70,7 @@ async def test_admin_login_success(client: AsyncClient):
 @pytest.mark.asyncio
 async def test_admin_login_wrong_password(client: AsyncClient):
     resp = await client.post("/api/auth/login", json={
-        "username": "18937766669",
+        "username": "18925816362",
         "password": "wrong_password",
         "type": "admin",
     })
@@ -76,12 +80,37 @@ async def test_admin_login_wrong_password(client: AsyncClient):
 @pytest.mark.asyncio
 async def test_admin_login_wrong_captcha(client: AsyncClient):
     resp = await client.post("/api/auth/login", json={
-        "username": "18937766669",
+        "username": "18925816362",
         "password": "admin123",
         "type": "admin",
         "captcha": "1234",
     })
     assert resp.status_code == 400
+
+
+@pytest.mark.asyncio
+async def test_admin_login_requires_captcha(client: AsyncClient):
+    resp = await client.post("/api/auth/login", json={
+        "username": "18925816362",
+        "password": "admin123",
+        "type": "admin",
+    })
+    assert resp.status_code == 400
+
+
+def test_extract_client_ip_prefers_x_real_ip():
+    request = Request(
+        {
+            "type": "http",
+            "headers": [
+                (b"x-forwarded-for", b"1.1.1.1, 2.2.2.2"),
+                (b"x-real-ip", b"3.3.3.3"),
+            ],
+            "client": ("4.4.4.4", 12345),
+        }
+    )
+
+    assert _extract_client_ip(request) == "3.3.3.3"
 
 
 # ---- Operator Login ----
@@ -271,6 +300,51 @@ async def test_customer_reset_password_success(client: AsyncClient):
 
 
 @pytest.mark.asyncio
+async def test_customer_reset_password_revokes_old_sessions(client: AsyncClient):
+    phone = "13800001243"
+    register_code = await _send_sms_code(client, phone, "register")
+
+    register_resp = await client.post("/api/auth/register", json={
+        "phone": phone,
+        "code": register_code,
+        "password": "Secure123",
+        "confirm_password": "Secure123",
+        "accept_terms": True,
+    })
+    assert register_resp.status_code == 200
+    old_auth = f"Bearer {register_resp.json()['token']}"
+    old_refresh = register_resp.json()["refresh_token"]
+
+    reset_code = await _send_sms_code(client, phone, "reset")
+    reset_resp = await client.post("/api/auth/reset-password", json={
+        "phone": phone,
+        "code": reset_code,
+        "password": "Reset1234",
+        "confirm_password": "Reset1234",
+    })
+    assert reset_resp.status_code == 200
+    new_auth = f"Bearer {reset_resp.json()['token']}"
+
+    old_profile = await client.get(
+        "/api/users/profile",
+        params={"authorization": old_auth},
+    )
+    assert old_profile.status_code == 401
+
+    old_refresh_resp = await client.post(
+        "/api/auth/refresh",
+        headers={"Authorization": f"Bearer {old_refresh}"},
+    )
+    assert old_refresh_resp.status_code == 401
+
+    new_profile = await client.get(
+        "/api/users/profile",
+        params={"authorization": new_auth},
+    )
+    assert new_profile.status_code == 200
+
+
+@pytest.mark.asyncio
 async def test_customer_reset_password_requires_existing_account(client: AsyncClient):
     phone = "13800001242"
 
@@ -296,8 +370,34 @@ async def test_logout(client: AsyncClient, admin_auth: str):
     assert resp2.status_code == 200
     assert resp2.json()["success"] is True
 
-    # With JWT enabled, the token is still decodable via JWT (stateless).
-    # So the response may still be 200. We just verify logout succeeded.
+    resp3 = await client.get("/api/users/profile",
+                             params={"authorization": admin_auth})
+    assert resp3.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_logout_revokes_refresh_token(client: AsyncClient):
+    login_resp = await client.post("/api/auth/login", json={
+        "username": "18925816362",
+        "password": "admin123",
+        "type": "admin",
+        "captcha": "8888",
+    })
+    assert login_resp.status_code == 200
+    access_token = f"Bearer {login_resp.json()['token']}"
+    refresh_token = login_resp.json()["refresh_token"]
+
+    logout_resp = await client.post(
+        "/api/auth/logout",
+        params={"authorization": access_token},
+    )
+    assert logout_resp.status_code == 200
+
+    refresh_resp = await client.post(
+        "/api/auth/refresh",
+        headers={"Authorization": f"Bearer {refresh_token}"},
+    )
+    assert refresh_resp.status_code == 401
 
 
 @pytest.mark.asyncio
@@ -310,17 +410,75 @@ async def test_profile_accepts_authorization_header(client: AsyncClient, admin_a
     assert resp.json()["user_type"] == "admin"
 
 
-# ---- Token Refresh ----
-
 @pytest.mark.asyncio
-async def test_refresh_token(client: AsyncClient, admin_auth: str):
+async def test_devices_accept_jwt_after_token_map_cleared(client: AsyncClient):
     login_resp = await client.post("/api/auth/login", json={
-        "username": "18937766669",
+        "username": "18925816362",
         "password": "admin123",
         "type": "admin",
         "captcha": "8888",
     })
     assert login_resp.status_code == 200
+    auth = f"Bearer {login_resp.json()['token']}"
+
+    TOKENS_DB.clear()
+
+    resp = await client.get("/api/auth/devices", params={"authorization": auth})
+    assert resp.status_code == 200
+    assert "devices" in resp.json()
+
+
+@pytest.mark.asyncio
+async def test_logout_other_devices_revokes_other_sessions(client: AsyncClient):
+    login_one = await client.post("/api/auth/login", json={
+        "username": "18925816362",
+        "password": "admin123",
+        "type": "admin",
+        "captcha": "8888",
+    })
+    assert login_one.status_code == 200
+    current_auth = f"Bearer {login_one.json()['token']}"
+
+    login_two = await client.post("/api/auth/login", json={
+        "username": "18925816362",
+        "password": "admin123",
+        "type": "admin",
+        "captcha": "8888",
+    })
+    assert login_two.status_code == 200
+    other_auth = f"Bearer {login_two.json()['token']}"
+
+    logout_others = await client.post(
+        "/api/auth/devices/logout-others",
+        params={"authorization": current_auth},
+    )
+    assert logout_others.status_code == 200
+
+    current_profile = await client.get(
+        "/api/users/profile",
+        params={"authorization": current_auth},
+    )
+    assert current_profile.status_code == 200
+
+    other_profile = await client.get(
+        "/api/users/profile",
+        params={"authorization": other_auth},
+    )
+    assert other_profile.status_code == 401
+
+
+# ---- Token Refresh ----
+
+@pytest.mark.asyncio
+async def test_refresh_token(client: AsyncClient, admin_auth: str):
+    login_resp = await client.post("/api/auth/login", json={
+        "username": "18925816362",
+        "password": "admin123",
+        "type": "admin",
+        "captcha": "8888",
+    })
+    assert login_resp.status_code == 200
+    old_auth = f"Bearer {login_resp.json()['token']}"
     refresh_token = login_resp.json()["refresh_token"]
 
     resp = await client.post("/api/auth/refresh",
@@ -335,6 +493,18 @@ async def test_refresh_token(client: AsyncClient, admin_auth: str):
     resp3 = await client.get("/api/users/profile",
                              params={"authorization": new_auth})
     assert resp3.status_code == 200
+
+    old_profile = await client.get(
+        "/api/users/profile",
+        params={"authorization": old_auth},
+    )
+    assert old_profile.status_code == 401
+
+    replay_refresh = await client.post(
+        "/api/auth/refresh",
+        headers={"Authorization": f"Bearer {refresh_token}"},
+    )
+    assert replay_refresh.status_code == 401
 
 
 @pytest.mark.asyncio

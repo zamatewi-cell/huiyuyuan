@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
 """Application security regression tests."""
 
 import pytest
@@ -44,7 +44,7 @@ async def test_auth_login_responses_disable_caching(client: AsyncClient):
     resp = await client.post(
         "/api/auth/login",
         json={
-            "username": "18937766669",
+            "username": "18925816362",
             "password": "admin123",
             "type": "admin",
             "captcha": "8888",
@@ -66,7 +66,7 @@ async def test_password_login_is_throttled_after_repeated_failures(
     monkeypatch.setattr(login_guard_service, "redis_client", fake_redis)
 
     payload = {
-        "username": "18937766669",
+        "username": "18925816362",
         "password": "wrong_password",
         "type": "admin",
     }
@@ -90,7 +90,7 @@ async def test_successful_password_login_clears_credential_throttle(
     monkeypatch.setattr(login_guard_service, "redis_client", fake_redis)
 
     failed_payload = {
-        "username": "18937766669",
+        "username": "18925816362",
         "password": "wrong_password",
         "type": "admin",
     }
@@ -102,7 +102,7 @@ async def test_successful_password_login_clears_credential_throttle(
     success = await client.post(
         "/api/auth/login",
         json={
-            "username": "18937766669",
+            "username": "18925816362",
             "password": "admin123",
             "type": "admin",
             "captcha": "8888",

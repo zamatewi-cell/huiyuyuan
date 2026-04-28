@@ -124,3 +124,106 @@ async def test_admin_activities_filter_by_tag_key(client: AsyncClient, admin_aut
 async def test_admin_activities_unauthorized(client: AsyncClient):
     resp = await client.get("/api/admin/activities")
     assert resp.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_admin_can_list_operator_accounts(client: AsyncClient, admin_auth: str):
+    resp = await client.get(
+        "/api/admin/operators",
+        params={"authorization": admin_auth},
+    )
+    assert resp.status_code == 200
+
+    data = resp.json()
+    assert data["total"] == 10
+    first = data["items"][0]
+    assert first["id"] == "operator_1"
+    assert first["operator_number"] == 1
+    assert "shop_radar" in first["permissions"]
+    assert first["report"]["operator_id"] == 1
+
+
+@pytest.mark.asyncio
+async def test_admin_can_update_operator_account(client: AsyncClient, admin_auth: str):
+    resp = await client.put(
+        "/api/admin/operators/operator_3",
+        json={
+            "username": "测试操作员3",
+            "phone": "13800009993",
+            "is_active": True,
+            "password": "op998877",
+            "permissions": ["ai_assistant", "orders"],
+        },
+        params={"authorization": admin_auth},
+    )
+    assert resp.status_code == 200
+    operator = resp.json()["operator"]
+    assert operator["username"] == "测试操作员3"
+    assert operator["phone"] == "13800009993"
+    assert operator["permissions"] == ["ai_assistant", "orders"]
+
+    login = await client.post(
+        "/api/auth/login",
+        json={
+            "username": "3",
+            "password": "op998877",
+            "type": "operator",
+        },
+    )
+    assert login.status_code == 200
+    assert login.json()["user"]["permissions"] == ["ai_assistant", "orders"]
+
+
+@pytest.mark.asyncio
+async def test_admin_can_disable_operator_login(client: AsyncClient, admin_auth: str):
+    resp = await client.put(
+        "/api/admin/operators/operator_4",
+        json={"is_active": False},
+        params={"authorization": admin_auth},
+    )
+    assert resp.status_code == 200
+    assert resp.json()["operator"]["is_active"] is False
+
+    login = await client.post(
+        "/api/auth/login",
+        json={
+            "username": "4",
+            "password": "op123456",
+            "type": "operator",
+        },
+    )
+    assert login.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_permission_change_revokes_existing_operator_session(
+    client: AsyncClient,
+    admin_auth: str,
+    operator_auth: str,
+):
+    resp = await client.put(
+        "/api/admin/operators/operator_1",
+        json={"permissions": ["orders"]},
+        params={"authorization": admin_auth},
+    )
+    assert resp.status_code == 200
+    assert resp.json()["operator"]["permissions"] == ["orders"]
+
+    old_session = await client.get(
+        "/api/orders",
+        params={"authorization": operator_auth},
+    )
+    assert old_session.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_operator_cannot_manage_operator_accounts(
+    client: AsyncClient,
+    operator_auth: str,
+):
+    resp = await client.put(
+        "/api/admin/operators/operator_2",
+        json={"permissions": ["orders"]},
+        params={"authorization": operator_auth},
+    )
+    assert resp.status_code == 403

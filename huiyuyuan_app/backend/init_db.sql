@@ -20,6 +20,7 @@ CREATE TABLE IF NOT EXISTS users (
     user_type     VARCHAR(20) NOT NULL DEFAULT 'customer'
                   CHECK (user_type IN ('customer', 'operator', 'admin')),
     operator_num  INTEGER,
+    permissions   JSONB NOT NULL DEFAULT '[]',
     balance       NUMERIC(12,2) NOT NULL DEFAULT 0.00,
     points        INTEGER NOT NULL DEFAULT 0,
     is_active     BOOLEAN NOT NULL DEFAULT TRUE,

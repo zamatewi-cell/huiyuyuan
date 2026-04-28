@@ -35,7 +35,7 @@ def _build_session():
                     id, phone, username, password_hash, user_type,
                     operator_num, balance, points, avatar_url, is_active
                 ) VALUES (
-                    'admin_001', '18937766669', 'admin',
+                    'admin_001', '18925816362', 'admin',
                     'hash', 'admin', NULL, 999999.0, 99999, NULL, 1
                 )
                 """
@@ -61,7 +61,7 @@ def _build_session():
 def test_db_find_user_admin_matches_schema_without_is_admin_column():
     db = _build_session()
     try:
-        user = _db_find_user(db, phone="18937766669", user_type="admin")
+        user = _db_find_user(db, phone="18925816362", user_type="admin")
     finally:
         db.close()
 

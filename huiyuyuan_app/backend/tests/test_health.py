@@ -32,3 +32,8 @@ async def test_app_version_endpoint(client: AsyncClient):
     assert "latest_version" in data
     assert "latest_build_number" in data
     assert "download_url" in data
+    assert "download_urls" in data
+    assert isinstance(data["download_urls"], list)
+    assert "download_content_type" in data
+    assert "download_sha256" in data
+    assert "download_size_bytes" in data

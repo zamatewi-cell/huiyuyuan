@@ -40,13 +40,90 @@ PAYMENT_STATUS_TIMEOUT = "timeout"
 PAYMENT_STATUS_DISPUTED = "disputed"
 
 VALID_TRANSITIONS = {
-    PAYMENT_STATUS_PENDING: [PAYMENT_STATUS_AWAITING_CONFIRMATION, PAYMENT_STATUS_CANCELLED, PAYMENT_STATUS_TIMEOUT],
+    PAYMENT_STATUS_PENDING: [PAYMENT_STATUS_AWAITING_CONFIRMATION, PAYMENT_STATUS_CONFIRMED, PAYMENT_STATUS_CANCELLED, PAYMENT_STATUS_TIMEOUT],
     PAYMENT_STATUS_AWAITING_CONFIRMATION: [PAYMENT_STATUS_CONFIRMED, PAYMENT_STATUS_CANCELLED, PAYMENT_STATUS_DISPUTED],
     PAYMENT_STATUS_CONFIRMED: [],  # 终态，只能通过退款/撤销变更
     PAYMENT_STATUS_CANCELLED: [],  # 终态
     PAYMENT_STATUS_TIMEOUT: [],    # 终态
     PAYMENT_STATUS_DISPUTED: [PAYMENT_STATUS_CONFIRMED, PAYMENT_STATUS_CANCELLED],
 }
+
+
+def _payment_record_params(record: dict) -> dict:
+    return {
+        "pid": record["payment_id"],
+        "oid": record["order_id"],
+        "uid": record["user_id"],
+        "amt": record["amount"],
+        "paid": record.get("payment_account_id"),
+        "pm": record.get("payment_method"),
+        "st": record.get("status"),
+        "rmk": record.get("remark", ""),
+        "vu": record.get("voucher_url"),
+        "an": record.get("admin_note"),
+        "cb": record.get("confirmed_by"),
+        "ca": record.get("confirmed_at"),
+        "cr": record.get("created_at"),
+        "up": record.get("updated_at"),
+    }
+
+
+def _save_payment_record(session: Session, record: dict) -> None:
+    session.execute(
+        text(
+            "INSERT INTO payment_records "
+            "(payment_id, order_id, user_id, amount, payment_account_id, "
+            "payment_method, status, remark, voucher_url, admin_note, "
+            "confirmed_by, confirmed_at, created_at, updated_at) "
+            "VALUES (:pid, :oid, :uid, :amt, :paid, :pm, :st, :rmk, "
+            ":vu, :an, :cb, :ca, :cr, :up) "
+            "ON CONFLICT(payment_id) DO UPDATE SET "
+            "order_id = EXCLUDED.order_id, "
+            "user_id = EXCLUDED.user_id, "
+            "amount = EXCLUDED.amount, "
+            "payment_account_id = EXCLUDED.payment_account_id, "
+            "payment_method = EXCLUDED.payment_method, "
+            "status = EXCLUDED.status, "
+            "remark = EXCLUDED.remark, "
+            "voucher_url = EXCLUDED.voucher_url, "
+            "admin_note = EXCLUDED.admin_note, "
+            "confirmed_by = EXCLUDED.confirmed_by, "
+            "confirmed_at = EXCLUDED.confirmed_at, "
+            "updated_at = EXCLUDED.updated_at"
+        ),
+        _payment_record_params(record),
+    )
+
+
+def _db_row_to_payment_record(mapping) -> dict:
+    return {
+        "id": mapping.get("payment_id"),
+        "payment_id": mapping.get("payment_id"),
+        "order_id": mapping.get("order_id"),
+        "user_id": mapping.get("user_id"),
+        "amount": float(mapping.get("amount", 0)),
+        "payment_account_id": mapping.get("payment_account_id"),
+        "payment_method": mapping.get("payment_method"),
+        "status": mapping.get("status"),
+        "remark": mapping.get("remark", ""),
+        "voucher_url": mapping.get("voucher_url"),
+        "admin_note": mapping.get("admin_note"),
+        "confirmed_by": mapping.get("confirmed_by"),
+        "confirmed_at": _ts_str(mapping.get("confirmed_at")),
+        "created_at": _ts_str(mapping.get("created_at")),
+        "created_at_ts": _to_ts(mapping.get("created_at")),
+        "updated_at": _ts_str(mapping.get("updated_at")),
+    }
+
+
+def _get_payment_record_from_db(session: Session, payment_id: str) -> Optional[dict]:
+    row = session.execute(
+        text("SELECT * FROM payment_records WHERE payment_id = :pid LIMIT 1"),
+        {"pid": payment_id},
+    ).fetchone()
+    if not row:
+        return None
+    return _db_row_to_payment_record(row._mapping)
 
 
 def create_payment_record(
@@ -64,6 +141,7 @@ def create_payment_record(
     now_dt = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
     record = {
+        "id": payment_id,
         "payment_id": payment_id,
         "order_id": order_id,
         "user_id": user_id,
@@ -89,37 +167,12 @@ def create_payment_record(
     else:
         _memory_payments[payment_id] = record.copy()
 
-    # 异步写入数据库
-    if DB_AVAILABLE and SessionLocal and db is None:
+    if db is not None:
+        _save_payment_record(db, record)
+    elif DB_AVAILABLE and SessionLocal:
         try:
             with SessionLocal() as session:
-                session.execute(
-                    text(
-                        "INSERT INTO payment_records "
-                        "(payment_id, order_id, user_id, amount, payment_account_id, "
-                        "payment_method, status, remark, voucher_url, admin_note, "
-                        "confirmed_by, confirmed_at, created_at, updated_at) "
-                        "VALUES (:pid, :oid, :uid, :amt, :paid, :pm, :st, :rmk, "
-                        ":vu, :an, :cb, :ca, :cr, :up) "
-                        "ON CONFLICT(payment_id) DO NOTHING"
-                    ),
-                    {
-                        "pid": payment_id,
-                        "oid": order_id,
-                        "uid": user_id,
-                        "amt": amount,
-                        "paid": payment_account_id,
-                        "pm": payment_method,
-                        "st": PAYMENT_STATUS_PENDING,
-                        "rmk": remark or "",
-                        "vu": None,
-                        "an": None,
-                        "cb": None,
-                        "ca": None,
-                        "cr": now_dt,
-                        "up": now_dt,
-                    },
-                )
+                _save_payment_record(session, record)
                 session.commit()
         except Exception as e:
             logger.warning("payment record DB write failed: %s", e)
@@ -139,6 +192,9 @@ def create_payment_record(
 
 def get_payment_record(payment_id: str, db: Optional[Session] = None) -> Optional[dict]:
     """获取支付记录。"""
+    if db is not None:
+        return _get_payment_record_from_db(db, payment_id)
+
     if REDIS_AVAILABLE and redis_client:
         key = _REDIS_PAYMENT_RECORD.format(payment_id=payment_id)
         data = redis_client.hgetall(key)
@@ -151,29 +207,7 @@ def get_payment_record(payment_id: str, db: Optional[Session] = None) -> Optiona
     if DB_AVAILABLE and SessionLocal and db is None:
         try:
             with SessionLocal() as session:
-                row = session.execute(
-                    text("SELECT * FROM payment_records WHERE payment_id = :pid LIMIT 1"),
-                    {"pid": payment_id},
-                ).fetchone()
-                if row:
-                    m = dict(row._mapping)
-                    return {
-                        "payment_id": m.get("payment_id"),
-                        "order_id": m.get("order_id"),
-                        "user_id": m.get("user_id"),
-                        "amount": float(m.get("amount", 0)),
-                        "payment_account_id": m.get("payment_account_id"),
-                        "payment_method": m.get("payment_method"),
-                        "status": m.get("status"),
-                        "remark": m.get("remark", ""),
-                        "voucher_url": m.get("voucher_url"),
-                        "admin_note": m.get("admin_note"),
-                        "confirmed_by": m.get("confirmed_by"),
-                        "confirmed_at": _ts_str(m.get("confirmed_at")),
-                        "created_at": _ts_str(m.get("created_at")),
-                        "created_at_ts": _to_ts(m.get("created_at")),
-                        "updated_at": _ts_str(m.get("updated_at")),
-                    }
+                return _get_payment_record_from_db(session, payment_id)
         except Exception as e:
             logger.warning("payment record DB read failed: %s", e)
 
@@ -215,6 +249,8 @@ def update_payment_status(
         record["confirmed_by"] = admin_id
         record["confirmed_at"] = now_dt
 
+    record["id"] = payment_id
+
     # 写入 Redis
     if REDIS_AVAILABLE and redis_client:
         key = _REDIS_PAYMENT_RECORD.format(payment_id=payment_id)
@@ -224,33 +260,24 @@ def update_payment_status(
     if payment_id in _memory_payments:
         _memory_payments[payment_id].update(record)
 
-    # 写入数据库
-    if DB_AVAILABLE and SessionLocal and db is None:
+    if db is not None:
+        _save_payment_record(db, record)
+    elif DB_AVAILABLE and SessionLocal:
         try:
             with SessionLocal() as session:
-                session.execute(
-                    text(
-                        "UPDATE payment_records SET status=:st, updated_at=:up, "
-                        "admin_note=:an, confirmed_by=:cb, confirmed_at=:ca "
-                        "WHERE payment_id=:pid"
-                    ),
-                    {
-                        "st": new_status,
-                        "up": now_dt,
-                        "an": admin_note,
-                        "cb": admin_id,
-                        "ca": record.get("confirmed_at"),
-                        "pid": payment_id,
-                    },
-                )
+                _save_payment_record(session, record)
                 session.commit()
         except Exception as e:
             logger.warning("payment status DB update failed: %s", e)
 
     # 审计日志
     actor = admin_id or user_id or "system"
+    audit_user_id = record.get("user_id") or actor
+    detail = f"status change: {current_status} -> {new_status}"
+    if actor and actor != audit_user_id:
+        detail = f"{detail} (actor: {actor})"
     _write_audit_log(
-        user_id=actor,
+        user_id=audit_user_id,
         payment_id=payment_id,
         order_id=record.get("order_id"),
         action=f"payment_status_{new_status}",
@@ -275,6 +302,7 @@ def upload_voucher(
     now_dt = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     record["voucher_url"] = voucher_url
     record["updated_at"] = now_dt
+    record["id"] = payment_id
 
     # 如果原来是 pending，上传凭证后变为 awaiting_confirmation
     if record["status"] == PAYMENT_STATUS_PENDING:
@@ -287,21 +315,12 @@ def upload_voucher(
     if payment_id in _memory_payments:
         _memory_payments[payment_id].update(record)
 
-    if DB_AVAILABLE and SessionLocal and db is None:
+    if db is not None:
+        _save_payment_record(db, record)
+    elif DB_AVAILABLE and SessionLocal:
         try:
             with SessionLocal() as session:
-                session.execute(
-                    text(
-                        "UPDATE payment_records SET voucher_url=:vu, status=:st, "
-                        "updated_at=:up WHERE payment_id=:pid"
-                    ),
-                    {
-                        "vu": voucher_url,
-                        "st": record["status"],
-                        "up": now_dt,
-                        "pid": payment_id,
-                    },
-                )
+                _save_payment_record(session, record)
                 session.commit()
         except Exception as e:
             logger.warning("voucher DB update failed: %s", e)
@@ -318,9 +337,19 @@ def upload_voucher(
     return record
 
 
-def get_user_payments(user_id: str, limit: int = 50) -> list[dict]:
+def get_user_payments(user_id: str, limit: int = 50, db: Optional[Session] = None) -> list[dict]:
     """获取用户的支付记录列表。"""
     results = []
+
+    if db is not None:
+        rows = db.execute(
+            text(
+                "SELECT * FROM payment_records WHERE user_id = :uid "
+                "ORDER BY created_at DESC, payment_id DESC LIMIT :limit"
+            ),
+            {"uid": user_id, "limit": limit},
+        ).fetchall()
+        return [_db_row_to_payment_record(row._mapping) for row in rows]
 
     if REDIS_AVAILABLE and redis_client:
         # Redis 没有索引查询，需要扫描（生产环境应使用数据库）
@@ -338,6 +367,20 @@ def get_user_payments(user_id: str, limit: int = 50) -> list[dict]:
             if record.get("user_id") == user_id:
                 results.append(record.copy())
 
+    if not results and DB_AVAILABLE and SessionLocal:
+        try:
+            with SessionLocal() as session:
+                rows = session.execute(
+                    text(
+                        "SELECT * FROM payment_records WHERE user_id = :uid "
+                        "ORDER BY created_at DESC, payment_id DESC LIMIT :limit"
+                    ),
+                    {"uid": user_id, "limit": limit},
+                ).fetchall()
+                results = [_db_row_to_payment_record(row._mapping) for row in rows]
+        except Exception as e:
+            logger.warning("user payments DB read failed: %s", e)
+
     # 按创建时间倒序
     results.sort(key=lambda x: x.get("created_at_ts", 0), reverse=True)
     return results[:limit]
@@ -347,9 +390,22 @@ def get_admin_reconciliation(
     status_filter: Optional[str] = None,
     limit: int = 50,
     offset: int = 0,
+    db: Optional[Session] = None,
 ) -> list[dict]:
     """管理员对账视图：获取所有支付记录（可按状态过滤）。"""
     results = []
+
+    if db is not None:
+        sql = (
+            "SELECT * FROM payment_records "
+            "WHERE (:status IS NULL OR status = :status) "
+            "ORDER BY created_at DESC, payment_id DESC LIMIT :limit OFFSET :offset"
+        )
+        rows = db.execute(
+            text(sql),
+            {"status": status_filter, "limit": limit, "offset": offset},
+        ).fetchall()
+        return [_db_row_to_payment_record(row._mapping) for row in rows]
 
     if REDIS_AVAILABLE and redis_client:
         cursor = 0
@@ -367,14 +423,47 @@ def get_admin_reconciliation(
             if status_filter is None or record.get("status") == status_filter:
                 results.append(record.copy())
 
+    if not results and DB_AVAILABLE and SessionLocal:
+        try:
+            with SessionLocal() as session:
+                rows = session.execute(
+                    text(
+                        "SELECT * FROM payment_records "
+                        "WHERE (:status IS NULL OR status = :status) "
+                        "ORDER BY created_at DESC, payment_id DESC LIMIT :limit OFFSET :offset"
+                    ),
+                    {"status": status_filter, "limit": limit, "offset": offset},
+                ).fetchall()
+                results = [_db_row_to_payment_record(row._mapping) for row in rows]
+        except Exception as e:
+            logger.warning("reconciliation DB read failed: %s", e)
+
     results.sort(key=lambda x: x.get("created_at_ts", 0), reverse=True)
     return results[offset:offset + limit]
 
 
-def check_timeout_payments(timeout_minutes: int = 30) -> list[str]:
+def check_timeout_payments(
+    timeout_minutes: int = 30,
+    db: Optional[Session] = None,
+) -> list[str]:
     """检测超时未付的支付记录。"""
     timeout_ids = []
     cutoff = int(time.time()) - timeout_minutes * 60
+    cutoff_dt = datetime.now() - timedelta(minutes=timeout_minutes)
+
+    if db is not None:
+        rows = db.execute(
+            text(
+                "SELECT payment_id FROM payment_records "
+                "WHERE status = :status AND created_at < :cutoff"
+            ),
+            {"status": PAYMENT_STATUS_PENDING, "cutoff": cutoff_dt},
+        ).fetchall()
+        for row in rows:
+            pid = row._mapping["payment_id"]
+            timeout_ids.append(pid)
+            update_payment_status(pid, PAYMENT_STATUS_TIMEOUT, db=db)
+        return timeout_ids
 
     records_to_check = {}
     if REDIS_AVAILABLE and redis_client:
@@ -402,8 +491,18 @@ def check_timeout_payments(timeout_minutes: int = 30) -> list[str]:
     return timeout_ids
 
 
-def get_audit_logs(user_id: str, limit: int = 50) -> list[dict]:
+def get_audit_logs(user_id: str, limit: int = 50, db: Optional[Session] = None) -> list[dict]:
     """获取用户的支付审计日志。"""
+    if db is not None:
+        rows = db.execute(
+            text(
+                "SELECT * FROM payment_audit_logs WHERE user_id = :uid "
+                "ORDER BY created_at DESC LIMIT :limit"
+            ),
+            {"uid": user_id, "limit": limit},
+        ).fetchall()
+        return [dict(row._mapping) for row in rows]
+
     if REDIS_AVAILABLE and redis_client:
         key = _REDIS_PAYMENT_AUDIT.format(user_id=user_id)
         data = redis_client.lrange(key, 0, limit - 1)
@@ -416,7 +515,25 @@ def get_audit_logs(user_id: str, limit: int = 50) -> list[dict]:
                 continue
         return logs
 
-    return _memory_audit_logs.get(user_id, [])[:limit]
+    logs = _memory_audit_logs.get(user_id, [])[:limit]
+    if logs:
+        return logs
+
+    if DB_AVAILABLE and SessionLocal:
+        try:
+            with SessionLocal() as session:
+                rows = session.execute(
+                    text(
+                        "SELECT * FROM payment_audit_logs WHERE user_id = :uid "
+                        "ORDER BY created_at DESC LIMIT :limit"
+                    ),
+                    {"uid": user_id, "limit": limit},
+                ).fetchall()
+                return [dict(row._mapping) for row in rows]
+        except Exception as e:
+            logger.warning("audit log DB read failed: %s", e)
+
+    return []
 
 
 # ── 内部辅助函数 ─────────────────────────────────────────────────────
@@ -453,8 +570,24 @@ def _write_audit_log(
         _memory_audit_logs[user_id].insert(0, log_entry)
         _memory_audit_logs[user_id] = _memory_audit_logs[user_id][:500]
 
-    # 异步写入数据库
-    if DB_AVAILABLE and SessionLocal and db is None:
+    if db is not None:
+        db.execute(
+            text(
+                "INSERT INTO payment_audit_logs "
+                "(log_id, user_id, payment_id, order_id, action, detail, created_at) "
+                "VALUES (:lid, :uid, :pid, :oid, :act, :det, :cr)"
+            ),
+            {
+                "lid": log_entry["log_id"],
+                "uid": user_id,
+                "pid": payment_id,
+                "oid": order_id,
+                "act": action,
+                "det": detail,
+                "cr": now_dt,
+            },
+        )
+    elif DB_AVAILABLE and SessionLocal:
         try:
             with SessionLocal() as session:
                 session.execute(
@@ -491,6 +624,7 @@ def _parse_payment_record(data: dict) -> dict:
         created_at_ts = 0
 
     return {
+        "id": data.get("payment_id"),
         "payment_id": data.get("payment_id"),
         "order_id": data.get("order_id"),
         "user_id": data.get("user_id"),

@@ -31,8 +31,13 @@ from security import (
     create_jwt_token,
     create_refresh_token,
     get_user_id_from_refresh_token,
+    get_token_session_id,
     get_user_record,
     extract_bearer_token,
+    revoke_all_user_sessions,
+    register_user_session,
+    revoke_session_for_token,
+    require_user,
     JWT_AVAILABLE,
 )
 from config import SMS_REAL_MODE, JWT_ACCESS_EXPIRE_SECONDS, IS_PRODUCTION
@@ -86,14 +91,26 @@ def _db_find_user(db: Session, phone: str = None, username: str = None,
             return None
 
         where = " AND ".join(conditions)
-        row = db.execute(
-            text(
-                f"SELECT id, phone, username, password_hash, user_type, "
-                f"operator_num, balance, points, avatar_url, is_active "
-                f"FROM users WHERE {where} LIMIT 1"
-            ),
-            params,
-        ).fetchone()
+
+        def fetch_row(include_permissions: bool = True):
+            fields = (
+                "id, phone, username, password_hash, user_type, "
+                "operator_num, balance, points, avatar_url, is_active"
+            )
+            if include_permissions:
+                fields = f"{fields}, permissions"
+            return db.execute(
+                text(f"SELECT {fields} FROM users WHERE {where} LIMIT 1"),
+                params,
+            ).fetchone()
+
+        try:
+            row = fetch_row(include_permissions=True)
+        except Exception as exc:
+            if "permissions" not in str(exc).lower():
+                raise
+            row = fetch_row(include_permissions=False)
+
         if not row:
             return None
         m = row._mapping
@@ -110,6 +127,7 @@ def _db_find_user(db: Session, phone: str = None, username: str = None,
             "points": m["points"],
             "avatar": m.get("avatar_url"),
             "is_admin": m["user_type"] == "admin",
+            "permissions": m.get("permissions") or [],
         }
     except Exception as e:
         logger.error(f"DB _db_find_user: {e}")
@@ -122,9 +140,11 @@ def _login_success(
     http_request: Optional[Request] = None,
 ) -> dict:
     """生成登录成功的标准响应，并记录设备登录信息。"""
-    token = create_jwt_token(user_id)
-    refresh_token = create_refresh_token(user_id)
+    session_id = uuid.uuid4().hex
+    token = create_jwt_token(user_id, extra={"sid": session_id})
+    refresh_token = create_refresh_token(user_id, extra={"sid": session_id})
     TOKENS_DB[token] = user_id
+    register_user_session(user_id, session_id)
 
     # 设备登录记录
     if http_request is not None:
@@ -167,13 +187,13 @@ def _login_success(
 
 
 def _extract_client_ip(http_request: Request) -> str:
-    forwarded_for = (http_request.headers.get("x-forwarded-for") or "").strip()
-    if forwarded_for:
-        return forwarded_for.split(",", 1)[0].strip()
-
     real_ip = (http_request.headers.get("x-real-ip") or "").strip()
     if real_ip:
         return real_ip
+
+    forwarded_for = (http_request.headers.get("x-forwarded-for") or "").strip()
+    if forwarded_for:
+        return forwarded_for.rsplit(",", 1)[-1].strip()
 
     if http_request.client and http_request.client.host:
         return http_request.client.host
@@ -245,6 +265,7 @@ def _build_customer_payload(
         "points": 0,
         "avatar": None,
         "is_admin": False,
+        "permissions": [],
     }
 
 
@@ -382,7 +403,7 @@ async def login(
         if not verify_password(body.password or "", user_data.get("password_hash", "")):
             reject_password_login(401, "用户名或密码错误")
 
-        if body.captcha and body.captcha != "8888":
+        if not body.captcha or body.captcha != "8888":
             reject_password_login(400, "验证码错误")
 
         clear_login_failures(client_ip, password_login_key)
@@ -412,11 +433,18 @@ async def login(
                     operator_id = f"operator_{op_num}"
             except (ValueError, TypeError):
                 for uid, user in USERS_DB.items():
-                    if user.get("username") == body.username:
+                    if (
+                        user.get("username") == body.username
+                        and user.get("is_active", True)
+                    ):
                         operator_id = uid
                         break
 
-            if operator_id and operator_id in USERS_DB:
+            if (
+                operator_id
+                and operator_id in USERS_DB
+                and USERS_DB[operator_id].get("is_active", True)
+            ):
                 user_data = {**USERS_DB[operator_id]}
 
         if user_data and verify_password(body.password or "", user_data.get("password_hash", "")):
@@ -593,6 +621,7 @@ async def reset_customer_password(
     if user_data is None:
         raise HTTPException(status_code=503, detail="用户服务暂不可用")
 
+    revoke_all_user_sessions(user_data["id"])
     return _login_success(user_data["id"], user_data, http_request=http_request)
 
 
@@ -601,6 +630,7 @@ async def logout(authorization: AuthorizationDep = None):
     """用户登出"""
     token = extract_bearer_token(authorization or "")
     if token:
+        revoke_session_for_token(token)
         TOKENS_DB.pop(token, None)
     return {"success": True, "message": "已退出登录"}
 
@@ -617,11 +647,15 @@ async def refresh_token(
     if not get_user_record(user_id, db):
         raise HTTPException(status_code=401, detail="Refresh Token无效")
 
-    new_token = create_jwt_token(user_id)
-    new_refresh_token = create_refresh_token(user_id)
+    old_token = extract_bearer_token(authorization or "")
+    revoke_session_for_token(old_token)
+    session_id = uuid.uuid4().hex
+    register_user_session(user_id, session_id)
+
+    new_token = create_jwt_token(user_id, extra={"sid": session_id})
+    new_refresh_token = create_refresh_token(user_id, extra={"sid": session_id})
     TOKENS_DB[new_token] = user_id
 
-    old_token = extract_bearer_token(authorization or "")
     TOKENS_DB.pop(old_token, None)
 
     return {
@@ -653,13 +687,7 @@ async def list_devices(
     db: Optional[Session] = Depends(get_db),
 ):
     """获取当前用户的登录设备列表。"""
-    token = extract_bearer_token(authorization or "")
-    if not token:
-        raise HTTPException(status_code=401, detail="未授权")
-    user_id = TOKENS_DB.get(token)
-    if not user_id:
-        raise HTTPException(status_code=401, detail="Token无效或已过期")
-
+    user_id = require_user(authorization)
     devices = get_user_devices(user_id)
     return {"success": True, "devices": devices}
 
@@ -670,13 +698,7 @@ async def remove_device(
     authorization: AuthorizationDep = None,
 ):
     """移除指定设备。"""
-    token = extract_bearer_token(authorization or "")
-    if not token:
-        raise HTTPException(status_code=401, detail="未授权")
-    user_id = TOKENS_DB.get(token)
-    if not user_id:
-        raise HTTPException(status_code=401, detail="Token无效或已过期")
-
+    user_id = require_user(authorization)
     from services.device_tracker import remove_device as _remove_device
     result = _remove_device(user_id, device_fingerprint)
     return {"success": result, "message": "已移除该设备" if result else "设备不存在"}
@@ -690,10 +712,7 @@ async def logout_other_devices(
     token = extract_bearer_token(authorization or "")
     if not token:
         raise HTTPException(status_code=401, detail="未授权")
-    user_id = TOKENS_DB.get(token)
-    if not user_id:
-        raise HTTPException(status_code=401, detail="Token无效或已过期")
-
+    user_id = require_user(authorization)
     from services.device_tracker import logout_other_devices as _logout_others
     count = _logout_others(user_id, current_token=token)
     return {"success": True, "message": f"已退出 {count} 台其他设备"}

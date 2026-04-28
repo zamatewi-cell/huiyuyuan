@@ -26,9 +26,11 @@ from schemas.user import (
 )
 from security import (
     AuthorizationDep,
+    extract_bearer_token,
     get_user_record,
     hash_password,
     require_user,
+    revoke_other_user_sessions,
     verify_password,
 )
 from store import ADDRESSES_DB, PAYMENT_ACCOUNTS_DB, TOKENS_DB, USERS_DB
@@ -146,6 +148,7 @@ async def update_profile(
     db: Optional[Session] = Depends(get_db),
 ):
     user_id = require_user(authorization)
+    current_token = extract_bearer_token(authorization or "")
     allowed = {"username", "avatar"}
     updates = {key: value for key, value in data.items() if key in allowed}
 
@@ -207,6 +210,7 @@ async def change_password(
     db: Optional[Session] = Depends(get_db),
 ):
     user_id = require_user(authorization)
+    current_token = extract_bearer_token(authorization or "")
     user = get_user_record(user_id, db)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
@@ -238,6 +242,7 @@ async def change_password(
             if result.rowcount == 0:
                 raise HTTPException(status_code=404, detail="User not found")
             db.commit()
+            revoke_other_user_sessions(user_id, current_token=current_token)
             return {"success": True, "message": "密码已更新"}
         except HTTPException:
             raise
@@ -250,6 +255,7 @@ async def change_password(
     if not stored:
         raise HTTPException(status_code=404, detail="User not found")
     stored["password_hash"] = new_password_hash
+    revoke_other_user_sessions(user_id, current_token=current_token)
     return {"success": True, "message": "密码已更新"}
 
 

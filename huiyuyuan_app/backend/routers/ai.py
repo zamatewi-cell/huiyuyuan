@@ -11,6 +11,7 @@ from config import (
     DASHSCOPE_API_KEY_ISSUE,
     DASHSCOPE_BASE_URL,
 )
+from security import AuthorizationDep, require_permission
 from services.ai_service import analyze_image as _analyze_image
 
 logger = logging.getLogger(__name__)
@@ -45,16 +46,25 @@ async def ai_health():
 
 # ──── 图片分析 ────
 @router.post("/analyze-image")
-async def analyze_image(file: UploadFile = File(...)):
+async def analyze_image(
+    file: UploadFile = File(...),
+    authorization: AuthorizationDep = None,
+):
     """AI image analysis via DashScope/Qwen VL."""
+    require_permission(authorization, "ai_assistant")
     return await _analyze_image(file)
 
 
 # ──── 聊天代理（解决 Web 端 CORS 问题）────
 @router.post("/chat")
-async def chat_proxy(req: ChatProxyRequest):
+async def chat_proxy(
+    req: ChatProxyRequest,
+    authorization: AuthorizationDep = None,
+):
     """代理前端聊天请求到 DashScope API，解决浏览器 CORS 限制。"""
     import httpx
+
+    require_permission(authorization, "ai_assistant")
 
     if not DASHSCOPE_API_KEY:
         issue = DASHSCOPE_API_KEY_ISSUE or "DASHSCOPE_API_KEY 未配置"
@@ -124,4 +134,3 @@ async def _stream_chat(url: str, headers: dict, payload: dict):
             "X-Accel-Buffering": "no",
         },
     )
-

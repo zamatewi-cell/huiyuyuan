@@ -10,8 +10,14 @@ from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
 from sqlalchemy.orm import Session
 
 from database import get_db
-from security import AuthorizationDep, require_user, require_admin, extract_bearer_token
-from store import TOKENS_DB, ORDERS_DB
+from security import (
+    AuthorizationDep,
+    has_permission,
+    is_admin_user,
+    require_admin,
+    require_user,
+)
+from store import ORDERS_DB
 from services.payment_service import (
     create_payment_record,
     get_payment_record,
@@ -34,6 +40,58 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/payments", tags=["Payments"])
 
 
+def _require_payment_review_access(
+    authorization: AuthorizationDep = None,
+    db: Optional[Session] = None,
+) -> str:
+    user_id = require_user(authorization)
+    if is_admin_user(user_id, db):
+        return user_id
+    if has_permission(
+        user_id,
+        "payment_reconcile",
+        db,
+        allow_non_operator=False,
+    ) or has_permission(
+        user_id,
+        "payment_exception_mark",
+        db,
+        allow_non_operator=False,
+    ):
+        return user_id
+    raise HTTPException(status_code=403, detail="需要支付处理权限")
+
+
+def _require_payment_reconcile_access(
+    authorization: AuthorizationDep = None,
+    db: Optional[Session] = None,
+) -> str:
+    user_id = require_user(authorization)
+    if is_admin_user(user_id, db) or has_permission(
+        user_id,
+        "payment_reconcile",
+        db,
+        allow_non_operator=False,
+    ):
+        return user_id
+    raise HTTPException(status_code=403, detail="需要支付对账权限")
+
+
+def _require_payment_exception_access(
+    authorization: AuthorizationDep = None,
+    db: Optional[Session] = None,
+) -> str:
+    user_id = require_user(authorization)
+    if is_admin_user(user_id, db) or has_permission(
+        user_id,
+        "payment_exception_mark",
+        db,
+        allow_non_operator=False,
+    ):
+        return user_id
+    raise HTTPException(status_code=403, detail="需要支付异常处理权限")
+
+
 @router.post("")
 async def create_payment(
     order_id: str,
@@ -44,12 +102,7 @@ async def create_payment(
     db: Optional[Session] = Depends(get_db),
 ):
     """创建支付记录（下单后调用）。"""
-    token = extract_bearer_token(authorization or "")
-    if not token:
-        raise HTTPException(status_code=401, detail="未授权")
-    user_id = TOKENS_DB.get(token)
-    if not user_id:
-        raise HTTPException(status_code=401, detail="Token无效或已过期")
+    user_id = require_user(authorization)
 
     # 验证订单存在且属于当前用户
     order = None
@@ -71,7 +124,7 @@ async def create_payment(
         raise HTTPException(status_code=403, detail="无权操作该订单")
 
     # 检查是否已有进行中的支付记录
-    existing = get_user_payments(user_id, limit=100)
+    existing = get_user_payments(user_id, limit=100, db=db)
     for ep in existing:
         if ep.get("order_id") == order_id and ep.get("status") in (
             PAYMENT_STATUS_PENDING,
@@ -94,6 +147,40 @@ async def create_payment(
         db=db,
     )
 
+    # Auto-confirm for 0.01 test orders (skip admin confirmation)
+    if amount == 0.01 and record:
+        from datetime import datetime
+        updated = update_payment_status(
+            record["payment_id"],
+            PAYMENT_STATUS_CONFIRMED,
+            admin_id="system",
+            admin_note="测试商品自动确认支付",
+            db=db,
+        )
+        # Sync order status to paid
+        if updated and order_id:
+            if ORDERS_DB and order_id in ORDERS_DB:
+                ORDERS_DB[order_id].status = "paid"
+                ORDERS_DB[order_id].paid_at = datetime.now().isoformat()
+            if db:
+                try:
+                    db.execute(
+                        text(
+                            "UPDATE orders SET status='paid', paid_at=CURRENT_TIMESTAMP "
+                            "WHERE id=:oid"
+                        ),
+                        {"oid": order_id},
+                    )
+                    db.commit()
+                except Exception as e:
+                    logger.warning("test order status sync failed: %s", e)
+        if updated:
+            record = updated
+            record["auto_confirmed"] = True
+
+    if db is not None:
+        db.commit()
+
     return {"success": True, "payment": record}
 
 
@@ -104,12 +191,7 @@ async def get_payment(
     db: Optional[Session] = Depends(get_db),
 ):
     """获取支付记录详情。"""
-    token = extract_bearer_token(authorization or "")
-    if not token:
-        raise HTTPException(status_code=401, detail="未授权")
-    user_id = TOKENS_DB.get(token)
-    if not user_id:
-        raise HTTPException(status_code=401, detail="Token无效或已过期")
+    user_id = require_user(authorization)
 
     record = get_payment_record(payment_id, db=db)
     if record is None:
@@ -133,12 +215,7 @@ async def upload_payment_voucher(
     db: Optional[Session] = Depends(get_db),
 ):
     """上传支付凭证。"""
-    token = extract_bearer_token(authorization or "")
-    if not token:
-        raise HTTPException(status_code=401, detail="未授权")
-    user_id = TOKENS_DB.get(token)
-    if not user_id:
-        raise HTTPException(status_code=401, detail="Token无效或已过期")
+    user_id = require_user(authorization)
 
     record = get_payment_record(payment_id, db=db)
     if record is None:
@@ -151,6 +228,8 @@ async def upload_payment_voucher(
         raise HTTPException(status_code=400, detail="当前状态不允许上传凭证")
 
     updated = upload_voucher(payment_id, user_id, voucher_url, db=db)
+    if db is not None:
+        db.commit()
     return {"success": True, "payment": updated}
 
 
@@ -162,12 +241,7 @@ async def cancel_payment(
     db: Optional[Session] = Depends(get_db),
 ):
     """取消支付。"""
-    token = extract_bearer_token(authorization or "")
-    if not token:
-        raise HTTPException(status_code=401, detail="未授权")
-    user_id = TOKENS_DB.get(token)
-    if not user_id:
-        raise HTTPException(status_code=401, detail="Token无效或已过期")
+    user_id = require_user(authorization)
 
     record = get_payment_record(payment_id, db=db)
     if record is None:
@@ -187,6 +261,8 @@ async def cancel_payment(
         admin_note=note,
         db=db,
     )
+    if db is not None:
+        db.commit()
     return {"success": True, "payment": updated}
 
 
@@ -197,14 +273,9 @@ async def list_my_payments(
     db: Optional[Session] = Depends(get_db),
 ):
     """获取当前用户的支付记录列表。"""
-    token = extract_bearer_token(authorization or "")
-    if not token:
-        raise HTTPException(status_code=401, detail="未授权")
-    user_id = TOKENS_DB.get(token)
-    if not user_id:
-        raise HTTPException(status_code=401, detail="Token无效或已过期")
+    user_id = require_user(authorization)
 
-    payments = get_user_payments(user_id, limit=limit)
+    payments = get_user_payments(user_id, limit=limit, db=db)
     return {"success": True, "payments": payments, "total": len(payments)}
 
 
@@ -219,9 +290,9 @@ async def admin_reconciliation(
     db: Optional[Session] = Depends(get_db),
 ):
     """管理员对账视图：查看所有支付记录。"""
-    require_admin(authorization)
+    _require_payment_review_access(authorization, db)
 
-    payments = get_admin_reconciliation(status_filter=status, limit=limit, offset=offset)
+    payments = get_admin_reconciliation(status_filter=status, limit=limit, offset=offset, db=db)
     return {"success": True, "payments": payments, "total": len(payments)}
 
 
@@ -233,15 +304,17 @@ async def admin_confirm_payment(
     db: Optional[Session] = Depends(get_db),
 ):
     """管理员确认到账。"""
-    require_admin(authorization)
-    token = extract_bearer_token(authorization or "")
-    admin_id = TOKENS_DB.get(token) if token else None
+    admin_id = _require_payment_reconcile_access(authorization, db)
 
     record = get_payment_record(payment_id, db=db)
     if record is None:
         raise HTTPException(status_code=404, detail="支付记录不存在")
 
-    if record.get("status") != PAYMENT_STATUS_AWAITING_CONFIRMATION:
+    if record.get("status") not in (
+        PAYMENT_STATUS_PENDING,
+        PAYMENT_STATUS_AWAITING_CONFIRMATION,
+        PAYMENT_STATUS_DISPUTED,
+    ):
         raise HTTPException(status_code=400, detail="当前状态不允许确认")
 
     updated = update_payment_status(
@@ -286,9 +359,7 @@ async def admin_dispute_payment(
     db: Optional[Session] = Depends(get_db),
 ):
     """管理员标记支付异常/争议。"""
-    require_admin(authorization)
-    token = extract_bearer_token(authorization or "")
-    admin_id = TOKENS_DB.get(token) if token else None
+    admin_id = _require_payment_exception_access(authorization, db)
 
     record = get_payment_record(payment_id, db=db)
     if record is None:
@@ -305,6 +376,8 @@ async def admin_dispute_payment(
         admin_note=note,
         db=db,
     )
+    if db is not None:
+        db.commit()
     return {"success": True, "payment": updated}
 
 
@@ -317,7 +390,9 @@ async def admin_check_timeout(
     """管理员手动检查超时支付。"""
     require_admin(authorization)
 
-    timeout_ids = check_timeout_payments(timeout_minutes=timeout_minutes)
+    timeout_ids = check_timeout_payments(timeout_minutes=timeout_minutes, db=db)
+    if db is not None:
+        db.commit()
     return {
         "success": True,
         "timed_out": timeout_ids,
@@ -335,5 +410,5 @@ async def get_user_audit_logs(
     """获取用户的支付审计日志（管理员）。"""
     require_admin(authorization)
 
-    logs = get_audit_logs(user_id, limit=limit)
+    logs = get_audit_logs(user_id, limit=limit, db=db)
     return {"success": True, "logs": logs, "total": len(logs)}

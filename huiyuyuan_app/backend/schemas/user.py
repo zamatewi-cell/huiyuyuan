@@ -3,7 +3,7 @@
 from datetime import datetime
 from typing import Literal, Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class UserResponse(BaseModel):
@@ -15,6 +15,7 @@ class UserResponse(BaseModel):
     points: int = 0
     avatar: Optional[str] = None
     operator_number: Optional[int] = None
+    permissions: list[str] = Field(default_factory=list)
     payment_account_id: Optional[str] = None
     user_type: str = "operator"
 

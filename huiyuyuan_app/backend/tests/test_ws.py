@@ -11,7 +11,7 @@ def _login_admin_token(client: TestClient) -> str:
     response = client.post(
         "/api/auth/login",
         json={
-            "username": "18937766669",
+            "username": "18925816362",
             "password": "admin123",
             "type": "admin",
             "captcha": "8888",

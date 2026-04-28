@@ -20,6 +20,7 @@ from store import (
     PRODUCTS_DB, ORDERS_DB, CARTS_DB, USERS_DB,
     TOKENS_DB, ADDRESSES_DB, FAVORITES_DB, REVIEWS_DB,
     PAYMENTS_DB, PAYMENT_ACCOUNTS_DB, DEVICES_DB,
+    ACTIVE_SESSIONS_DB, REVOKED_SESSIONS_DB,
     INVENTORY_META_DB, INVENTORY_TRANSACTIONS_DB,
     init_store,
 )
@@ -34,6 +35,8 @@ def _reset_dbs():
     FAVORITES_DB.clear()
     REVIEWS_DB.clear()
     TOKENS_DB.clear()
+    ACTIVE_SESSIONS_DB.clear()
+    REVOKED_SESSIONS_DB.clear()
     PAYMENTS_DB.clear()
     PAYMENT_ACCOUNTS_DB.clear()
     DEVICES_DB.clear()
@@ -54,6 +57,10 @@ def clean_state(monkeypatch: pytest.MonkeyPatch):
     _reset_dbs()
     yield
     login_guard_service._MEMORY_FAILURES.clear()
+    # Revert per-test monkeypatches before rebuilding the in-memory store.
+    # Some tests temporarily point the seed payload path at a missing file and
+    # the reset path should always use the default repository seed source.
+    monkeypatch.undo()
     _reset_dbs()
 
 
@@ -68,7 +75,7 @@ async def client():
 async def admin_auth(client: AsyncClient) -> str:
     """Login as admin, return 'Bearer <token>' string for authorization param."""
     resp = await client.post("/api/auth/login", json={
-        "username": "18937766669",
+        "username": "18925816362",
         "password": "admin123",
         "type": "admin",
         "captcha": "8888",

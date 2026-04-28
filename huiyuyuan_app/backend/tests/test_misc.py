@@ -130,6 +130,17 @@ async def test_change_password(client: AsyncClient, customer_auth: str):
     assert profile_resp.status_code == 200
     phone = profile_resp.json()["phone"]
 
+    second_login = await client.post(
+        "/api/auth/login",
+        json={
+            "phone": phone,
+            "password": "Test12345",
+            "type": "customer",
+        },
+    )
+    assert second_login.status_code == 200
+    other_auth = {"authorization": f"Bearer {second_login.json()['token']}"}
+
     change_resp = await client.post(
         "/api/users/account/change-password",
         json={
@@ -141,6 +152,12 @@ async def test_change_password(client: AsyncClient, customer_auth: str):
     )
     assert change_resp.status_code == 200
     assert change_resp.json()["success"] is True
+
+    current_profile = await client.get("/api/users/profile", params=auth)
+    assert current_profile.status_code == 200
+
+    other_profile = await client.get("/api/users/profile", params=other_auth)
+    assert other_profile.status_code == 401
 
     old_login = await client.post(
         "/api/auth/login",

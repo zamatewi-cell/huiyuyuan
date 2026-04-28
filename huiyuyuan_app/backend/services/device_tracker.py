@@ -3,7 +3,9 @@
 记录每次成功登录的设备和 IP 信息，提供查询和主动退出其他设备的能力。
 """
 
+import ast
 import hashlib
+import json
 import logging
 import time
 from typing import Optional
@@ -20,6 +22,26 @@ _REDIS_DEVICE_TTL = 86400 * 30  # 30 天
 
 # 开发环境内存兜底
 _memory_devices: dict[str, list[dict]] = {}
+
+
+def _redis_text(value) -> str:
+    if isinstance(value, bytes):
+        return value.decode("utf-8", errors="ignore")
+    return str(value)
+
+
+def _decode_device_record(value) -> Optional[dict]:
+    payload = _redis_text(value)
+    if not payload:
+        return None
+    try:
+        data = json.loads(payload)
+    except json.JSONDecodeError:
+        try:
+            data = ast.literal_eval(payload)
+        except (SyntaxError, ValueError):
+            return None
+    return data if isinstance(data, dict) else None
 
 
 def _fingerprint(device_id: str, user_agent: str, ip: str) -> str:
@@ -82,28 +104,33 @@ def track_device_login(
         existing = redis_client.hget(key, fp)
         if existing is None:
             record["is_new_device"] = True
-        redis_client.hset(key, fp, str(record))
+        redis_client.hset(key, fp, json.dumps(record, ensure_ascii=False))
         redis_client.expire(key, _REDIS_DEVICE_TTL)
     else:
         # 内存兜底
         if user_id not in _memory_devices:
-            _memory_devices[user_id] = []
             record["is_new_device"] = True
+            _memory_devices[user_id] = [record]
         else:
-            existing_fps = {d["fingerprint"] for d in _memory_devices[user_id]}
-            if fp not in existing_fps:
-                record["is_new_device"] = True
+            for index, device in enumerate(_memory_devices[user_id]):
+                if device["fingerprint"] == fp:
+                    updated = {
+                        **device,
+                        "device_id": device_id,
+                        "device_type": device_type,
+                        "ip": ip,
+                        "location": location,
+                        "user_agent": user_agent[:500],
+                        "last_login": now_dt,
+                        "last_login_ts": now_ts,
+                        "is_new_device": False,
+                    }
+                    _memory_devices[user_id][index] = updated
+                    record = updated
+                    break
             else:
-                # 更新已有设备的登录时间
-                for d in _memory_devices[user_id]:
-                    if d["fingerprint"] == fp:
-                        d["last_login"] = now_dt
-                        d["last_login_ts"] = now_ts
-                        d["ip"] = ip
-                        break
-                else:
-                    record["is_new_device"] = True
-        _memory_devices[user_id].append(record)
+                record["is_new_device"] = True
+                _memory_devices[user_id].append(record)
 
     # 异步写入数据库（不阻塞）
     if DB_AVAILABLE and SessionLocal and db is None:
@@ -142,11 +169,9 @@ def get_user_devices(user_id: str) -> list[dict]:
         data = redis_client.hgetall(key)
         devices = []
         for fp, val in data.items():
-            try:
-                # 简单解析（实际应该用 json.loads）
-                devices.append(eval(val))
-            except Exception:
-                continue
+            device = _decode_device_record(val)
+            if device is not None:
+                devices.append(device)
         return sorted(devices, key=lambda d: d.get("last_login_ts", 0), reverse=True)
 
     return _memory_devices.get(user_id, [])
@@ -196,7 +221,10 @@ def logout_other_devices(user_id: str, current_token: str = "") -> int:
 
     同时清理 TOKENS_DB 中其他设备对应的 token。
     """
+    from security import revoke_other_user_sessions
     from store import TOKENS_DB
+
+    revoked_sessions = revoke_other_user_sessions(user_id, current_token=current_token)
 
     if REDIS_AVAILABLE and redis_client:
         key = _REDIS_DEVICE_LIST.format(user_id=user_id)
@@ -210,7 +238,7 @@ def logout_other_devices(user_id: str, current_token: str = "") -> int:
         ]
         for tok in tokens_to_remove:
             TOKENS_DB.pop(tok, None)
-        return max(count - 1, len(tokens_to_remove))
+        return max(count - 1, len(tokens_to_remove), revoked_sessions)
 
     # 内存兜底
     count_before = len(_memory_devices.get(user_id, []))
@@ -221,7 +249,7 @@ def logout_other_devices(user_id: str, current_token: str = "") -> int:
     ]
     for tok in tokens_to_remove:
         TOKENS_DB.pop(tok, None)
-    return max(count_before, len(tokens_to_remove))
+    return max(count_before, len(tokens_to_remove), revoked_sessions)
 
     if user_id in _memory_devices:
         before = len(_memory_devices[user_id])

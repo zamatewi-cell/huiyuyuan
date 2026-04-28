@@ -165,7 +165,8 @@ def verify_captcha(session_id: str, user_input: str) -> bool:
         
         # 验证成功后删除，防止重放攻击
         redis_client.delete(storage_key)
-        return stored_code.decode("utf-8").upper() == user_input.strip().upper()
+        stored_str = stored_code.decode("utf-8") if isinstance(stored_code, bytes) else str(stored_code)
+        return stored_str.upper() == user_input.strip().upper()
     else:
         from services.captcha_service import _memory_captcha
         stored_code = _memory_captcha.pop(session_id, None)

@@ -1,4 +1,4 @@
-"""Orders router - DB-first with development-only in-memory fallback."""
+﻿"""Orders router - DB-first with development-only in-memory fallback."""
 
 import json
 import logging
@@ -13,7 +13,13 @@ from sqlalchemy.orm import Session
 from database import get_db, handle_database_error, require_database
 from schemas.order import Order, OrderCreate
 from schemas.product import Product
-from security import AuthorizationDep, is_admin_user, require_user
+from security import (
+    AuthorizationDep,
+    get_user_record,
+    has_permission,
+    is_admin_user,
+    require_user,
+)
 from store import (
     ADDRESSES_DB,
     CARTS_DB,
@@ -152,7 +158,12 @@ def _find_platform_payment_account(
     return _payment_account_to_public(candidates[0].model_dump())
 
 
-def _row_to_order(mapping, items: list | None = None, payment_account: dict | None = None) -> Order:
+def _row_to_order(
+    mapping,
+    items: list | None = None,
+    payment_account: dict | None = None,
+    payment_record: dict | None = None,
+) -> Order:
     address = mapping.get("address_snap")
     entries = mapping.get("logistics_entries")
     if isinstance(address, str):
@@ -182,6 +193,11 @@ def _row_to_order(mapping, items: list | None = None, payment_account: dict | No
         payment_id=mapping.get("payment_id"),
         payment_account_id=mapping.get("payment_account_id"),
         payment_account=payment_account,
+        payment_voucher_url=None if payment_record is None else payment_record.get("voucher_url"),
+        payment_admin_note=None if payment_record is None else payment_record.get("admin_note"),
+        payment_record_status=None if payment_record is None else payment_record.get("status"),
+        payment_confirmed_by=None if payment_record is None else payment_record.get("confirmed_by"),
+        payment_confirmed_at=None if payment_record is None else payment_record.get("confirmed_at"),
     )
 
 
@@ -213,14 +229,21 @@ def _fetch_order(db: Session, order_id: str) -> Optional[Order]:
         return None
     mapping = row._mapping
     payment_account = _fetch_payment_account_by_id(db, mapping.get("payment_account_id"))
-    return _row_to_order(mapping, _fetch_order_items(db, order_id), payment_account)
+    return _row_to_order(
+        mapping,
+        _fetch_order_items(db, order_id),
+        payment_account,
+        _payment(db, order_id),
+    )
 
 
 def _payment(db: Session, order_id: str) -> Optional[dict]:
     row = db.execute(
         text(
-            "SELECT id, order_id, amount, method, status, paid_at, created_at "
-            "FROM payments WHERE order_id = :oid ORDER BY created_at DESC, id DESC LIMIT 1"
+            "SELECT payment_id, order_id, amount, payment_method, status, "
+            "voucher_url, admin_note, confirmed_by, confirmed_at, created_at "
+            "FROM payment_records "
+            "WHERE order_id = :oid ORDER BY created_at DESC, payment_id DESC LIMIT 1"
         ),
         {"oid": order_id},
     ).fetchone()
@@ -228,22 +251,108 @@ def _payment(db: Session, order_id: str) -> Optional[dict]:
         return None
     mapping = row._mapping
     return {
-        "id": mapping["id"],
+        "id": mapping["payment_id"],
+        "payment_id": mapping["payment_id"],
         "order_id": mapping["order_id"],
         "amount": float(mapping["amount"]),
-        "method": mapping["method"],
+        "method": mapping["payment_method"],
         "status": mapping["status"],
-        "paid_at": _ts(mapping.get("paid_at")),
+        "voucher_url": mapping.get("voucher_url"),
+        "admin_note": mapping.get("admin_note"),
+        "confirmed_by": mapping.get("confirmed_by"),
+        "confirmed_at": _ts(mapping.get("confirmed_at")),
+        "paid_at": _ts(mapping.get("confirmed_at")),
         "created_at": _ts(mapping.get("created_at")),
     }
 
 
+def _memory_payment(order: Order) -> Optional[dict]:
+    if order.payment_id:
+        from services.payment_service import get_payment_record
+
+        payment = get_payment_record(order.payment_id) or PAYMENTS_DB.get(order.payment_id)
+        if payment:
+            return {
+                "id": order.payment_id,
+                "payment_id": order.payment_id,
+                "order_id": order.id,
+                "amount": float(payment.get("amount", order.total_amount)),
+                "method": payment.get("method") or payment.get("payment_method"),
+                "status": payment.get("status"),
+                "voucher_url": payment.get("voucher_url"),
+                "admin_note": payment.get("admin_note"),
+                "confirmed_by": payment.get("confirmed_by"),
+                "confirmed_at": payment.get("confirmed_at") or payment.get("paid_at"),
+                "paid_at": payment.get("paid_at") or payment.get("confirmed_at"),
+                "created_at": payment.get("created_at"),
+            }
+    return None
+
+
+def _payment_order_fields(payment_record: Optional[dict]) -> dict:
+    if not payment_record:
+        return {}
+    return {
+        "payment_voucher_url": payment_record.get("voucher_url"),
+        "payment_admin_note": payment_record.get("admin_note"),
+        "payment_record_status": payment_record.get("status"),
+        "payment_confirmed_by": payment_record.get("confirmed_by"),
+        "payment_confirmed_at": payment_record.get("confirmed_at"),
+    }
+
+
+def _payment_status_message(status: Optional[str]) -> str:
+    if status in {"pending", "awaiting_confirmation"}:
+        return "Awaiting admin confirmation"
+    if status == "confirmed":
+        return "鏀粯鎴愬姛"
+    if status == "cancelled":
+        return "Payment cancelled"
+    if status == "timeout":
+        return "鏀粯瓒呮椂"
+    if status == "disputed":
+        return "Payment disputed, please contact support"
+    return "鏀粯鐘舵€佸凡鏇存柊"
+
+
 def _require_visible_order(order: Optional[Order], user_id: str, db: Optional[Session]) -> Order:
     if not order:
-        raise HTTPException(status_code=404, detail="订单不存在")
-    if order.user_id != user_id and not is_admin_user(user_id, db):
-        raise HTTPException(status_code=403, detail="没有权限")
+        raise HTTPException(status_code=404, detail="Order not found")
+    if order.user_id != user_id and not _can_view_all_orders(user_id, db):
+        raise HTTPException(status_code=403, detail="娌℃湁鏉冮檺")
     return order
+
+
+def _can_view_all_orders(user_id: str, db: Optional[Session]) -> bool:
+    return is_admin_user(user_id, db) or has_permission(
+        user_id,
+        "orders",
+        db,
+        allow_non_operator=False,
+    ) or has_permission(
+        user_id,
+        "order_manage",
+        db,
+        allow_non_operator=False,
+    ) or has_permission(
+        user_id,
+        "payment_reconcile",
+        db,
+        allow_non_operator=False,
+    ) or has_permission(
+        user_id,
+        "payment_exception_mark",
+        db,
+        allow_non_operator=False,
+    )
+
+
+def _require_order_access_if_operator(user_id: str, db: Optional[Session]) -> None:
+    user = get_user_record(user_id, db)
+    if not user or user.get("user_type") != "operator":
+        return
+    if not _can_view_all_orders(user_id, db):
+        raise HTTPException(status_code=403, detail="No permission to access orders")
 
 
 def _new_order_id(prefix: str) -> str:
@@ -272,7 +381,7 @@ def _build_notification_payload(payload: dict) -> dict:
         tracking = payload.get("tracking_number")
         title = title or "订单已发货"
         body = body or (
-            f"您的订单已发货，{carrier} 运单号 {tracking}"
+            f"鎮ㄧ殑璁㈠崟宸插彂璐э紝{carrier} 杩愬崟鍙?{tracking}"
             if carrier and tracking
             else "您的订单已发货，请注意查收。"
         )
@@ -316,7 +425,7 @@ def _ws_notify(user_id: str, payload: dict) -> None:
         asyncio.ensure_future(manager.send_to_user(user_id, enriched_payload))
         persist_notification(
             user_id=user_id,
-            title=enriched_payload.get("title", enriched_payload.get("message", "订单通知")),
+            title=enriched_payload.get("title", enriched_payload.get("message", "璁㈠崟閫氱煡")),
             body=enriched_payload.get("body", enriched_payload.get("message", "")),
             ntype=enriched_payload.get("type", "order"),
             ref_id=enriched_payload.get("order_id"),
@@ -327,16 +436,16 @@ def _ws_notify(user_id: str, payload: dict) -> None:
 
 def _require_owner(order: Optional[Order], user_id: str) -> Order:
     if not order:
-        raise HTTPException(status_code=404, detail="订单不存在")
+        raise HTTPException(status_code=404, detail="Order not found")
     if order.user_id != user_id:
-        raise HTTPException(status_code=403, detail="没有权限")
+        raise HTTPException(status_code=403, detail="娌℃湁鏉冮檺")
     return order
 
 
 def _load_product_from_db(db: Session, product_id: str) -> Product:
     row = db.execute(text("SELECT * FROM products WHERE id = :id AND is_active = true"), {"id": product_id}).fetchone()
     if not row:
-        raise HTTPException(status_code=400, detail=f"商品 {product_id} 不存在")
+        raise HTTPException(status_code=400, detail=f"Product {product_id} not found")
     from routers.products import _row_to_product
     return _row_to_product(row._mapping)
 
@@ -344,10 +453,10 @@ def _load_product_from_db(db: Session, product_id: str) -> Product:
 def _address_snapshot_from_db(db: Session, address_id: str, user_id: str) -> dict:
     row = db.execute(text("SELECT * FROM addresses WHERE id = :id"), {"id": address_id}).fetchone()
     if not row:
-        raise HTTPException(status_code=400, detail="收货地址不存在")
+        raise HTTPException(status_code=400, detail="Address not found")
     mapping = row._mapping
     if mapping["user_id"] != user_id:
-        raise HTTPException(status_code=403, detail="收货地址不属于当前用户")
+        raise HTTPException(status_code=403, detail="Address does not belong to current user")
     return {
         "recipient_name": mapping["recipient_name"],
         "phone_number": mapping["phone_number"],
@@ -363,12 +472,13 @@ def _address_snapshot_from_db(db: Session, address_id: str, user_id: str) -> dic
 @router.get("", response_model=List[Order])
 async def get_orders(status: Optional[str] = None, page: int = 1, page_size: int = 20, authorization: AuthorizationDep = None, db: Optional[Session] = Depends(get_db)):
     user_id = require_user(authorization)
-    admin_view = is_admin_user(user_id, db)
+    _require_order_access_if_operator(user_id, db)
+    global_view = _can_view_all_orders(user_id, db)
     if db is not None:
         try:
             conditions = []
             params: dict[str, object] = {"lim": page_size, "off": (page - 1) * page_size}
-            if not admin_view:
+            if not global_view:
                 conditions.append("user_id = :uid")
                 params["uid"] = user_id
             if status:
@@ -380,15 +490,22 @@ async def get_orders(status: Optional[str] = None, page: int = 1, page_size: int
             for row in rows:
                 mapping = row._mapping
                 account = _fetch_payment_account_by_id(db, mapping.get("payment_account_id"))
-                results.append(_row_to_order(mapping, _fetch_order_items(db, mapping["id"]), account))
+                results.append(
+                    _row_to_order(
+                        mapping,
+                        _fetch_order_items(db, mapping["id"]),
+                        account,
+                        _payment(db, mapping["id"]),
+                    )
+                )
             return results
         except Exception as exc:
-            handle_database_error(db, "读取订单列表", exc)
-    require_database(db, "读取订单列表")
+            handle_database_error(db, "璇诲彇璁㈠崟鍒楄〃", exc)
+    require_database(db, "璇诲彇璁㈠崟鍒楄〃")
     orders = [
         order
         for order in ORDERS_DB.values()
-        if (admin_view or order.user_id == user_id) and (not status or order.status == status)
+        if (global_view or order.user_id == user_id) and (not status or order.status == status)
     ]
     orders.sort(key=lambda item: item.created_at, reverse=True)
     start = (page - 1) * page_size
@@ -396,22 +513,35 @@ async def get_orders(status: Optional[str] = None, page: int = 1, page_size: int
     results: list[Order] = []
     for order in window:
         payment_account = _fetch_payment_account_by_id_from_memory(order.payment_account_id)
-        results.append(Order(**{**order.model_dump(), "payment_account": payment_account}))
+        results.append(
+            Order(
+                **{
+                    **order.model_dump(),
+                    "payment_account": payment_account,
+                    **_payment_order_fields(_memory_payment(order)),
+                }
+            )
+        )
     return results
 
 
 @router.get("/stats")
 async def get_order_stats(authorization: AuthorizationDep = None, db: Optional[Session] = Depends(get_db)):
     user_id = require_user(authorization)
+    _require_order_access_if_operator(user_id, db)
+    global_view = _can_view_all_orders(user_id, db)
     if db is not None:
         try:
-            row = db.execute(text("SELECT count(*) AS total, coalesce(sum(total_amount) FILTER (WHERE status IN ('paid','shipped','delivered')), 0) AS revenue, count(*) FILTER (WHERE status = 'pending') AS pending, count(*) FILTER (WHERE status = 'paid') AS paid, count(*) FILTER (WHERE status = 'shipped') AS shipped, count(*) FILTER (WHERE status = 'delivered') AS completed, count(*) FILTER (WHERE status = 'cancelled') AS cancelled, count(*) FILTER (WHERE status = 'refunding') AS refunding FROM orders WHERE user_id = :uid"), {"uid": user_id}).fetchone()
+            if global_view:
+                row = db.execute(text("SELECT count(*) AS total, coalesce(sum(total_amount) FILTER (WHERE status IN ('paid','shipped','delivered')), 0) AS revenue, count(*) FILTER (WHERE status = 'pending') AS pending, count(*) FILTER (WHERE status = 'paid') AS paid, count(*) FILTER (WHERE status = 'shipped') AS shipped, count(*) FILTER (WHERE status = 'delivered') AS completed, count(*) FILTER (WHERE status = 'cancelled') AS cancelled, count(*) FILTER (WHERE status = 'refunding') AS refunding FROM orders")).fetchone()
+            else:
+                row = db.execute(text("SELECT count(*) AS total, coalesce(sum(total_amount) FILTER (WHERE status IN ('paid','shipped','delivered')), 0) AS revenue, count(*) FILTER (WHERE status = 'pending') AS pending, count(*) FILTER (WHERE status = 'paid') AS paid, count(*) FILTER (WHERE status = 'shipped') AS shipped, count(*) FILTER (WHERE status = 'delivered') AS completed, count(*) FILTER (WHERE status = 'cancelled') AS cancelled, count(*) FILTER (WHERE status = 'refunding') AS refunding FROM orders WHERE user_id = :uid"), {"uid": user_id}).fetchone()
             mapping = row._mapping
             return {"total": mapping["total"], "total_amount": round(float(mapping["revenue"]), 2), "pending": mapping["pending"], "paid": mapping["paid"], "shipped": mapping["shipped"], "completed": mapping["completed"], "cancelled": mapping["cancelled"], "refunding": mapping["refunding"]}
         except Exception as exc:
-            handle_database_error(db, "读取订单统计", exc)
-    require_database(db, "读取订单统计")
-    mine = [order for order in ORDERS_DB.values() if order.user_id == user_id]
+            handle_database_error(db, "璇诲彇璁㈠崟缁熻", exc)
+    require_database(db, "璇诲彇璁㈠崟缁熻")
+    mine = [order for order in ORDERS_DB.values() if global_view or order.user_id == user_id]
     stats: dict[str, int] = {}
     for order in mine:
         stats[order.status] = stats.get(order.status, 0) + 1
@@ -422,17 +552,24 @@ async def get_order_stats(authorization: AuthorizationDep = None, db: Optional[S
 @router.get("/{order_id}", response_model=Order)
 async def get_order_detail(order_id: str, authorization: AuthorizationDep = None, db: Optional[Session] = Depends(get_db)):
     user_id = require_user(authorization)
+    _require_order_access_if_operator(user_id, db)
     if db is not None:
         try:
             return _require_visible_order(_fetch_order(db, order_id), user_id, db)
         except HTTPException:
             raise
         except Exception as exc:
-            handle_database_error(db, "读取订单详情", exc)
-    require_database(db, "读取订单详情")
+            handle_database_error(db, "璇诲彇璁㈠崟璇︽儏", exc)
+    require_database(db, "璇诲彇璁㈠崟璇︽儏")
     order = _require_visible_order(ORDERS_DB.get(order_id), user_id, db)
     payment_account = _fetch_payment_account_by_id_from_memory(order.payment_account_id)
-    return Order(**{**order.model_dump(), "payment_account": payment_account})
+    return Order(
+        **{
+            **order.model_dump(),
+            "payment_account": payment_account,
+            **_payment_order_fields(_memory_payment(order)),
+        }
+    )
 
 
 @router.post("", response_model=Order)
@@ -446,59 +583,68 @@ async def create_order(order: OrderCreate, authorization: AuthorizationDep = Non
             address = _address_snapshot_from_db(db, order.address_id, user_id)
             items, total = [], 0.0
             for raw in order.items:
-                product = _load_product_from_db(db, raw["product_id"])
-                qty = raw.get("quantity", 1)
+                product = _load_product_from_db(db, raw.product_id)
+                qty = raw.quantity
                 if product.stock < qty:
-                    raise HTTPException(status_code=400, detail=f"商品 {product.name} 库存不足 (剩余 {product.stock})")
+                    raise HTTPException(status_code=400, detail=f"鍟嗗搧 {product.name} 搴撳瓨涓嶈冻 (鍓╀綑 {product.stock})")
                 total += product.price * qty
-                items.append({"product_id": raw["product_id"], "product_name": product.name, "price": product.price, "quantity": qty, "image": product.images[0] if product.images else None})
-            db.execute(text("INSERT INTO orders (id, user_id, address_id, address_snap, total_amount, status, payment_method, payment_account_id, remark) VALUES (:id, :uid, :aid, :snap::jsonb, :total, 'pending', :method, :payment_account_id, :remark)"), {"id": order_id, "uid": user_id, "aid": order.address_id, "snap": json.dumps(address), "total": total, "method": order.payment_method, "payment_account_id": payment_account_id, "remark": order.remark})
+                items.append({"product_id": raw.product_id, "product_name": product.name, "price": product.price, "quantity": qty, "image": product.images[0] if product.images else None})
+            db.execute(text("INSERT INTO orders (id, user_id, address_id, address_snap, total_amount, status, payment_method, payment_account_id, remark) VALUES (:id, :uid, :aid, CAST(:snap AS JSONB), :total, 'pending', :method, :payment_account_id, :remark)"), {"id": order_id, "uid": user_id, "aid": order.address_id, "snap": json.dumps(address), "total": total, "method": order.payment_method, "payment_account_id": payment_account_id, "remark": order.remark})
             for item in items:
-                db.execute(text("INSERT INTO order_items (order_id, product_id, product_snap, quantity, unit_price, subtotal) VALUES (:oid, :pid, :snap::jsonb, :qty, :price, :subtotal)"), {"oid": order_id, "pid": item["product_id"], "snap": json.dumps({"name": item["product_name"], "images": [item["image"]] if item["image"] else []}), "qty": item["quantity"], "price": item["price"], "subtotal": item["price"] * item["quantity"]})
-                db.execute(text("UPDATE products SET stock = stock - :qty, sales_count = sales_count + :qty WHERE id = :pid"), {"qty": item["quantity"], "pid": item["product_id"]})
+                db.execute(text("INSERT INTO order_items (order_id, product_id, product_snap, quantity, unit_price, subtotal) VALUES (:oid, :pid, CAST(:snap AS JSONB), :qty, :price, :subtotal)"), {"oid": order_id, "pid": item["product_id"], "snap": json.dumps({"name": item["product_name"], "images": [item["image"]] if item["image"] else []}), "qty": item["quantity"], "price": item["price"], "subtotal": item["price"] * item["quantity"]})
+                updated = db.execute(
+                    text(
+                        "UPDATE products SET stock = stock - :qty, "
+                        "sales_count = sales_count + :qty "
+                        "WHERE id = :pid AND stock >= :qty"
+                    ),
+                    {"qty": item["quantity"], "pid": item["product_id"]},
+                )
+                if updated.rowcount != 1:
+                    raise HTTPException(status_code=409, detail=f"Product {item['product_name']} stock changed, please retry")
                 db.execute(text("DELETE FROM cart_items WHERE user_id = :uid AND product_id = :pid"), {"uid": user_id, "pid": item["product_id"]})
             db.commit()
             created = _fetch_order(db, order_id) or Order(id=order_id, user_id=user_id, items=items, total_amount=total, status="pending", address=address, created_at=datetime.now().isoformat(), payment_method=order.payment_method, payment_account_id=payment_account_id, payment_account=payment_account)
-            _ws_notify(user_id, {"type": "order_created", "order_id": order_id, "message": f"订单 {order_id} 已创建"})
+            _ws_notify(user_id, {"type": "order_created", "order_id": order_id, "message": f"Order {order_id} created"})
             return created
         except HTTPException:
             db.rollback()
             raise
         except Exception as exc:
-            handle_database_error(db, "创建订单", exc)
-    require_database(db, "创建订单")
+            handle_database_error(db, "鍒涘缓璁㈠崟", exc)
+    require_database(db, "鍒涘缓璁㈠崟")
     if order.address_id not in ADDRESSES_DB:
-        raise HTTPException(status_code=400, detail="收货地址不存在")
+        raise HTTPException(status_code=400, detail="Address not found")
     address_model = ADDRESSES_DB[order.address_id]
     if address_model.user_id != user_id:
-        raise HTTPException(status_code=403, detail="收货地址不属于当前用户")
+        raise HTTPException(status_code=403, detail="Address does not belong to current user")
     address = address_model.model_dump()
     items, total = [], 0.0
     for raw in order.items:
-        product = PRODUCTS_DB.get(raw["product_id"])
+        product = PRODUCTS_DB.get(raw.product_id)
         if product is None:
-            raise HTTPException(status_code=400, detail=f"商品 {raw['product_id']} 不存在")
-        qty = raw.get("quantity", 1)
+            raise HTTPException(status_code=400, detail=f"Product {raw.product_id} not found")
+        qty = raw.quantity
         if product.stock < qty:
-            raise HTTPException(status_code=400, detail=f"商品 {product.name} 库存不足 (剩余 {product.stock})")
+            raise HTTPException(status_code=400, detail=f"鍟嗗搧 {product.name} 搴撳瓨涓嶈冻 (鍓╀綑 {product.stock})")
         total += product.price * qty
-        items.append({"product_id": raw["product_id"], "product_name": product.name, "price": product.price, "quantity": qty, "image": product.images[0] if product.images else None})
+        items.append({"product_id": raw.product_id, "product_name": product.name, "price": product.price, "quantity": qty, "image": product.images[0] if product.images else None})
     for item in items:
         product = PRODUCTS_DB[item["product_id"]]
         PRODUCTS_DB[item["product_id"]] = Product(**{**product.model_dump(), "stock": product.stock - item["quantity"], "sales_count": product.sales_count + item["quantity"]})
     created = Order(id=order_id, user_id=user_id, items=items, total_amount=total, status="pending", address=address, created_at=datetime.now().isoformat(), payment_method=order.payment_method, payment_account_id=payment_account_id, payment_account=payment_account)
     ORDERS_DB[order_id] = created
     if user_id in CARTS_DB:
-        ordered = {item["product_id"] for item in order.items}
+        ordered = {item.product_id for item in order.items}
         CARTS_DB[user_id] = [cart_item for cart_item in CARTS_DB[user_id] if cart_item.product_id not in ordered]
-    _ws_notify(user_id, {"type": "order_created", "order_id": order_id, "message": f"订单 {order_id} 已创建"})
+    _ws_notify(user_id, {"type": "order_created", "order_id": order_id, "message": f"Order {order_id} created"})
     return created
 
 
 @router.post("/checkout")
 async def checkout(data: dict, authorization: AuthorizationDep = None):
     require_user(authorization)
-    return {"success": True, "order_id": data.get("order_id"), "payment_url": f"https://pay.example.com/{data.get('order_id')}", "message": "请完成支付"}
+    return {"success": True, "order_id": data.get("order_id"), "payment_url": f"https://pay.example.com/{data.get('order_id')}", "message": "Please complete payment"}
 
 
 @router.post("/{order_id}/pay")
@@ -515,15 +661,15 @@ async def pay_order(
     remark = data.get("remark")
     payment_account = _find_platform_payment_account(db, requested_method)
     if not payment_account:
-        raise HTTPException(status_code=400, detail="当前支付方式暂无可用收款账户，请联系管理员配置后再试")
+        raise HTTPException(status_code=400, detail="褰撳墠鏀粯鏂瑰紡鏆傛棤鍙敤鏀舵璐︽埛锛岃鑱旂郴绠＄悊鍛橀厤缃悗鍐嶈瘯")
     if db is not None:
         try:
             order = _require_owner(_fetch_order(db, order_id), user_id)
             if order.status != "pending":
-                raise HTTPException(status_code=400, detail=f"订单状态为 {order.status}，无法支付")
+                raise HTTPException(status_code=400, detail=f"Order status {order.status} cannot be paid")
             method = requested_method or order.payment_method or "wechat"
 
-            # 使用支付服务创建记录
+            # 浣跨敤鏀粯鏈嶅姟鍒涘缓璁板綍
             from services.payment_service import (
                 create_payment_record,
                 upload_voucher,
@@ -539,11 +685,11 @@ async def pay_order(
             )
             payment_id = record["payment_id"]
 
-            # 如果有凭证，直接上传并改为 awaiting_confirmation
+            # 濡傛灉鏈夊嚟璇侊紝鐩存帴涓婁紶骞舵敼涓?awaiting_confirmation
             if voucher_url:
-                upload_voucher(payment_id, user_id, voucher_url, db=db)
+                record = upload_voucher(payment_id, user_id, voucher_url, db=db) or record
 
-            # 同步更新订单关联
+            # 鍚屾鏇存柊璁㈠崟鍏宠仈
             db.execute(
                 text(
                     "UPDATE orders SET payment_id = :pid, payment_method = :method, "
@@ -566,17 +712,17 @@ async def pay_order(
                 "status": record["status"],
                 "payment_account_id": payment_account["id"],
                 "payment_account": payment_account,
-                "message": "请根据收款信息完成转账，等待管理员确认到账",
+                "message": "Please transfer using the payment account details and wait for confirmation.",
             }
         except HTTPException:
             db.rollback()
             raise
         except Exception as exc:
-            handle_database_error(db, "创建支付单", exc)
-    require_database(db, "创建支付单")
+            handle_database_error(db, "create payment", exc)
+    require_database(db, "create payment")
     order = _require_owner(ORDERS_DB.get(order_id), user_id)
     if order.status != "pending":
-        raise HTTPException(status_code=400, detail=f"订单状态为 {order.status}，无法支付")
+        raise HTTPException(status_code=400, detail=f"Order status {order.status} cannot be paid")
     method = requested_method or order.payment_method or "wechat"
 
     from services.payment_service import create_payment_record, upload_voucher
@@ -591,7 +737,7 @@ async def pay_order(
     payment_id = record["payment_id"]
 
     if voucher_url:
-        upload_voucher(payment_id, user_id, voucher_url)
+        record = upload_voucher(payment_id, user_id, voucher_url) or record
 
     PAYMENTS_DB[payment_id] = {
         "id": payment_id,
@@ -618,7 +764,7 @@ async def pay_order(
         "status": record["status"],
         "payment_account_id": payment_account["id"],
         "payment_account": payment_account,
-        "message": "请根据收款信息完成转账，等待管理员确认到账",
+        "message": "Please transfer using the payment account details and wait for confirmation.",
     }
 
 
@@ -630,54 +776,54 @@ async def get_pay_status(order_id: str, authorization: AuthorizationDep = None, 
             order = _require_owner(_fetch_order(db, order_id), user_id)
             pay = _payment(db, order_id)
             if not pay or not order.payment_id:
-                return {"status": "no_payment", "message": "未找到支付记录"}
-            return {"payment_id": order.payment_id, "status": pay["status"], "amount": pay["amount"], "method": pay["method"], "paid_at": pay.get("paid_at"), "payment_account_id": order.payment_account_id, "payment_account": order.payment_account, "message": "待管理员确认到账" if pay["status"] == "pending" else "支付成功"}
+                return {"status": "no_payment", "message": "Payment record not found"}
+            return {"payment_id": order.payment_id, "status": pay["status"], "amount": pay["amount"], "method": pay["method"], "paid_at": pay.get("paid_at"), "payment_account_id": order.payment_account_id, "payment_account": order.payment_account, "message": _payment_status_message(pay["status"])}
         except HTTPException:
             db.rollback()
             raise
         except Exception as exc:
-            handle_database_error(db, "读取支付状态", exc)
-    require_database(db, "读取支付状态")
+            handle_database_error(db, "read payment status", exc)
+    require_database(db, "read payment status")
     order = _require_owner(ORDERS_DB.get(order_id), user_id)
     pid = order.payment_id
     if not pid or pid not in PAYMENTS_DB:
-        return {"status": "no_payment", "message": "未找到支付记录"}
+        return {"status": "no_payment", "message": "Payment record not found"}
     pay = PAYMENTS_DB[pid]
     payment_account = _fetch_payment_account_by_id_from_memory(order.payment_account_id)
-    return {"payment_id": pid, "status": pay["status"], "amount": pay["amount"], "method": pay["method"], "paid_at": pay.get("paid_at"), "payment_account_id": order.payment_account_id, "payment_account": payment_account, "message": "待管理员确认到账" if pay["status"] == "pending" else "支付成功"}
+    return {"payment_id": pid, "status": pay["status"], "amount": pay["amount"], "method": pay["method"], "paid_at": pay.get("paid_at"), "payment_account_id": order.payment_account_id, "payment_account": payment_account, "message": _payment_status_message(pay["status"])}
 
 
 @router.post("/{order_id}/cancel")
 async def cancel_order(order_id: str, data: dict | None = None, authorization: AuthorizationDep = None, db: Optional[Session] = Depends(get_db)):
     user_id = require_user(authorization)
-    reason = (data or {}).get("reason", "用户主动取消")
+    reason = (data or {}).get("reason", "鐢ㄦ埛涓诲姩鍙栨秷")
     if db is not None:
         try:
             order = _require_owner(_fetch_order(db, order_id), user_id)
             if order.status not in ("pending", "paid"):
-                raise HTTPException(status_code=400, detail=f"订单状态为 {order.status}，无法取消")
-            entries = [{"time": datetime.now().isoformat(), "status": "订单已取消", "description": reason}] + order.logistics_entries
+                raise HTTPException(status_code=400, detail=f"Order status {order.status} cannot be cancelled")
+            entries = [{"time": datetime.now().isoformat(), "status": "Order cancelled", "description": reason}] + order.logistics_entries
             for item in order.items:
                 db.execute(text("UPDATE products SET stock = stock + :qty, sales_count = GREATEST(sales_count - :qty, 0) WHERE id = :pid"), {"qty": item.get("quantity", 1), "pid": item.get("product_id")})
             db.execute(text("UPDATE orders SET status = 'cancelled', cancelled_at = NOW(), cancel_reason = :reason, logistics_entries = :entries::jsonb WHERE id = :oid"), {"reason": reason, "entries": json.dumps(entries), "oid": order_id})
             db.commit()
-            return {"success": True, "message": "订单已取消，库存已恢复"}
+            return {"success": True, "message": "Order cancelled and stock restored"}
         except HTTPException:
             db.rollback()
             raise
         except Exception as exc:
-            handle_database_error(db, "取消订单", exc)
-    require_database(db, "取消订单")
+            handle_database_error(db, "鍙栨秷璁㈠崟", exc)
+    require_database(db, "鍙栨秷璁㈠崟")
     order = _require_owner(ORDERS_DB.get(order_id), user_id)
     if order.status not in ("pending", "paid"):
-        raise HTTPException(status_code=400, detail=f"订单状态为 {order.status}，无法取消")
+        raise HTTPException(status_code=400, detail=f"Order status {order.status} cannot be cancelled")
     for item in order.items:
         pid = item.get("product_id")
         if pid and pid in PRODUCTS_DB:
             product = PRODUCTS_DB[pid]
             PRODUCTS_DB[pid] = Product(**{**product.model_dump(), "stock": product.stock + item.get("quantity", 1), "sales_count": max(0, product.sales_count - item.get("quantity", 1))})
-    ORDERS_DB[order_id] = Order(**{**order.model_dump(), "status": "cancelled", "cancelled_at": datetime.now().isoformat(), "cancel_reason": reason, "logistics_entries": [{"time": datetime.now().isoformat(), "status": "订单已取消", "description": reason}] + order.logistics_entries})
-    return {"success": True, "message": "订单已取消，库存已恢复"}
+    ORDERS_DB[order_id] = Order(**{**order.model_dump(), "status": "cancelled", "cancelled_at": datetime.now().isoformat(), "cancel_reason": reason, "logistics_entries": [{"time": datetime.now().isoformat(), "status": "Order cancelled", "description": reason}] + order.logistics_entries})
+    return {"success": True, "message": "Order cancelled and stock restored"}
 
 
 @router.post("/{order_id}/confirm-receipt")
@@ -687,70 +833,76 @@ async def confirm_receipt(order_id: str, authorization: AuthorizationDep = None,
         try:
             order = _require_owner(_fetch_order(db, order_id), user_id)
             if order.status != "shipped":
-                raise HTTPException(status_code=400, detail=f"订单状态为 {order.status}，无法确认收货")
-            entries = [{"time": datetime.now().isoformat(), "status": "已签收", "description": "买家已确认收货，交易完成"}] + order.logistics_entries
+                raise HTTPException(status_code=400, detail=f"Order status {order.status} cannot confirm receipt")
+            entries = [{"time": datetime.now().isoformat(), "status": "Delivered", "description": "Customer confirmed receipt, order completed"}] + order.logistics_entries
             db.execute(text("UPDATE orders SET status = 'delivered', delivered_at = NOW(), completed_at = NOW(), logistics_entries = :entries::jsonb WHERE id = :oid"), {"entries": json.dumps(entries), "oid": order_id})
             db.commit()
-            return {"success": True, "message": "已确认收货"}
+            return {"success": True, "message": "Receipt confirmed"}
         except HTTPException:
             db.rollback()
             raise
         except Exception as exc:
-            handle_database_error(db, "确认收货", exc)
-    require_database(db, "确认收货")
+            handle_database_error(db, "纭鏀惰揣", exc)
+    require_database(db, "纭鏀惰揣")
     order = _require_owner(ORDERS_DB.get(order_id), user_id)
     if order.status != "shipped":
-        raise HTTPException(status_code=400, detail=f"订单状态为 {order.status}，无法确认收货")
+        raise HTTPException(status_code=400, detail=f"Order status {order.status} cannot confirm receipt")
     now = datetime.now().isoformat()
-    ORDERS_DB[order_id] = Order(**{**order.model_dump(), "status": "completed", "delivered_at": now, "completed_at": now, "logistics_entries": [{"time": now, "status": "已签收", "description": "买家已确认收货，交易完成"}] + order.logistics_entries})
-    return {"success": True, "message": "已确认收货"}
+    ORDERS_DB[order_id] = Order(**{**order.model_dump(), "status": "completed", "delivered_at": now, "completed_at": now, "logistics_entries": [{"time": now, "status": "Delivered", "description": "Customer confirmed receipt, order completed"}] + order.logistics_entries})
+    return {"success": True, "message": "Receipt confirmed"}
 
 
 @router.post("/{order_id}/refund")
 async def request_refund(order_id: str, data: dict | None = None, authorization: AuthorizationDep = None, db: Optional[Session] = Depends(get_db)):
     user_id = require_user(authorization)
-    reason = (data or {}).get("reason", "买家申请退款")
+    reason = (data or {}).get("reason", "Customer requested refund")
     if db is not None:
         try:
             order = _require_owner(_fetch_order(db, order_id), user_id)
             if order.status not in ("paid", "shipped", "completed"):
-                raise HTTPException(status_code=400, detail=f"订单状态为 {order.status}，无法退款")
-            entries = [{"time": datetime.now().isoformat(), "status": "退款申请", "description": f"买家申请退款: {reason}"}] + order.logistics_entries
+                raise HTTPException(status_code=400, detail=f"Order status {order.status} cannot be refunded")
+            entries = [{"time": datetime.now().isoformat(), "status": "Refund requested", "description": f"Customer requested refund: {reason}"}] + order.logistics_entries
             db.execute(text("UPDATE orders SET status = 'refunding', refund_reason = :reason, refund_amount = :amount, logistics_entries = :entries::jsonb WHERE id = :oid"), {"reason": reason, "amount": order.total_amount, "entries": json.dumps(entries), "oid": order_id})
             db.commit()
-            return {"success": True, "message": "退款申请已提交", "refund_amount": order.total_amount}
+            return {"success": True, "message": "閫€娆剧敵璇峰凡鎻愪氦", "refund_amount": order.total_amount}
         except HTTPException:
             db.rollback()
             raise
         except Exception as exc:
-            handle_database_error(db, "申请退款", exc)
-    require_database(db, "申请退款")
+            handle_database_error(db, "request refund", exc)
+    require_database(db, "request refund")
     order = _require_owner(ORDERS_DB.get(order_id), user_id)
     if order.status not in ("paid", "shipped", "completed"):
-        raise HTTPException(status_code=400, detail=f"订单状态为 {order.status}，无法退款")
-    ORDERS_DB[order_id] = Order(**{**order.model_dump(), "status": "refunding", "refund_reason": reason, "refund_amount": order.total_amount, "logistics_entries": [{"time": datetime.now().isoformat(), "status": "退款申请", "description": f"买家申请退款: {reason}"}] + order.logistics_entries})
-    return {"success": True, "message": "退款申请已提交", "refund_amount": order.total_amount}
+        raise HTTPException(status_code=400, detail=f"Order status {order.status} cannot be refunded")
+    ORDERS_DB[order_id] = Order(**{**order.model_dump(), "status": "refunding", "refund_reason": reason, "refund_amount": order.total_amount, "logistics_entries": [{"time": datetime.now().isoformat(), "status": "Refund requested", "description": f"Customer requested refund: {reason}"}] + order.logistics_entries})
+    return {"success": True, "message": "閫€娆剧敵璇峰凡鎻愪氦", "refund_amount": order.total_amount}
 
 
 @router.get("/{order_id}/logistics")
 async def get_order_logistics(order_id: str, authorization: AuthorizationDep = None, db: Optional[Session] = Depends(get_db)):
     user_id = require_user(authorization)
+    _require_order_access_if_operator(user_id, db)
     if db is not None:
         try:
-            order = _fetch_order(db, order_id)
-            if not order:
-                raise HTTPException(status_code=404, detail="订单不存在")
-            if order.user_id != user_id and not is_admin_user(user_id, db):
-                raise HTTPException(status_code=403, detail="没有权限")
-            return {"order_id": order_id, "carrier": order.logistics_company, "tracking_number": order.tracking_number, "status": order.status, "entries": order.logistics_entries}
+            order = _require_visible_order(_fetch_order(db, order_id), user_id, db)
+            return {
+                "order_id": order_id,
+                "carrier": order.logistics_company,
+                "tracking_number": order.tracking_number,
+                "status": order.status,
+                "entries": order.logistics_entries,
+            }
         except HTTPException:
             raise
         except Exception as exc:
-            handle_database_error(db, "读取物流信息", exc)
-    require_database(db, "读取物流信息")
-    order = ORDERS_DB.get(order_id)
-    if not order:
-        raise HTTPException(status_code=404, detail="订单不存在")
-    if order.user_id != user_id and not is_admin_user(user_id, db):
-        raise HTTPException(status_code=403, detail="没有权限")
-    return {"order_id": order_id, "carrier": order.logistics_company, "tracking_number": order.tracking_number, "status": order.status, "entries": order.logistics_entries}
+            handle_database_error(db, "璇诲彇鐗╂祦淇℃伅", exc)
+    require_database(db, "璇诲彇鐗╂祦淇℃伅")
+    order = _require_visible_order(ORDERS_DB.get(order_id), user_id, db)
+    return {
+        "order_id": order_id,
+        "carrier": order.logistics_company,
+        "tracking_number": order.tracking_number,
+        "status": order.status,
+        "entries": order.logistics_entries,
+    }
+

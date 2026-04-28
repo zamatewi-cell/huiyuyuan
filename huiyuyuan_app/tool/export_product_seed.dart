@@ -1,12 +1,14 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:huiyuyuan/data/product_seed_catalog.dart';
+
 Map<String, Object?> exportProductSeedArtifacts({
-  String sourceJsonPath = 'backend/data/product_seed_payloads.json',
+  String? sourceJsonPath,
   String jsonOutputPath = 'backend/data/product_seed_payloads.json',
   String dartOutputPath = 'lib/data/product_seed_generated.dart',
 }) {
-  final payloads = _loadPayloads(sourceJsonPath);
+  final payloads = _resolvePayloads(sourceJsonPath);
   final jsonOutputFile = File(jsonOutputPath);
   jsonOutputFile.parent.createSync(recursive: true);
   jsonOutputFile.writeAsStringSync(
@@ -30,8 +32,15 @@ Map<String, Object?> exportProductSeedArtifacts({
   };
 }
 
-List<Map<String, dynamic>> _loadPayloads(String sourceJsonPath) {
-  final sourceFile = File(sourceJsonPath);
+List<Map<String, dynamic>> _resolvePayloads(String? sourceJsonPath) {
+  final normalizedPath = sourceJsonPath?.trim() ?? '';
+  if (normalizedPath.isEmpty) {
+    return exportProductSeedPayloads()
+        .map((item) => Map<String, dynamic>.from(item))
+        .toList(growable: false);
+  }
+
+  final sourceFile = File(normalizedPath);
   final decoded = jsonDecode(sourceFile.readAsStringSync()) as List<dynamic>;
   return decoded
       .map((item) => Map<String, dynamic>.from(item as Map))

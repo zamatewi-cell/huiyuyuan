@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 
 from database import get_db, handle_database_error, require_database
 from schemas.shop import Shop
+from security import AuthorizationDep, require_permission
 from store import SHOPS_DB
 
 logger = logging.getLogger(__name__)
@@ -35,7 +36,8 @@ def _row_to_shop(mapping) -> Shop:
 
 
 @router.get("", response_model=List[Shop])
-async def get_shops(platform: Optional[str] = None, category: Optional[str] = None, contact_status: Optional[str] = None, is_influencer: Optional[bool] = None, operator_id: Optional[str] = None, page: int = 1, page_size: int = 20, db: Optional[Session] = Depends(get_db)):
+async def get_shops(platform: Optional[str] = None, category: Optional[str] = None, contact_status: Optional[str] = None, is_influencer: Optional[bool] = None, operator_id: Optional[str] = None, page: int = 1, page_size: int = 20, authorization: AuthorizationDep = None, db: Optional[Session] = Depends(get_db)):
+    require_permission(authorization, "shop_radar", db=db)
     if db is not None:
         try:
             conditions = ["is_active = true"]
@@ -77,7 +79,8 @@ async def get_shops(platform: Optional[str] = None, category: Optional[str] = No
 
 
 @router.get("/{shop_id}", response_model=Shop)
-async def get_shop_detail(shop_id: str, db: Optional[Session] = Depends(get_db)):
+async def get_shop_detail(shop_id: str, authorization: AuthorizationDep = None, db: Optional[Session] = Depends(get_db)):
+    require_permission(authorization, "shop_radar", db=db)
     if db is not None:
         try:
             row = db.execute(text("SELECT * FROM shops WHERE id = :id AND is_active = true"), {"id": shop_id}).fetchone()

@@ -21,9 +21,13 @@ from config import (
     JWT_REFRESH_EXPIRE_DAYS,
     APP_ENV,
 )
+from database import REDIS_AVAILABLE, redis_client
 
 logger = logging.getLogger(__name__)
 IS_PRODUCTION = APP_ENV == "production"
+_SESSION_TTL_SECONDS = max(JWT_ACCESS_EXPIRE_SECONDS, JWT_REFRESH_EXPIRE_DAYS * 86400)
+_REDIS_ACTIVE_SESSIONS = "auth:user_sessions:{user_id}"
+_REDIS_REVOKED_SESSION = "auth:revoked_session:{session_id}"
 
 # ---- JWT ----
 JWT_AVAILABLE = False
@@ -119,6 +123,154 @@ def decode_jwt_token(token: str) -> Optional[dict]:
 
 
 # ============ 认证依赖 ============
+def _now_ts() -> int:
+    return int(datetime.now(timezone.utc).timestamp())
+
+
+def _session_key(user_id: str) -> str:
+    return _REDIS_ACTIVE_SESSIONS.format(user_id=user_id)
+
+
+def _revoked_session_key(session_id: str) -> str:
+    return _REDIS_REVOKED_SESSION.format(session_id=session_id)
+
+
+def get_token_session_id(token: str) -> Optional[str]:
+    payload = decode_jwt_token(token)
+    if not payload:
+        return None
+    session_id = payload.get("sid")
+    return session_id if isinstance(session_id, str) and session_id else None
+
+
+def register_user_session(user_id: str, session_id: Optional[str]) -> None:
+    if not user_id or not session_id:
+        return
+
+    if REDIS_AVAILABLE and redis_client:
+        key = _session_key(user_id)
+        redis_client.sadd(key, session_id)
+        redis_client.expire(key, _SESSION_TTL_SECONDS)
+        return
+
+    from store import ACTIVE_SESSIONS_DB
+
+    ACTIVE_SESSIONS_DB.setdefault(user_id, set()).add(session_id)
+
+
+def is_session_revoked(session_id: Optional[str]) -> bool:
+    if not session_id:
+        return False
+
+    if REDIS_AVAILABLE and redis_client:
+        return bool(redis_client.exists(_revoked_session_key(session_id)))
+
+    from store import REVOKED_SESSIONS_DB
+
+    expires_at = REVOKED_SESSIONS_DB.get(session_id)
+    if not expires_at:
+        return False
+    if expires_at <= _now_ts():
+        REVOKED_SESSIONS_DB.pop(session_id, None)
+        return False
+    return True
+
+
+def revoke_user_session(user_id: str, session_id: Optional[str]) -> bool:
+    if not user_id or not session_id:
+        return False
+
+    if REDIS_AVAILABLE and redis_client:
+        redis_client.setex(_revoked_session_key(session_id), _SESSION_TTL_SECONDS, "1")
+        redis_client.srem(_session_key(user_id), session_id)
+        return True
+
+    from store import ACTIVE_SESSIONS_DB, REVOKED_SESSIONS_DB
+
+    REVOKED_SESSIONS_DB[session_id] = _now_ts() + _SESSION_TTL_SECONDS
+    sessions = ACTIVE_SESSIONS_DB.get(user_id)
+    if sessions and session_id in sessions:
+        sessions.discard(session_id)
+        if not sessions:
+            ACTIVE_SESSIONS_DB.pop(user_id, None)
+    return True
+
+
+def revoke_session_for_token(token: Optional[str]) -> bool:
+    if not token:
+        return False
+
+    payload = decode_jwt_token(token)
+    if payload and payload.get("sub"):
+        session_id = payload.get("sid")
+        if session_id:
+            return revoke_user_session(payload["sub"], session_id)
+
+    from store import TOKENS_DB
+
+    return TOKENS_DB.pop(token, None) is not None
+
+
+def revoke_other_user_sessions(user_id: str, current_token: str = "") -> int:
+    current_session_id = get_token_session_id(current_token)
+    from store import TOKENS_DB
+
+    if REDIS_AVAILABLE and redis_client:
+        session_ids = [
+            sid for sid in redis_client.smembers(_session_key(user_id))
+            if sid and sid != current_session_id
+        ]
+        for session_id in session_ids:
+            revoke_user_session(user_id, session_id)
+        tokens_to_remove = [
+            token for token, uid in TOKENS_DB.items()
+            if uid == user_id and token != current_token
+        ]
+        for token in tokens_to_remove:
+            TOKENS_DB.pop(token, None)
+        return max(len(session_ids), len(tokens_to_remove))
+
+    from store import ACTIVE_SESSIONS_DB
+
+    session_ids = [
+        sid for sid in ACTIVE_SESSIONS_DB.get(user_id, set())
+        if sid and sid != current_session_id
+    ]
+    for session_id in session_ids:
+        revoke_user_session(user_id, session_id)
+    tokens_to_remove = [
+        token for token, uid in TOKENS_DB.items()
+        if uid == user_id and token != current_token
+    ]
+    for token in tokens_to_remove:
+        TOKENS_DB.pop(token, None)
+    return max(len(session_ids), len(tokens_to_remove))
+
+
+def revoke_all_user_sessions(user_id: str) -> int:
+    if not user_id:
+        return 0
+    from store import TOKENS_DB
+
+    if REDIS_AVAILABLE and redis_client:
+        session_ids = [sid for sid in redis_client.smembers(_session_key(user_id)) if sid]
+        for session_id in session_ids:
+            revoke_user_session(user_id, session_id)
+        tokens_to_remove = [token for token, uid in TOKENS_DB.items() if uid == user_id]
+        for token in tokens_to_remove:
+            TOKENS_DB.pop(token, None)
+        return max(len(session_ids), len(tokens_to_remove))
+
+    from store import ACTIVE_SESSIONS_DB
+
+    session_ids = [sid for sid in ACTIVE_SESSIONS_DB.get(user_id, set()) if sid]
+    for session_id in session_ids:
+        revoke_user_session(user_id, session_id)
+    tokens_to_remove = [token for token, uid in TOKENS_DB.items() if uid == user_id]
+    for token in tokens_to_remove:
+        TOKENS_DB.pop(token, None)
+    return max(len(session_ids), len(tokens_to_remove))
+
 
 def get_authorization(
     request: Request,
@@ -154,7 +306,12 @@ def get_user_id_from_refresh_token(authorization: str) -> Optional[str]:
         return None
 
     payload = decode_jwt_token(token)
-    if payload and payload.get("refresh") is True and "sub" in payload:
+    if (
+        payload
+        and payload.get("refresh") is True
+        and "sub" in payload
+        and not is_session_revoked(payload.get("sid"))
+    ):
         return payload["sub"]
     return None
 
@@ -166,7 +323,11 @@ def get_user_id_from_token(authorization: str) -> Optional[str]:
 
     # 先尝试 JWT 解码
     payload = decode_jwt_token(token)
+    if payload and payload.get("refresh") is True:
+        return None
     if payload and payload.get("refresh") is not True and "sub" in payload:
+        if is_session_revoked(payload.get("sid")):
+            return None
         return payload["sub"]
 
     if token.startswith("refresh_"):
@@ -187,6 +348,41 @@ def require_user(authorization: str = None) -> str:
     return user_id
 
 
+def has_permission(
+    user_id: str,
+    permission: str,
+    db=None,
+    *,
+    allow_non_operator: bool = True,
+) -> bool:
+    user = get_user_record(user_id, db)
+    if not user:
+        return False
+    if user.get("is_admin"):
+        return True
+    if user.get("user_type") != "operator":
+        return allow_non_operator
+    return permission in (user.get("permissions") or [])
+
+
+def require_permission(
+    authorization: str = None,
+    permission: str = "",
+    db=None,
+    *,
+    allow_non_operator: bool = True,
+) -> str:
+    user_id = require_user(authorization)
+    if not has_permission(
+        user_id,
+        permission,
+        db,
+        allow_non_operator=allow_non_operator,
+    ):
+        raise HTTPException(status_code=403, detail="没有权限执行该操作")
+    return user_id
+
+
 def get_user_record(user_id: str, db=None) -> Optional[dict]:
     """按 user_id 获取用户，优先数据库，开发环境兼容内存存储。"""
     session = db
@@ -201,14 +397,25 @@ def get_user_record(user_id: str, db=None) -> Optional[dict]:
 
     try:
         if session is not None:
-            row = session.execute(
-                text(
-                    "SELECT id, phone, username, password_hash, user_type, "
-                    "operator_num, balance, points, avatar_url, is_active "
-                    "FROM users WHERE id = :id LIMIT 1"
-                ),
-                {"id": user_id},
-            ).fetchone()
+            def fetch_row(include_permissions: bool = True):
+                fields = (
+                    "id, phone, username, password_hash, user_type, "
+                    "operator_num, balance, points, avatar_url, is_active"
+                )
+                if include_permissions:
+                    fields = f"{fields}, permissions"
+                return session.execute(
+                    text(f"SELECT {fields} FROM users WHERE id = :id LIMIT 1"),
+                    {"id": user_id},
+                ).fetchone()
+
+            try:
+                row = fetch_row(include_permissions=True)
+            except Exception as exc:
+                if "permissions" not in str(exc).lower():
+                    raise
+                row = fetch_row(include_permissions=False)
+
             if row:
                 data = row._mapping
                 if not data["is_active"]:
@@ -224,6 +431,7 @@ def get_user_record(user_id: str, db=None) -> Optional[dict]:
                     "points": data["points"],
                     "avatar": data.get("avatar_url"),
                     "is_admin": data["user_type"] == "admin",
+                    "permissions": data.get("permissions") or [],
                 }
         if IS_PRODUCTION:
             return None

@@ -16,7 +16,7 @@ from schemas.inventory import (
     InventoryTransactionCreate,
     InventoryTransactionRecord,
 )
-from security import AuthorizationDep, require_admin
+from security import AuthorizationDep, get_user_record, require_user
 from store import (
     INVENTORY_META_DB,
     INVENTORY_TRANSACTIONS_DB,
@@ -220,12 +220,48 @@ def _update_product_stock_in_memory(product_id: str, new_stock: int) -> Inventor
     return _inventory_from_memory_product(PRODUCTS_DB[product_id])
 
 
+def _require_inventory_read_access(
+    authorization: AuthorizationDep = None,
+    db: Optional[Session] = None,
+) -> str:
+    user_id = require_user(authorization)
+    user = get_user_record(user_id, db)
+    if not user:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    if user.get("is_admin"):
+        return user_id
+    if user.get("user_type") != "operator":
+        raise HTTPException(status_code=403, detail="Inventory access requires permission")
+    permissions = user.get("permissions") or []
+    if "inventory_read" in permissions or "inventory_write" in permissions:
+        return user_id
+    raise HTTPException(status_code=403, detail="Inventory access requires permission")
+
+
+def _require_inventory_write_access(
+    authorization: AuthorizationDep = None,
+    db: Optional[Session] = None,
+) -> str:
+    user_id = require_user(authorization)
+    user = get_user_record(user_id, db)
+    if not user:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    if user.get("is_admin"):
+        return user_id
+    if user.get("user_type") != "operator":
+        raise HTTPException(status_code=403, detail="Inventory write requires permission")
+    permissions = user.get("permissions") or []
+    if "inventory_write" in permissions:
+        return user_id
+    raise HTTPException(status_code=403, detail="Inventory write requires permission")
+
+
 @router.get("", response_model=list[InventoryItemResponse])
 async def get_inventory(
     authorization: AuthorizationDep = None,
     db: Optional[Session] = Depends(get_db),
 ):
-    require_admin(authorization, db)
+    _require_inventory_read_access(authorization, db)
     if db is not None:
         try:
             rows = db.execute(
@@ -248,7 +284,7 @@ async def get_inventory_transactions(
     authorization: AuthorizationDep = None,
     db: Optional[Session] = Depends(get_db),
 ):
-    require_admin(authorization, db)
+    _require_inventory_read_access(authorization, db)
     safe_limit = max(1, min(limit, 500))
     if db is not None and _inventory_transactions_table_exists(db):
         try:
@@ -274,7 +310,7 @@ async def create_inventory_transaction(
     authorization: AuthorizationDep = None,
     db: Optional[Session] = Depends(get_db),
 ):
-    require_admin(authorization, db)
+    _require_inventory_write_access(authorization, db)
     if db is not None:
         try:
             item = _update_product_stock_in_db(
@@ -331,7 +367,7 @@ async def get_inventory_item(
     authorization: AuthorizationDep = None,
     db: Optional[Session] = Depends(get_db),
 ):
-    require_admin(authorization, db)
+    _require_inventory_read_access(authorization, db)
     if db is not None:
         try:
             item = _fetch_inventory_item(db, product_id)
@@ -356,7 +392,7 @@ async def update_inventory_stock(
     authorization: AuthorizationDep = None,
     db: Optional[Session] = Depends(get_db),
 ):
-    require_admin(authorization, db)
+    _require_inventory_write_access(authorization, db)
     if db is not None:
         try:
             item = _update_product_stock_in_db(db, product_id, payload.current_stock)

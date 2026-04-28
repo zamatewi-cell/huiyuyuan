@@ -1,7 +1,8 @@
 """订单相关 Pydantic 模型"""
 
-from pydantic import BaseModel
-from typing import Dict, List, Any, Optional
+from typing import Any, Dict, List, Optional
+
+from pydantic import BaseModel, Field
 
 
 class Order(BaseModel):
@@ -23,14 +24,24 @@ class Order(BaseModel):
     logistics_company: Optional[str] = None
     refund_reason: Optional[str] = None
     refund_amount: Optional[float] = None
-    logistics_entries: List[Dict[str, Any]] = []
+    logistics_entries: List[Dict[str, Any]] = Field(default_factory=list)
     payment_id: Optional[str] = None
     payment_account_id: Optional[str] = None
     payment_account: Optional[Dict[str, Any]] = None
+    payment_voucher_url: Optional[str] = None
+    payment_admin_note: Optional[str] = None
+    payment_record_status: Optional[str] = None
+    payment_confirmed_by: Optional[str] = None
+    payment_confirmed_at: Optional[str] = None
+
+
+class OrderCreateItem(BaseModel):
+    product_id: str = Field(min_length=1)
+    quantity: int = Field(default=1, ge=1)
 
 
 class OrderCreate(BaseModel):
-    items: List[Dict[str, Any]]
+    items: List[OrderCreateItem] = Field(min_length=1)
     address_id: str
     payment_method: str = "wechat"
     remark: Optional[str] = None

@@ -30,17 +30,17 @@ def _seed_shop():
 
 
 @pytest.mark.asyncio
-async def test_get_shops_empty(client: AsyncClient):
+async def test_get_shops_empty(client: AsyncClient, admin_auth: str):
     """No shops seeded -> return empty list."""
-    resp = await client.get("/api/shops")
+    resp = await client.get("/api/shops", params={"authorization": admin_auth})
     assert resp.status_code == 200
     assert resp.json() == []
 
 
 @pytest.mark.asyncio
-async def test_get_shops_with_data(client: AsyncClient):
+async def test_get_shops_with_data(client: AsyncClient, admin_auth: str):
     _seed_shop()
-    resp = await client.get("/api/shops")
+    resp = await client.get("/api/shops", params={"authorization": admin_auth})
     assert resp.status_code == 200
     shops = resp.json()
     assert len(shops) == 1
@@ -49,7 +49,7 @@ async def test_get_shops_with_data(client: AsyncClient):
 
 
 @pytest.mark.asyncio
-async def test_get_shops_filter_platform(client: AsyncClient):
+async def test_get_shops_filter_platform(client: AsyncClient, admin_auth: str):
     _seed_shop()
     # Add another shop with different platform
     SHOPS_DB["SHOP_TEST_002"] = Shop(
@@ -58,7 +58,10 @@ async def test_get_shops_filter_platform(client: AsyncClient):
         category="jade", contact_status="new", is_influencer=True,
     )
 
-    resp = await client.get("/api/shops", params={"platform": "douyin"})
+    resp = await client.get(
+        "/api/shops",
+        params={"platform": "douyin", "authorization": admin_auth},
+    )
     assert resp.status_code == 200
     shops = resp.json()
     assert len(shops) == 1
@@ -66,9 +69,12 @@ async def test_get_shops_filter_platform(client: AsyncClient):
 
 
 @pytest.mark.asyncio
-async def test_get_shop_detail(client: AsyncClient):
+async def test_get_shop_detail(client: AsyncClient, admin_auth: str):
     _seed_shop()
-    resp = await client.get("/api/shops/SHOP_TEST_001")
+    resp = await client.get(
+        "/api/shops/SHOP_TEST_001",
+        params={"authorization": admin_auth},
+    )
     assert resp.status_code == 200
     data = resp.json()
     assert data["name"] == "Test Jade Shop"
@@ -76,6 +82,35 @@ async def test_get_shop_detail(client: AsyncClient):
 
 
 @pytest.mark.asyncio
-async def test_get_shop_detail_not_found(client: AsyncClient):
-    resp = await client.get("/api/shops/NONEXISTENT")
+async def test_get_shop_detail_not_found(client: AsyncClient, admin_auth: str):
+    resp = await client.get(
+        "/api/shops/NONEXISTENT",
+        params={"authorization": admin_auth},
+    )
     assert resp.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_operator_without_shop_radar_permission_is_forbidden(
+    client: AsyncClient,
+    admin_auth: str,
+):
+    await client.put(
+        "/api/admin/operators/operator_1",
+        json={"permissions": ["orders"]},
+        params={"authorization": admin_auth},
+    )
+    login = await client.post(
+        "/api/auth/login",
+        json={
+            "username": "1",
+            "password": "op123456",
+            "type": "operator",
+        },
+    )
+    assert login.status_code == 200
+    operator_auth = f"Bearer {login.json()['token']}"
+
+    resp = await client.get("/api/shops", params={"authorization": operator_auth})
+
+    assert resp.status_code == 403

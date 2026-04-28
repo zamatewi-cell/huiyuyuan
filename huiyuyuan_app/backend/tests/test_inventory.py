@@ -9,6 +9,30 @@ from httpx import AsyncClient
 from store import INVENTORY_TRANSACTIONS_DB, PRODUCTS_DB
 
 
+async def _login_operator_with_permissions(
+    client: AsyncClient,
+    admin_auth: str,
+    permissions: list[str],
+) -> str:
+    resp = await client.put(
+        "/api/admin/operators/operator_1",
+        json={"permissions": permissions},
+        params={"authorization": admin_auth},
+    )
+    assert resp.status_code == 200
+
+    login = await client.post(
+        "/api/auth/login",
+        json={
+            "username": "1",
+            "password": "op123456",
+            "type": "operator",
+        },
+    )
+    assert login.status_code == 200
+    return f"Bearer {login.json()['token']}"
+
+
 @pytest.mark.asyncio
 async def test_get_inventory_list_as_admin(client: AsyncClient, admin_auth: str):
     resp = await client.get("/api/inventory", params={"authorization": admin_auth})
@@ -23,9 +47,62 @@ async def test_get_inventory_list_as_admin(client: AsyncClient, admin_auth: str)
 
 
 @pytest.mark.asyncio
-async def test_get_inventory_forbidden_for_operator(client: AsyncClient, operator_auth: str):
+async def test_get_inventory_forbidden_for_operator_without_permission(
+    client: AsyncClient,
+    admin_auth: str,
+):
+    operator_auth = await _login_operator_with_permissions(client, admin_auth, ["orders"])
     resp = await client.get("/api/inventory", params={"authorization": operator_auth})
     assert resp.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_operator_with_inventory_read_can_view_but_not_write(
+    client: AsyncClient,
+    admin_auth: str,
+):
+    operator_auth = await _login_operator_with_permissions(
+        client,
+        admin_auth,
+        ["inventory_read"],
+    )
+
+    resp = await client.get("/api/inventory", params={"authorization": operator_auth})
+    assert resp.status_code == 200
+    assert resp.json()
+
+    item_resp = await client.get(
+        "/api/inventory/HYY-HT001",
+        params={"authorization": operator_auth},
+    )
+    assert item_resp.status_code == 200
+
+    update_resp = await client.put(
+        "/api/inventory/HYY-HT001/stock",
+        json={"current_stock": 222},
+        params={"authorization": operator_auth},
+    )
+    assert update_resp.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_operator_with_inventory_write_can_adjust_stock(
+    client: AsyncClient,
+    admin_auth: str,
+):
+    operator_auth = await _login_operator_with_permissions(
+        client,
+        admin_auth,
+        ["inventory_write"],
+    )
+
+    update_resp = await client.put(
+        "/api/inventory/HYY-HT001/stock",
+        json={"current_stock": 222},
+        params={"authorization": operator_auth},
+    )
+    assert update_resp.status_code == 200
+    assert update_resp.json()["current_stock"] == 222
 
 
 @pytest.mark.asyncio

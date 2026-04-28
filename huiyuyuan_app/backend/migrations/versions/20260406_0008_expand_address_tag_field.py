@@ -5,6 +5,7 @@ Revises: 20260405_0007_payment_records_and_audit
 Create Date: 2026-04-06
 """
 from alembic import op
+import sqlalchemy as sa
 
 revision = "20260406_0008"
 down_revision = "20260405_0007_payment_records_and_audit"
@@ -13,8 +14,8 @@ depends_on = None
 
 
 def upgrade() -> None:
-    op.alter_column("addresses", "tag", type_=op.dialect_impl(op.get_bind().dialect, "character varying(32)"))
+    op.alter_column("addresses", "tag", type_=sa.String(32))
 
 
 def downgrade() -> None:
-    op.alter_column("addresses", "tag", type_=op.dialect_impl(op.get_bind().dialect, "character varying(16)"))
+    op.alter_column("addresses", "tag", type_=sa.String(16))

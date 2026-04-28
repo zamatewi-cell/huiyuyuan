@@ -4,7 +4,7 @@
 """
 
 import logging
-from typing import Dict, List
+from typing import Dict, List, Set
 
 from schemas.product import Product
 from schemas.cart import CartItem
@@ -15,6 +15,12 @@ from schemas.order import Order
 from services.product_seed_import_service import build_in_memory_seed_products
 
 logger = logging.getLogger(__name__)
+DEFAULT_OPERATOR_PERMISSIONS = [
+    "shop_radar",
+    "ai_assistant",
+    "orders",
+    "inventory_read",
+]
 
 # ---- 用户 (dict 格式，含 password_hash) ----
 USERS_DB: Dict[str, Dict] = {}
@@ -42,6 +48,8 @@ REVIEWS_DB: Dict[str, Review] = {}
 
 # ---- Token 映射 (token → user_id) ----
 TOKENS_DB: Dict[str, str] = {}
+ACTIVE_SESSIONS_DB: Dict[str, Set[str]] = {}
+REVOKED_SESSIONS_DB: Dict[str, int] = {}
 
 # ---- 设备 Token ----
 DEVICES_DB: Dict[str, Dict] = {}
@@ -63,13 +71,14 @@ def init_default_users():
         USERS_DB["admin_001"] = {
             "id": "admin_001",
             "username": "超级管理员",
-            "phone": "18937766669",
+            "phone": "18925816362",
             "password_hash": hash_password("admin123"),
             "is_admin": True,
             "balance": 999999.0,
             "points": 99999,
             "avatar": None,
             "user_type": "admin",
+            "permissions": [],
         }
 
     for i in range(1, 11):
@@ -86,6 +95,7 @@ def init_default_users():
                 "avatar": None,
                 "operator_number": i,
                 "user_type": "operator",
+                "permissions": list(DEFAULT_OPERATOR_PERMISSIONS),
             }
 
 

@@ -1,5 +1,6 @@
 ﻿"""Backend configuration loaded from environment variables."""
 
+import hashlib
 import logging
 import os
 import secrets
@@ -206,33 +207,123 @@ def _load_release_notes() -> list[str]:
         return [item.strip() for item in raw_value.split("|") if item.strip()]
 
     return [
-        "个人中心新增手动检查更新、修改密码与注销账号入口",
-        "支持服务器端驱动的版本提示与 APK 下载更新",
-        "强化失效账号拦截与账号安全校验流程",
+        "管理员支持自定义角色模板保存、重命名与删除，整理权限更高效",
+        "新增独立支付对账工作台，确认到账与异常标记可按权限拆分授权",
+        "继续收紧管理员与操作员权限边界，并修复对账相关中英文混用文案",
     ]
 
 
-APP_LATEST_VERSION = os.getenv("APP_LATEST_VERSION", "3.0.3").strip() or "3.0.3"
-APP_LATEST_BUILD_NUMBER = int(os.getenv("APP_LATEST_BUILD_NUMBER", "5"))
+def _load_download_urls(
+    primary_env: str,
+    list_env: str,
+    default_url: str = "",
+) -> list[str]:
+    raw_values: list[str] = []
+    raw_list = os.getenv(list_env, "").strip()
+    raw_primary = os.getenv(primary_env, "").strip()
+
+    if raw_list:
+        raw_values.extend(raw_list.split("|"))
+    if raw_primary:
+        raw_values.append(raw_primary)
+    if not raw_values and default_url:
+        raw_values.append(default_url)
+
+    normalized: list[str] = []
+    for raw in raw_values:
+        value = raw.strip()
+        if value and value not in normalized:
+            normalized.append(value)
+    return normalized
+
+
+def _compute_file_metadata(file_path: str) -> tuple[int | None, str]:
+    path = Path(file_path)
+    if not path.exists() or not path.is_file():
+        return None, ""
+
+    size_bytes = path.stat().st_size
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return size_bytes, digest.hexdigest()
+
+
+APP_LATEST_VERSION = os.getenv("APP_LATEST_VERSION", "3.0.4").strip() or "3.0.4"
+APP_LATEST_BUILD_NUMBER = int(os.getenv("APP_LATEST_BUILD_NUMBER", "6"))
 APP_MIN_SUPPORTED_BUILD_NUMBER = int(
     os.getenv("APP_MIN_SUPPORTED_BUILD_NUMBER", "2")
 )
 APP_FORCE_UPDATE = _parse_bool(os.getenv("APP_FORCE_UPDATE", "false"))
 APP_RELEASE_NOTES = _load_release_notes()
 APP_RELEASED_AT = (
-    os.getenv("APP_RELEASED_AT", "2026-04-03T17:10:00+08:00").strip()
-    or "2026-04-03T17:10:00+08:00"
+    os.getenv("APP_RELEASED_AT", "2026-04-16T11:10:00+08:00").strip()
+    or "2026-04-16T11:10:00+08:00"
 )
-APP_ANDROID_DOWNLOAD_URL = (
-    os.getenv(
-        "APP_ANDROID_DOWNLOAD_URL",
-        "https://xn--lsws2cdzg.top/downloads/huiyuyuan-latest.apk",
-    ).strip()
+APP_ANDROID_DOWNLOAD_URLS = _load_download_urls(
+    primary_env="APP_ANDROID_DOWNLOAD_URL",
+    list_env="APP_ANDROID_DOWNLOAD_URLS",
+    default_url="https://xn--lsws2cdzg.top/downloads/huiyuyuan-latest.apk",
 )
+APP_ANDROID_DOWNLOAD_URL = APP_ANDROID_DOWNLOAD_URLS[0] if APP_ANDROID_DOWNLOAD_URLS else ""
 APP_IOS_DOWNLOAD_URL = os.getenv("APP_IOS_DOWNLOAD_URL", "").strip()
 APP_WEB_DOWNLOAD_URL = (
     os.getenv("APP_WEB_DOWNLOAD_URL", "https://xn--lsws2cdzg.top").strip()
 )
+APP_ANDROID_DOWNLOAD_FILE_PATH = os.getenv(
+    "APP_ANDROID_DOWNLOAD_FILE_PATH",
+    "/var/www/huiyuyuan/downloads/huiyuyuan-latest.apk",
+).strip()
+APP_ANDROID_DOWNLOAD_CONTENT_TYPE = os.getenv(
+    "APP_ANDROID_DOWNLOAD_CONTENT_TYPE",
+    "application/vnd.android.package-archive",
+).strip() or "application/vnd.android.package-archive"
+APP_ANDROID_DOWNLOAD_SIZE_BYTES = (
+    int(os.getenv("APP_ANDROID_DOWNLOAD_SIZE_BYTES", "").strip())
+    if os.getenv("APP_ANDROID_DOWNLOAD_SIZE_BYTES", "").strip()
+    else None
+)
+APP_ANDROID_DOWNLOAD_SHA256 = (
+    os.getenv("APP_ANDROID_DOWNLOAD_SHA256", "").strip().lower()
+    or ""
+)
+
+_ANDROID_DOWNLOAD_METADATA_CACHE_KEY: tuple[str, int, int] | None = None
+_ANDROID_DOWNLOAD_METADATA_CACHE_VALUE: tuple[int | None, str] = (
+    APP_ANDROID_DOWNLOAD_SIZE_BYTES,
+    APP_ANDROID_DOWNLOAD_SHA256,
+)
+
+
+def get_android_download_metadata() -> tuple[int | None, str]:
+    size_override = APP_ANDROID_DOWNLOAD_SIZE_BYTES
+    sha_override = APP_ANDROID_DOWNLOAD_SHA256
+    if size_override is not None and sha_override:
+        return size_override, sha_override
+
+    path = Path(APP_ANDROID_DOWNLOAD_FILE_PATH)
+    if not path.exists() or not path.is_file():
+        return size_override, sha_override
+
+    stat = path.stat()
+    cache_key = (
+        str(path.resolve()),
+        stat.st_size,
+        getattr(stat, "st_mtime_ns", int(stat.st_mtime * 1_000_000_000)),
+    )
+
+    global _ANDROID_DOWNLOAD_METADATA_CACHE_KEY
+    global _ANDROID_DOWNLOAD_METADATA_CACHE_VALUE
+    if cache_key != _ANDROID_DOWNLOAD_METADATA_CACHE_KEY:
+        computed_size, computed_sha256 = _compute_file_metadata(APP_ANDROID_DOWNLOAD_FILE_PATH)
+        _ANDROID_DOWNLOAD_METADATA_CACHE_KEY = cache_key
+        _ANDROID_DOWNLOAD_METADATA_CACHE_VALUE = (
+            size_override if size_override is not None else computed_size,
+            sha_override or computed_sha256,
+        )
+
+    return _ANDROID_DOWNLOAD_METADATA_CACHE_VALUE
 
 # Uploads
 UPLOAD_DIR = os.getenv("UPLOAD_DIR", "uploads")

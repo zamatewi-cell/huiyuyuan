@@ -141,7 +141,8 @@ def verify_stored_code(phone: str, code: str, action: str = "login") -> bool:
             raise HTTPException(
                 status_code=400, detail="验证码已过期或未发送"
             )
-        if stored != code:
+        stored_str = stored.decode("utf-8") if isinstance(stored, bytes) else str(stored)
+        if stored_str != code:
             redis_client.incr(_sms_err_key(phone, action))
             redis_client.expire(_sms_err_key(phone, action), 1800)
             raise HTTPException(status_code=400, detail="验证码错误")

@@ -4,6 +4,8 @@ from fastapi import APIRouter, Query
 
 from config import (
     APP_ANDROID_DOWNLOAD_URL,
+    APP_ANDROID_DOWNLOAD_URLS,
+    APP_ANDROID_DOWNLOAD_CONTENT_TYPE,
     APP_FORCE_UPDATE,
     APP_IOS_DOWNLOAD_URL,
     APP_LATEST_BUILD_NUMBER,
@@ -12,6 +14,7 @@ from config import (
     APP_RELEASE_NOTES,
     APP_RELEASED_AT,
     APP_WEB_DOWNLOAD_URL,
+    get_android_download_metadata,
 )
 
 router = APIRouter(prefix="/api/app", tags=["应用信息"])
@@ -22,10 +25,20 @@ async def get_app_version(
     platform: str = Query(default="android", pattern="^(android|ios|web)$"),
 ):
     download_url = APP_ANDROID_DOWNLOAD_URL
+    download_urls: list[str] = [download_url] if download_url else []
+    download_content_type = ""
+    download_sha256 = ""
+    download_size_bytes = None
     if platform == "ios":
         download_url = APP_IOS_DOWNLOAD_URL
+        download_urls = [download_url] if download_url else []
     elif platform == "web":
         download_url = APP_WEB_DOWNLOAD_URL
+        download_urls = [download_url] if download_url else []
+    else:
+        download_urls = APP_ANDROID_DOWNLOAD_URLS
+        download_content_type = APP_ANDROID_DOWNLOAD_CONTENT_TYPE
+        download_size_bytes, download_sha256 = get_android_download_metadata()
 
     return {
         "success": True,
@@ -35,6 +48,10 @@ async def get_app_version(
         "min_supported_build_number": APP_MIN_SUPPORTED_BUILD_NUMBER,
         "force_update": APP_FORCE_UPDATE,
         "download_url": download_url,
+        "download_urls": download_urls,
+        "download_content_type": download_content_type,
+        "download_sha256": download_sha256,
+        "download_size_bytes": download_size_bytes,
         "release_notes": APP_RELEASE_NOTES,
         "published_at": APP_RELEASED_AT,
     }
