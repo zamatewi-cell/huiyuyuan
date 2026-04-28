@@ -128,6 +128,10 @@ function Write-Fail {
 function Invoke-SSH {
     param([string]$Command)
 
+    # Multiline here-strings are authored on Windows; strip CR so remote bash
+    # never receives `$'\r'` as a command.
+    $Command = $Command -replace "`r`n", "`n" -replace "`r", ""
+
     if ($DryRun) {
         Write-Info "[DRY RUN] ssh ${SERVER_USER}@${SERVER_HOST} `"$Command`""
         return "DRY_RUN_OK"
