@@ -238,28 +238,46 @@ try {
     }
     Write-Ok "server ${SERVER_HOST} is reachable"
 
-    if (-not $SkipAnalyze -and ($Target -eq "all" -or $Target -eq "web")) {
-        Write-Step "Running dart analyze"
+    if (($Target -eq "all" -or $Target -eq "web") -and (-not $SkipAnalyze -or -not $SkipBuild)) {
+        Write-Step "Resolving Flutter dependencies"
         Push-Location $APP_DIR
-        $analyzeOutput = dart analyze lib/ 2>&1 | Out-String
+        $pubGetOutput = flutter pub get 2>&1 | Out-String
+        $pubGetExitCode = $LASTEXITCODE
         Pop-Location
 
-        $errorCount = ([regex]::Matches($analyzeOutput, " error ")).Count
-        if ($errorCount -gt 0) {
-            Write-Fail "dart analyze reported $errorCount errors"
+        if ($pubGetExitCode -ne 0) {
+            Write-Fail "flutter pub get failed"
+            Write-Host $pubGetOutput -ForegroundColor Red
+            exit 1
+        }
+        Write-Ok "Flutter dependencies resolved"
+    }
+
+    if (-not $SkipAnalyze -and ($Target -eq "all" -or $Target -eq "web")) {
+        Write-Step "Running flutter analyze"
+        Push-Location $APP_DIR
+        $analyzeOutput = flutter analyze --no-fatal-infos lib/ 2>&1 | Out-String
+        $analyzeExitCode = $LASTEXITCODE
+        Pop-Location
+
+        if ($analyzeExitCode -ne 0) {
+            Write-Fail "flutter analyze failed"
             Write-Host $analyzeOutput -ForegroundColor Red
             exit 1
         }
-        Write-Ok "dart analyze passed"
+        Write-Ok "flutter analyze passed"
     }
 
     if (-not $SkipBuild -and ($Target -eq "all" -or $Target -eq "web")) {
         Write-Step "Building Flutter Web"
         Push-Location $APP_DIR
         $buildOutput = flutter build web --no-tree-shake-icons --release 2>&1 | Out-String
+        $buildExitCode = $LASTEXITCODE
+        $buildIndex = Test-Path "build\web\index.html"
+        $buildMainJs = Test-Path "build\web\main.dart.js"
         Pop-Location
 
-        if ($buildOutput -notmatch "Built build\\web" -and $buildOutput -notmatch "Built build/web") {
+        if ($buildExitCode -ne 0 -or -not $buildIndex -or -not $buildMainJs) {
             Write-Fail "flutter build web failed"
             Write-Host $buildOutput -ForegroundColor Red
             exit 1
