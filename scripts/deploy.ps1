@@ -137,9 +137,17 @@ function Invoke-SSH {
         return "DRY_RUN_OK"
     }
 
-    $result = ssh -o ConnectTimeout=10 -o StrictHostKeyChecking=no "${SERVER_USER}@${SERVER_HOST}" $Command 2>&1
-    if ($LASTEXITCODE -ne 0) {
-        throw "SSH command failed (exit $LASTEXITCODE): $Command`n$result"
+    $previousErrorActionPreference = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    try {
+        $result = ssh -o ConnectTimeout=10 -o StrictHostKeyChecking=no "${SERVER_USER}@${SERVER_HOST}" $Command 2>&1
+        $exitCode = $LASTEXITCODE
+    } finally {
+        $ErrorActionPreference = $previousErrorActionPreference
+    }
+
+    if ($exitCode -ne 0) {
+        throw "SSH command failed (exit $exitCode): $Command`n$result"
     }
     return ($result | Out-String).Trim()
 }
