@@ -1,5 +1,6 @@
 ﻿// HuiYuYuan product review widgets.
 import 'package:flutter/material.dart';
+import '../l10n/translator_global.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../models/review_model.dart';
 import '../services/review_service.dart';
@@ -141,13 +142,13 @@ class _ProductReviewsWidgetState extends State<ProductReviewsWidget> {
               Expanded(
                 child: Column(
                   children: [
-                    _buildProgressBar('review_progress_positive'.tr,
+                    _buildProgressBar(TranslatorGlobal.instance.translate('review_progress_positive'),
                         _stats!.positiveRate, Colors.green),
                     const SizedBox(height: 4),
-                    _buildProgressBar('review_progress_neutral'.tr,
+                    _buildProgressBar(TranslatorGlobal.instance.translate('review_progress_neutral'),
                         _stats!.neutralRate, Colors.orange),
                     const SizedBox(height: 4),
-                    _buildProgressBar('review_progress_negative'.tr,
+                    _buildProgressBar(TranslatorGlobal.instance.translate('review_progress_negative'),
                         _stats!.negativeRate, Colors.red),
                   ],
                 ),
@@ -235,32 +236,32 @@ class _ProductReviewsWidgetState extends State<ProductReviewsWidget> {
           if (_stats != null) {
             switch (filter) {
               case ReviewFilter.all:
-                label = 'review_filter_all_count'.trArgs({
+                label = TranslatorGlobal.instance.translate('review_filter_all_count', params: {
                   'count': _stats!.totalCount,
                 });
                 break;
               case ReviewFilter.withImages:
-                label = 'review_filter_images_count'.trArgs({
+                label = TranslatorGlobal.instance.translate('review_filter_images_count', params: {
                   'count': _stats!.withImagesCount,
                 });
                 break;
               case ReviewFilter.withVideo:
-                label = 'review_filter_videos_count'.trArgs({
+                label = TranslatorGlobal.instance.translate('review_filter_videos_count', params: {
                   'count': _stats!.withVideoCount,
                 });
                 break;
               case ReviewFilter.positive:
-                label = 'review_filter_positive_count'.trArgs({
+                label = TranslatorGlobal.instance.translate('review_filter_positive_count', params: {
                   'count': _stats!.fiveStarCount + _stats!.fourStarCount,
                 });
                 break;
               case ReviewFilter.negative:
-                label = 'review_filter_negative_count'.trArgs({
+                label = TranslatorGlobal.instance.translate('review_filter_negative_count', params: {
                   'count': _stats!.oneStarCount + _stats!.twoStarCount,
                 });
                 break;
               case ReviewFilter.additional:
-                label = 'review_filter_additional_count'.trArgs({
+                label = TranslatorGlobal.instance.translate('review_filter_additional_count', params: {
                   'count': _stats!.additionalCount,
                 });
                 break;
@@ -350,7 +351,7 @@ class _ProductReviewsWidgetState extends State<ProductReviewsWidget> {
                               borderRadius: BorderRadius.circular(2),
                             ),
                             child: Text(
-                              'review_verified_purchase'.tr,
+                              TranslatorGlobal.instance.translate('review_verified_purchase'),
                               style: const TextStyle(
                                 fontSize: 10,
                                 color: Colors.green,
@@ -445,7 +446,7 @@ class _ProductReviewsWidgetState extends State<ProductReviewsWidget> {
                       ),
                       const SizedBox(width: 4),
                       Text(
-                        'review_additional_at'.trArgs({
+                        TranslatorGlobal.instance.translate('review_additional_at', params: {
                           'date': _formatDate(review.additionalAt!),
                         }),
                         style: TextStyle(
@@ -491,7 +492,7 @@ class _ProductReviewsWidgetState extends State<ProductReviewsWidget> {
                           borderRadius: BorderRadius.circular(4),
                         ),
                         child: Text(
-                          'review_shop_reply'.tr,
+                          TranslatorGlobal.instance.translate('review_shop_reply'),
                           style: const TextStyle(
                             fontSize: 10,
                             color: Colors.white,
@@ -533,7 +534,7 @@ class _ProductReviewsWidgetState extends State<ProductReviewsWidget> {
                       Text(
                         review.likeCount > 0
                             ? '${review.likeCount}'
-                            : 'review_helpful'.tr,
+                            : TranslatorGlobal.instance.translate('review_helpful'),
                         style:
                             const TextStyle(fontSize: 12, color: Colors.grey),
                       ),
@@ -556,12 +557,12 @@ class _ProductReviewsWidgetState extends State<ProductReviewsWidget> {
           Icon(Icons.rate_review_outlined, size: 64, color: Colors.grey[300]),
           const SizedBox(height: 16),
           Text(
-            'review_empty_title'.tr,
+            TranslatorGlobal.instance.translate('review_empty_title'),
             style: TextStyle(fontSize: 16, color: Colors.grey[600]),
           ),
           const SizedBox(height: 8),
           Text(
-            'review_empty_hint'.tr,
+            TranslatorGlobal.instance.translate('review_empty_hint'),
             style: TextStyle(fontSize: 14, color: Colors.grey[400]),
           ),
         ],
@@ -579,7 +580,7 @@ class _ProductReviewsWidgetState extends State<ProductReviewsWidget> {
             MaterialPageRoute(
               builder: (_) => Scaffold(
                 appBar: AppBar(
-                  title: Text('review_view_all_title'.tr),
+                  title: Text(TranslatorGlobal.instance.translate('review_view_all_title')),
                   backgroundColor: Colors.white,
                   foregroundColor: Colors.black,
                 ),
@@ -597,7 +598,7 @@ class _ProductReviewsWidgetState extends State<ProductReviewsWidget> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Text(
-              'review_view_all_count'.trArgs({
+              TranslatorGlobal.instance.translate('review_view_all_count', params: {
                 'count': _stats!.totalCount,
               }),
               style: const TextStyle(color: Color(0xFF2E8B57)),
@@ -619,13 +620,13 @@ class _ProductReviewsWidgetState extends State<ProductReviewsWidget> {
     final diff = now.difference(date);
 
     if (diff.inDays == 0) {
-      return 'review_today'.tr;
+      return TranslatorGlobal.instance.translate('review_today');
     } else if (diff.inDays == 1) {
-      return 'review_yesterday'.tr;
+      return TranslatorGlobal.instance.translate('review_yesterday');
     } else if (diff.inDays < 7) {
-      return 'review_days_ago'.trArgs({'count': diff.inDays});
+      return TranslatorGlobal.instance.translate('review_days_ago', params: {'count': diff.inDays});
     } else {
-      return 'review_month_day'.trArgs({
+      return TranslatorGlobal.instance.translate('review_month_day', params: {
         'month': date.month,
         'day': date.day,
       });

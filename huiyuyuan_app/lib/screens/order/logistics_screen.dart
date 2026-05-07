@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
+import '../../l10n/translator_global.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../models/json_parsing.dart';
 import '../../models/order_model.dart';
+import '../../providers/app_settings_provider.dart';
 import '../../themes/colors.dart';
 import '../../services/api_service.dart';
 import '../../config/api_config.dart';
 import '../../widgets/common/glassmorphic_card.dart';
 import '../../widgets/common/resilient_network_image.dart';
-import 'package:huiyuyuan/l10n/string_extension.dart';
 
 class _LogisticsBackdrop extends StatelessWidget {
   const _LogisticsBackdrop();
@@ -102,16 +104,16 @@ class _LogisticsTracePainter extends CustomPainter {
 }
 
 /// 物流追踪时间线页面
-class LogisticsScreen extends StatefulWidget {
+class LogisticsScreen extends ConsumerStatefulWidget {
   final OrderModel order;
 
   const LogisticsScreen({super.key, required this.order});
 
   @override
-  State<LogisticsScreen> createState() => _LogisticsScreenState();
+  ConsumerState<LogisticsScreen> createState() => _LogisticsScreenState();
 }
 
-class _LogisticsScreenState extends State<LogisticsScreen> {
+class _LogisticsScreenState extends ConsumerState<LogisticsScreen> {
   List<LogisticsEntry>? _apiEntries;
 
   @override
@@ -154,6 +156,7 @@ class _LogisticsScreenState extends State<LogisticsScreen> {
   Widget build(BuildContext context) {
     const textPrimary = JewelryColors.jadeMist;
     final textSecondary = JewelryColors.jadeMist.withOpacity(0.62);
+    final language = ref.watch(appSettingsProvider).language;
 
     final entries = _buildEntries();
 
@@ -170,7 +173,7 @@ class _LogisticsScreenState extends State<LogisticsScreen> {
             ),
           ),
           child: Text(
-            'logistics_title'.tr,
+            TranslatorGlobal.instance.translate('logistics_title'),
             style: const TextStyle(
               color: JewelryColors.jadeMist,
               fontWeight: FontWeight.w900,
@@ -210,7 +213,8 @@ class _LogisticsScreenState extends State<LogisticsScreen> {
                         Expanded(
                           child: Text(
                             widget.order.logisticsCompany ??
-                                'logistics_company_fallback'.tr,
+                                TranslatorGlobal.instance
+                                    .translate('logistics_company_fallback'),
                             style: const TextStyle(
                               fontSize: 15,
                               fontWeight: FontWeight.w900,
@@ -245,9 +249,11 @@ class _LogisticsScreenState extends State<LogisticsScreen> {
                       Row(
                         children: [
                           Text(
-                            'logistics_tracking_number'.trArgs({
-                              'number': widget.order.trackingNumber!,
-                            }),
+                            TranslatorGlobal.instance.translate(
+                                'logistics_tracking_number',
+                                params: {
+                                  'number': widget.order.trackingNumber!,
+                                }),
                             style:
                                 TextStyle(fontSize: 13, color: textSecondary),
                           ),
@@ -264,7 +270,8 @@ class _LogisticsScreenState extends State<LogisticsScreen> {
                               }
                               messenger.showSnackBar(
                                 SnackBar(
-                                    content: Text('logistics_copy_success'.tr)),
+                                    content: Text(TranslatorGlobal.instance
+                                        .translate('logistics_copy_success'))),
                               );
                             },
                             child: const Icon(
@@ -330,7 +337,7 @@ class _LogisticsScreenState extends State<LogisticsScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            widget.order.localizedProductName,
+                            widget.order.localizedProductNameFor(language),
                             style: const TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w800,
@@ -372,7 +379,8 @@ class _LogisticsScreenState extends State<LogisticsScreen> {
                                       JewelryColors.jadeMist.withOpacity(0.28)),
                               const SizedBox(height: 8),
                               Text(
-                                'logistics_no_info'.tr,
+                                TranslatorGlobal.instance
+                                    .translate('logistics_no_info'),
                                 style: TextStyle(
                                     color: textSecondary, fontSize: 14),
                               ),
@@ -421,14 +429,17 @@ class _LogisticsScreenState extends State<LogisticsScreen> {
     if (_apiEntries == null || _apiEntries!.isEmpty) {
       if (widget.order.completedAt != null) {
         entries.add(LogisticsEntry(
-          description: 'logistics_order_completed'.tr,
+          description:
+              TranslatorGlobal.instance.translate('logistics_order_completed'),
           time: widget.order.completedAt!,
         ));
       }
       if (widget.order.deliveredAt != null) {
         entries.add(LogisticsEntry(
-          description: 'logistics_signed_by_name'.trArgs({
-            'name': widget.order.recipientName ?? 'logistics_self_signed'.tr,
+          description: TranslatorGlobal.instance
+              .translate('logistics_signed_by_name', params: {
+            'name': widget.order.recipientName ??
+                TranslatorGlobal.instance.translate('logistics_self_signed'),
           }),
           time: widget.order.deliveredAt!,
           location: widget.order.shippingAddress,
@@ -436,23 +447,27 @@ class _LogisticsScreenState extends State<LogisticsScreen> {
       }
       if (widget.order.shippedAt != null) {
         entries.add(LogisticsEntry(
-          description: 'logistics_in_transit_company'.trArgs({
+          description: TranslatorGlobal.instance
+              .translate('logistics_in_transit_company', params: {
             'company': widget.order.logisticsCompany ??
-                'logistics_company_fallback'.tr,
+                TranslatorGlobal.instance
+                    .translate('logistics_company_fallback'),
           }),
           time: widget.order.shippedAt!,
         ));
       }
       if (widget.order.paidAt != null) {
         entries.add(LogisticsEntry(
-          description: 'logistics_order_paid_wait_ship'.tr,
+          description: TranslatorGlobal.instance
+              .translate('logistics_order_paid_wait_ship'),
           time: widget.order.paidAt!,
         ));
       }
     }
 
     entries.add(LogisticsEntry(
-      description: 'logistics_order_created'.tr,
+      description:
+          TranslatorGlobal.instance.translate('logistics_order_created'),
       time: widget.order.createdAt,
     ));
 

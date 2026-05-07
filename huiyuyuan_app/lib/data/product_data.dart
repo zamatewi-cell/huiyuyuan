@@ -4,6 +4,7 @@ import 'dart:async';
 
 import '../l10n/product_translator.dart';
 import '../models/product_model.dart';
+import '../providers/app_settings_provider.dart';
 import '../repositories/product_catalog_repository.dart';
 import 'product_runtime_store.dart';
 
@@ -37,10 +38,20 @@ List<ProductModel> getProductsByCategory(String? category) {
   }
   return realProductData
       .where(
-        (product) =>
-            ProductTranslator.canonicalCategory(product.category) ==
-                canonicalCategory ||
-            product.catL10n == normalizedCategory,
+        (product) {
+          final localizedCategories = AppLanguage.values
+              .map(product.localizedCategoryFor)
+              .map((value) => value.trim())
+              .where((value) => value.isNotEmpty);
+          return ProductTranslator.canonicalCategory(product.category) ==
+                  canonicalCategory ||
+              localizedCategories.any(
+                (value) =>
+                    value == normalizedCategory ||
+                    ProductTranslator.canonicalCategory(value) ==
+                        canonicalCategory,
+              );
+        },
       )
       .toList();
 }

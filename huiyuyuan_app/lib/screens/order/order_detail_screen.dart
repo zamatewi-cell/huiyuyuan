@@ -11,12 +11,11 @@ import 'package:huiyuyuan/l10n/string_extension.dart';
 
 import 'package:huiyuyuan/l10n/translator_global.dart';
 import 'package:flutter/material.dart';
-import '../../l10n/l10n_provider.dart';
-import '../../providers/app_settings_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'dart:ui';
 import '../../config/api_config.dart';
 import '../../themes/colors.dart';
+import '../../providers/app_settings_provider.dart';
 import '../../providers/auth_provider.dart';
 import 'publish_review_screen.dart';
 import 'shipping_dialog.dart';
@@ -140,7 +139,7 @@ class OrderDetailScreen extends ConsumerWidget {
               children: [
                 _buildStatusCard(),
                 _buildOrderInfo(context, ref),
-                _buildProductCard(context),
+                _buildProductCard(context, ref),
                 _buildPaymentInfo(context),
                 const SizedBox(height: 100),
               ],
@@ -193,7 +192,7 @@ class OrderDetailScreen extends ConsumerWidget {
                           ),
                         ),
                         child: Text(
-                          ref.tr('order_detail'),
+                          TranslatorGlobal.instance.translate('order_detail'),
                           style: const TextStyle(
                             color: JewelryColors.jadeMist,
                             fontSize: 16,
@@ -317,20 +316,24 @@ class OrderDetailScreen extends ConsumerWidget {
     switch (order.status) {
       case OrderStatus.pending:
         if (order.paymentId != null && order.paymentId!.isNotEmpty) {
-          return 'payment_waiting_admin_confirm'.tr;
+          return TranslatorGlobal.instance
+              .translate('payment_waiting_admin_confirm');
         }
-        return 'order_status_pending_desc'.tr;
+        return TranslatorGlobal.instance.translate('order_status_pending_desc');
       case OrderStatus.paid:
         return TranslatorGlobal.instance
             .translate('merchant_preparing_shipment');
       case OrderStatus.shipped:
-        return 'order_status_shipped_desc'.tr;
+        return TranslatorGlobal.instance.translate('order_status_shipped_desc');
       case OrderStatus.delivered:
-        return 'order_status_delivered_desc'.tr;
+        return TranslatorGlobal.instance
+            .translate('order_status_delivered_desc');
       case OrderStatus.completed:
-        return 'order_status_completed_desc'.tr;
+        return TranslatorGlobal.instance
+            .translate('order_status_completed_desc');
       case OrderStatus.cancelled:
-        return 'order_status_cancelled_desc'.tr;
+        return TranslatorGlobal.instance
+            .translate('order_status_cancelled_desc');
       default:
         return '';
     }
@@ -339,22 +342,17 @@ class OrderDetailScreen extends ConsumerWidget {
   Widget _buildStatusTimeline() {
     // ignore: unused_local_variable
     final steps = [
-      'order_step_placed'.tr,
-      'order_step_paid'.tr,
-      'order_step_shipped'.tr,
-      'order_step_received'.tr,
-      'order_step_completed'.tr,
+      TranslatorGlobal.instance.translate('order_step_placed'),
+      TranslatorGlobal.instance.translate('order_step_paid'),
+      TranslatorGlobal.instance.translate('order_step_shipped'),
+      TranslatorGlobal.instance.translate('order_step_received'),
+      TranslatorGlobal.instance.translate('order_step_completed'),
     ];
     final currentStep = _getCurrentStep();
-    final localizedSteps = switch (TranslatorGlobal.currentLang) {
-      AppLanguage.en => steps,
-      AppLanguage.zhTW => steps,
-      AppLanguage.zhCN => steps,
-    };
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-      children: List.generate(localizedSteps.length, (index) {
+      children: List.generate(steps.length, (index) {
         final isActive = index <= currentStep;
         final isCompleted = index < currentStep;
 
@@ -393,7 +391,7 @@ class OrderDetailScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 4),
             Text(
-              localizedSteps[index],
+              steps[index],
               style: TextStyle(
                 color: JewelryColors.jadeMist.withOpacity(
                   isActive ? 0.9 : 0.34,
@@ -437,7 +435,7 @@ class OrderDetailScreen extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'order_info_section'.tr,
+            TranslatorGlobal.instance.translate('order_info_section'),
             style: const TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w900,
@@ -446,12 +444,17 @@ class OrderDetailScreen extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 16),
-          _buildInfoRow(context, ref.tr('order_number'), order.id),
+          _buildInfoRow(context,
+              TranslatorGlobal.instance.translate('order_number'), order.id),
           _buildInfoRow(
-              context, ref.tr('order_time'), _formatDate(order.createdAt)),
+              context,
+              TranslatorGlobal.instance.translate('order_time'),
+              _formatDate(order.createdAt)),
           if (order.operatorId != null)
             _buildInfoRow(
-                context, ref.tr('order_operator_id'), order.operatorId!),
+                context,
+                TranslatorGlobal.instance.translate('order_operator_id'),
+                order.operatorId!),
         ],
       ),
     );
@@ -529,7 +532,9 @@ class OrderDetailScreen extends ConsumerWidget {
     return key.tr;
   }
 
-  Widget _buildProductCard(BuildContext context) {
+  Widget _buildProductCard(BuildContext context, WidgetRef ref) {
+    final language = ref.watch(appSettingsProvider).language;
+
     return GlassmorphicCard(
       margin: const EdgeInsets.all(16),
       padding: const EdgeInsets.all(20),
@@ -541,7 +546,7 @@ class OrderDetailScreen extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'order_product_info'.tr,
+            TranslatorGlobal.instance.translate('order_product_info'),
             style: const TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w900,
@@ -589,7 +594,7 @@ class OrderDetailScreen extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      order.localizedProductName,
+                      order.localizedProductNameFor(language),
                       style: const TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w800,
@@ -657,7 +662,7 @@ class OrderDetailScreen extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'order_payment_info'.tr,
+            TranslatorGlobal.instance.translate('order_payment_info'),
             style: const TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w900,
@@ -668,41 +673,41 @@ class OrderDetailScreen extends ConsumerWidget {
           const SizedBox(height: 16),
           _buildInfoRow(
             context,
-            'order_goods_amount'.tr,
+            TranslatorGlobal.instance.translate('order_goods_amount'),
             '\u00A5${order.amount.toStringAsFixed(2)}',
           ),
           _buildInfoRow(
             context,
-            'order_shipping_fee'.tr,
+            TranslatorGlobal.instance.translate('order_shipping_fee'),
             '\u00A5${order.shippingFee.toStringAsFixed(2)}',
           ),
           _buildInfoRow(
             context,
-            'order_discount'.tr,
+            TranslatorGlobal.instance.translate('order_discount'),
             '-\u00A5${order.discount.toStringAsFixed(2)}',
           ),
           if (order.paymentMethod != null)
             _buildInfoRow(
               context,
-              'payment_method_title'.tr,
+              TranslatorGlobal.instance.translate('payment_method_title'),
               order.paymentMethod!.label.tr,
             ),
           if (order.paymentAccount != null) ...[
             _buildInfoRow(
               context,
-              'payment_account_name'.tr,
+              TranslatorGlobal.instance.translate('payment_account_name'),
               order.paymentAccount!.name,
             ),
             if ((order.paymentAccount!.accountNumber ?? '').isNotEmpty)
               _buildInfoRow(
                 context,
-                'payment_account_number'.tr,
+                TranslatorGlobal.instance.translate('payment_account_number'),
                 order.paymentAccount!.accountNumber!,
               ),
             if ((order.paymentAccount!.bankName ?? '').isNotEmpty)
               _buildInfoRow(
                 context,
-                'payment_bank_name'.tr,
+                TranslatorGlobal.instance.translate('payment_bank_name'),
                 order.paymentAccount!.bankName!,
               ),
             if ((order.paymentAccount!.qrCodeUrl ?? '').isNotEmpty) ...[
@@ -783,7 +788,8 @@ class OrderDetailScreen extends ConsumerWidget {
                       ),
                       const SizedBox(width: 4),
                       Text(
-                        'payment_admin_note_label'.tr,
+                        TranslatorGlobal.instance
+                            .translate('payment_admin_note_label'),
                         style: const TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w800,
@@ -825,7 +831,7 @@ class OrderDetailScreen extends ConsumerWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'order_actual_paid'.tr,
+                TranslatorGlobal.instance.translate('order_actual_paid'),
                 style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w900,
@@ -910,14 +916,16 @@ class OrderDetailScreen extends ConsumerWidget {
                                 borderRadius: BorderRadius.circular(24),
                               ),
                               title: Text(
-                                'order_confirm_payment'.tr,
+                                TranslatorGlobal.instance
+                                    .translate('order_confirm_payment'),
                                 style: const TextStyle(
                                   color: JewelryColors.jadeMist,
                                   fontWeight: FontWeight.w900,
                                 ),
                               ),
                               content: Text(
-                                'order_confirm_payment_hint'.tr,
+                                TranslatorGlobal.instance
+                                    .translate('order_confirm_payment_hint'),
                                 style: TextStyle(
                                   color:
                                       JewelryColors.jadeMist.withOpacity(0.66),
@@ -928,7 +936,8 @@ class OrderDetailScreen extends ConsumerWidget {
                                 TextButton(
                                   onPressed: () => Navigator.pop(ctx),
                                   child: Text(
-                                    ref.tr('cancel'),
+                                    TranslatorGlobal.instance
+                                        .translate('cancel'),
                                     style: TextStyle(
                                       color: JewelryColors.jadeMist
                                           .withOpacity(0.58),
@@ -949,7 +958,8 @@ class OrderDetailScreen extends ConsumerWidget {
                                           .showSnackBar(
                                         SnackBar(
                                           content: Text(
-                                            'order_confirm_payment_success'.tr,
+                                            TranslatorGlobal.instance.translate(
+                                                'order_confirm_payment_success'),
                                           ),
                                         ),
                                       );
@@ -964,7 +974,8 @@ class OrderDetailScreen extends ConsumerWidget {
                                       borderRadius: BorderRadius.circular(14),
                                     ),
                                   ),
-                                  child: Text('confirm'.tr),
+                                  child: Text(TranslatorGlobal.instance
+                                      .translate('confirm')),
                                 ),
                               ],
                             ),
@@ -981,7 +992,8 @@ class OrderDetailScreen extends ConsumerWidget {
                     ),
                   ),
                   child: Text(
-                    'order_confirm_payment'.tr,
+                    TranslatorGlobal.instance
+                        .translate('order_confirm_payment'),
                     style: const TextStyle(
                       fontWeight: FontWeight.w600,
                       fontSize: 16,
@@ -1011,7 +1023,8 @@ class OrderDetailScreen extends ConsumerWidget {
                   borderRadius: BorderRadius.all(Radius.circular(20)),
                 ),
               ),
-              child: Text(ref.tr('order_cancel_title'),
+              child: Text(
+                  TranslatorGlobal.instance.translate('order_cancel_title'),
                   style: const TextStyle(fontWeight: FontWeight.w600)),
             ),
           ),
@@ -1043,11 +1056,12 @@ class OrderDetailScreen extends ConsumerWidget {
                     borderRadius: BorderRadius.all(Radius.circular(20)),
                   ),
                 ),
-                child: Text(ref.tr('order_pay_now'),
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 16,
-                    )),
+                child:
+                    Text(TranslatorGlobal.instance.translate('order_pay_now'),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 16,
+                        )),
               ),
             ),
           ),
@@ -1068,7 +1082,7 @@ class OrderDetailScreen extends ConsumerWidget {
                   elevation: 0,
                 ),
                 child: Text(
-                  'common_back'.tr,
+                  TranslatorGlobal.instance.translate('common_back'),
                   style: const TextStyle(fontWeight: FontWeight.w600),
                 ),
               ),
@@ -1088,7 +1102,9 @@ class OrderDetailScreen extends ConsumerWidget {
                   final result = await ShippingDialog.show(
                     context,
                     orderId: order.id,
-                    productName: order.localizedProductName,
+                    productName: order.localizedProductNameFor(
+                      ref.read(appSettingsProvider).language,
+                    ),
                   );
                   if (result != null && context.mounted) {
                     await ref.read(orderProvider.notifier).shipOrder(
@@ -1098,7 +1114,9 @@ class OrderDetailScreen extends ConsumerWidget {
                         );
                     if (context.mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text(ref.tr('order_ship_success'))),
+                        SnackBar(
+                            content: Text(TranslatorGlobal.instance
+                                .translate('order_ship_success'))),
                       );
                       Navigator.pop(context);
                     }
@@ -1114,7 +1132,7 @@ class OrderDetailScreen extends ConsumerWidget {
                     borderRadius: BorderRadius.all(Radius.circular(20)),
                   ),
                 ),
-                child: Text(ref.tr('order_ship'),
+                child: Text(TranslatorGlobal.instance.translate('order_ship'),
                     style: const TextStyle(
                       fontWeight: FontWeight.w600,
                       fontSize: 16,
@@ -1146,7 +1164,8 @@ class OrderDetailScreen extends ConsumerWidget {
                   borderRadius: BorderRadius.all(Radius.circular(20)),
                 ),
               ),
-              child: Text(ref.tr('order_logistics'),
+              child: Text(
+                  TranslatorGlobal.instance.translate('order_logistics'),
                   style: const TextStyle(fontWeight: FontWeight.w600)),
             ),
           ),
@@ -1170,14 +1189,16 @@ class OrderDetailScreen extends ConsumerWidget {
                           borderRadius: BorderRadius.circular(24),
                         ),
                         title: Text(
-                          ref.tr('order_confirm_title'),
+                          TranslatorGlobal.instance
+                              .translate('order_confirm_title'),
                           style: const TextStyle(
                             color: JewelryColors.jadeMist,
                             fontWeight: FontWeight.w900,
                           ),
                         ),
                         content: Text(
-                          'order_confirm_received_hint'.tr,
+                          TranslatorGlobal.instance
+                              .translate('order_confirm_received_hint'),
                           style: TextStyle(
                             color: JewelryColors.jadeMist.withOpacity(0.66),
                             height: 1.45,
@@ -1187,7 +1208,7 @@ class OrderDetailScreen extends ConsumerWidget {
                           TextButton(
                               onPressed: () => Navigator.pop(ctx),
                               child: Text(
-                                ref.tr('cancel'),
+                                TranslatorGlobal.instance.translate('cancel'),
                                 style: TextStyle(
                                   color:
                                       JewelryColors.jadeMist.withOpacity(0.58),
@@ -1208,7 +1229,8 @@ class OrderDetailScreen extends ConsumerWidget {
                                 borderRadius: BorderRadius.circular(14),
                               ),
                             ),
-                            child: Text(ref.tr('confirm')),
+                            child: Text(
+                                TranslatorGlobal.instance.translate('confirm')),
                           ),
                         ],
                       ),
@@ -1224,7 +1246,9 @@ class OrderDetailScreen extends ConsumerWidget {
                       borderRadius: BorderRadius.all(Radius.circular(20)),
                     ),
                   ),
-                  child: Text(ref.tr('order_confirm_title'),
+                  child: Text(
+                      TranslatorGlobal.instance
+                          .translate('order_confirm_title'),
                       style: const TextStyle(
                         fontWeight: FontWeight.w600,
                         fontSize: 16,
@@ -1251,7 +1275,7 @@ class OrderDetailScreen extends ConsumerWidget {
                   elevation: 0,
                 ),
                 child: Text(
-                  'common_back'.tr,
+                  TranslatorGlobal.instance.translate('common_back'),
                   style: const TextStyle(fontWeight: FontWeight.w600),
                 ),
               ),
@@ -1271,7 +1295,7 @@ class OrderDetailScreen extends ConsumerWidget {
                       borderRadius: BorderRadius.circular(24),
                     ),
                     title: Text(
-                      ref.tr('order_return_title'),
+                      TranslatorGlobal.instance.translate('order_return_title'),
                       style: const TextStyle(
                         color: JewelryColors.jadeMist,
                         fontWeight: FontWeight.w900,
@@ -1281,7 +1305,8 @@ class OrderDetailScreen extends ConsumerWidget {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(
-                          ref.tr('order_return_reason'),
+                          TranslatorGlobal.instance
+                              .translate('order_return_reason'),
                           style: TextStyle(
                             color: JewelryColors.jadeMist.withOpacity(0.66),
                           ),
@@ -1292,7 +1317,8 @@ class OrderDetailScreen extends ConsumerWidget {
                           maxLines: 3,
                           style: const TextStyle(color: JewelryColors.jadeMist),
                           decoration: InputDecoration(
-                            hintText: ref.tr('order_return_hint'),
+                            hintText: TranslatorGlobal.instance
+                                .translate('order_return_hint'),
                             hintStyle: TextStyle(
                               color: JewelryColors.jadeMist.withOpacity(0.34),
                             ),
@@ -1320,7 +1346,7 @@ class OrderDetailScreen extends ConsumerWidget {
                       TextButton(
                           onPressed: () => Navigator.pop(ctx),
                           child: Text(
-                            ref.tr('cancel'),
+                            TranslatorGlobal.instance.translate('cancel'),
                             style: TextStyle(
                               color: JewelryColors.jadeMist.withOpacity(0.58),
                             ),
@@ -1343,7 +1369,8 @@ class OrderDetailScreen extends ConsumerWidget {
                             borderRadius: BorderRadius.circular(14),
                           ),
                         ),
-                        child: Text('common_submit'.tr),
+                        child: Text(TranslatorGlobal.instance
+                            .translate('common_submit')),
                       ),
                     ],
                   ),
@@ -1359,7 +1386,7 @@ class OrderDetailScreen extends ConsumerWidget {
                 shape: const RoundedRectangleBorder(
                     borderRadius: BorderRadius.all(Radius.circular(20))),
               ),
-              child: Text(ref.tr('order_return'),
+              child: Text(TranslatorGlobal.instance.translate('order_return'),
                   style: const TextStyle(fontWeight: FontWeight.w600)),
             ),
           ),
@@ -1385,7 +1412,7 @@ class OrderDetailScreen extends ConsumerWidget {
                     borderRadius: BorderRadius.all(Radius.circular(20))),
                 elevation: 0,
               ),
-              child: Text(ref.tr('order_review'),
+              child: Text(TranslatorGlobal.instance.translate('order_review'),
                   style: const TextStyle(
                     fontWeight: FontWeight.w700,
                     fontSize: 16,
@@ -1406,7 +1433,7 @@ class OrderDetailScreen extends ConsumerWidget {
                     borderRadius: BorderRadius.all(Radius.circular(20))),
                 elevation: 0,
               ),
-              child: Text('common_back'.tr,
+              child: Text(TranslatorGlobal.instance.translate('common_back'),
                   style: const TextStyle(fontWeight: FontWeight.w600)),
             ),
           ),

@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
+import '../../l10n/translator_global.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../l10n/l10n_provider.dart';
 import '../../themes/colors.dart';
 import '../common/gradient_button.dart';
 import '../common/captcha_widget.dart';
-import 'package:huiyuyuan/l10n/string_extension.dart';
 import 'login_copy.dart';
 
 enum CustomerAuthMode {
@@ -99,7 +98,7 @@ class LoginCustomerForm extends ConsumerWidget {
         const SizedBox(height: 18),
         LoginGlassInput(
           controller: phoneController,
-          hint: 'login_phone_hint'.tr,
+          hint: TranslatorGlobal.instance.translate('login_phone_hint'),
           icon: Icons.phone_android,
           keyboardType: TextInputType.phone,
           maxLength: 11,
@@ -124,7 +123,7 @@ class LoginCustomerForm extends ConsumerWidget {
             controller: passwordController,
             hint: mode == CustomerAuthMode.register
                 ? LoginCopy.registerPasswordHint(context)
-                : 'login_password_hint'.tr,
+                : TranslatorGlobal.instance.translate('login_password_hint'),
             icon: Icons.lock_outline,
             obscureText: obscurePassword,
             suffixIcon: _PasswordToggleButton(
@@ -257,7 +256,7 @@ class LoginCustomerForm extends ConsumerWidget {
       case CustomerAuthMode.password:
         return LoginCopy.passwordLogin(context);
       case CustomerAuthMode.sms:
-        return ref.tr('login_verify_login');
+        return TranslatorGlobal.instance.translate('login_verify_login');
       case CustomerAuthMode.register:
         return LoginCopy.registerSubmit(context);
       case CustomerAuthMode.reset:
@@ -538,7 +537,7 @@ class LoginAdminForm extends StatelessWidget {
       children: [
         LoginGlassInput(
           controller: phoneController,
-          hint: 'login_admin_account_hint'.tr,
+          hint: TranslatorGlobal.instance.translate('login_admin_account_hint'),
           icon: Icons.phone_android,
           keyboardType: TextInputType.phone,
           autofillHints: const [AutofillHints.username],
@@ -546,7 +545,7 @@ class LoginAdminForm extends StatelessWidget {
         const SizedBox(height: 16),
         LoginGlassInput(
           controller: passwordController,
-          hint: 'login_password_hint'.tr,
+          hint: TranslatorGlobal.instance.translate('login_password_hint'),
           icon: Icons.lock_outline,
           obscureText: obscurePassword,
           suffixIcon: passwordSuffixIcon,
@@ -556,7 +555,7 @@ class LoginAdminForm extends StatelessWidget {
         const SizedBox(height: 16),
         LoginGlassInput(
           controller: authCodeController,
-          hint: 'login_admin_code_hint'.tr,
+          hint: TranslatorGlobal.instance.translate('login_admin_code_hint'),
           icon: Icons.verified_user_outlined,
           keyboardType: TextInputType.number,
         ),
@@ -564,7 +563,7 @@ class LoginAdminForm extends StatelessWidget {
         SizedBox(
           width: double.infinity,
           child: GradientButton(
-            text: 'login_admin_login'.tr,
+            text: TranslatorGlobal.instance.translate('login_admin_login'),
             icon: Icons.login,
             isLoading: isLoading,
             onPressed: onLogin,
@@ -572,7 +571,7 @@ class LoginAdminForm extends StatelessWidget {
         ),
         const SizedBox(height: 16),
         Text(
-          'login_admin_contact_hint'.tr,
+          TranslatorGlobal.instance.translate('login_admin_contact_hint'),
           style: TextStyle(
             fontSize: 12,
             color: JewelryColors.jadeMist.withOpacity(0.48),
@@ -608,13 +607,14 @@ class LoginOperatorForm extends StatelessWidget {
       children: [
         LoginGlassInput(
           controller: usernameController,
-          hint: 'login_operator_account_hint'.tr,
+          hint: TranslatorGlobal.instance
+              .translate('login_operator_account_hint'),
           icon: Icons.badge_outlined,
         ),
         const SizedBox(height: 16),
         LoginGlassInput(
           controller: passwordController,
-          hint: 'login_password_hint'.tr,
+          hint: TranslatorGlobal.instance.translate('login_password_hint'),
           icon: Icons.lock_outline,
           obscureText: obscurePassword,
           suffixIcon: passwordSuffixIcon,
@@ -625,7 +625,7 @@ class LoginOperatorForm extends StatelessWidget {
         SizedBox(
           width: double.infinity,
           child: GradientButton(
-            text: 'login_operator_login'.tr,
+            text: TranslatorGlobal.instance.translate('login_operator_login'),
             icon: Icons.login,
             isLoading: isLoading,
             gradient: JewelryColors.champagneGradient,
@@ -634,7 +634,7 @@ class LoginOperatorForm extends StatelessWidget {
         ),
         const SizedBox(height: 16),
         Text(
-          'login_operator_desc'.tr,
+          TranslatorGlobal.instance.translate('login_operator_desc'),
           style: TextStyle(
             fontSize: 12,
             color: JewelryColors.jadeMist.withOpacity(0.48),
@@ -697,7 +697,8 @@ class LoginVerifyCodeRow extends ConsumerWidget {
                 ),
                 cursorColor: JewelryColors.emeraldGlow,
                 decoration: InputDecoration(
-                  hintText: 'login_sms_code_hint'.tr,
+                  hintText: TranslatorGlobal.instance
+                      .translate('login_sms_code_hint'),
                   hintStyle: TextStyle(
                     color: JewelryColors.jadeMist.withOpacity(0.46),
                     fontSize: 14,
@@ -740,7 +741,8 @@ class LoginVerifyCodeRow extends ConsumerWidget {
                   : Text(
                       countdown > 0
                           ? LoginCopy.resendCode(context, countdown)
-                          : ref.tr('login_get_code'),
+                          : TranslatorGlobal.instance
+                              .translate('login_get_code'),
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w600,

@@ -12,7 +12,7 @@ import '../services/api_service.dart';
 import '../config/api_config.dart';
 import '../config/app_config.dart';
 import '../l10n/app_strings.dart';
-import '../l10n/translator_global.dart';
+import 'app_settings_provider.dart';
 import 'cart_provider.dart';
 
 // 认证状态Provider
@@ -255,7 +255,8 @@ class AuthNotifier extends AsyncNotifier<UserModel?> {
   String? lastLoginError;
 
   String _t(String key, {Map<String, Object?> params = const {}}) {
-    return AppStrings.get(TranslatorGlobal.currentLang, key, params: params);
+    final language = ref.read(appSettingsProvider).language;
+    return AppStrings.get(language, key, params: params);
   }
 
   bool _containsAny(String source, List<String> candidates) {

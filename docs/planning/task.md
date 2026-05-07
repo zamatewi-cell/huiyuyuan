@@ -1,10 +1,19 @@
 ﻿# 汇玉源珠宝智能交易平台 - 任务清单
 
-> 📍 **唯一活跃任务文档** | 最后更新: 2026-04-28
+> 📍 **唯一活跃任务文档** | 最后更新: 2026-05-01
 
 ---
 
 ## ✅ 已完成任务
+
+### 📌 2026-05-01 Cursor 续开发交接与产品主线复盘
+
+- [x] 新增 `docs/cursor_development_handoff_20260501.md`，汇总 Cursor 续开发所需的项目 Review、页面、操作流、接口清单、MCP/Skills 建议和产品路线
+- [x] 梳理当前后端 API：Auth、商品、店铺、购物车、收藏、用户、订单、支付、库存、管理后台、AI、上传、通知、评价
+- [x] 梳理当前 Flutter 页面和服务层：登录、商品、购物车、结算、支付、订单、个人中心、AI、店铺、AR、管理后台、Provider、Repository、Service
+- [x] 明确真实微信/支付宝支付暂缓，近期保留人工支付、上传凭证、后台确认到账闭环
+- [x] 补充产品方向判断：近期重点从“普通电商功能堆叠”转向“珠宝鉴赏、信任凭证、AI 导购、一物一档”
+- [x] 更新 `docs/README.md`，把 Cursor 交接文档加入当前必读
 
 ### 🚀 2026-04-28 UI 重构与生产同步
 
@@ -23,8 +32,40 @@
 - [ ] GitHub 账号恢复后推送 `codex/ui-redesign-release-check` 并创建 PR
 - [ ] 给临时脚本、release artifacts、Figma cookie 等补充 `.gitignore` 防误提交规则
 - [ ] 内部试运行 3-5 天，重点验证下单、支付凭证、管理员确认到账、发货、评价
-- [ ] 接入微信支付/支付宝正式回调与验签
+- [ ] 真实微信/支付宝支付改为暂缓，待产品主线和人工支付闭环稳定后再启动
 - [ ] 补齐阿里云 SMS 正式资质、Android Release 签名和线上告警
+
+### 🎯 2026-05-01 产品核心重构（全部完成）
+
+> 详细记录见 `docs/planning/product_core_refactor_plan_20260501.md`
+
+**第一里程碑：P0 工程地基**
+- [x] i18n 引擎重构：去 MaterialApp key 作弊 + Riverpod 化 + 商品模型 @Deprecated + lint 工具
+- [x] orders.py 乱码全量修复（22处）+ 删除 main_v3_backup.py + 新增 test_no_mojibake.py
+- [x] 测试支付保护：生产环境守卫 + payment_url None + 5 条 pytest 用例
+- [x] 根目录 229 张截图归档至 docs/screenshots/ + .cursorindexignore
+- [x] `.cursor/rules/` 落地三个规则文件（i18n / Liquid Glass / secrets）
+
+**第二里程碑：商品骨架升级**
+- [x] ProductModel 新增 8 个鉴定/工艺/规格字段 + Alembic 迁移 + 后端 schema 同步
+- [x] 商品详情"一物一档"骨架（鉴定说明/工艺亮点/克重/尺寸，优雅降级）
+- [x] 头部 30 个商品补完整三语内容
+- [x] AI 上下文精简：基于 appraisal_note/craft_highlights 的摘要 prompt
+
+**第三里程碑：首页 + AI 顾问**
+- [x] HomeCurationScreen（珠宝鉴赏策展首页）替换客户 Tab 0
+- [x] 商品详情底部 AI 咨询按钮 + 结算页 AI 悬浮气泡 + AIAssistantScreen 深链
+- [x] 操作员"AI 起草回复"功能 + AI 页面接受 productId/context 参数
+
+**第四里程碑：后台驾驶舱 + 视觉延展**
+- [x] DashboardStats 补充 todayRevenue/todayOrders/pendingRefund
+- [x] AdminDashboard 4 张差异化 KPI 卡（今日营业额/待发货/退款申请/低库存预警）
+- [x] 今日待办 Timeline 组件 + AI 咨询热点区块
+- [x] 四类页面视觉指纹差异化（首页翠绿/AI 紫蓝/后台琥珀金/详情档案风）
+
+**P1 遗留清理**
+- [x] 批量迁移 24 个文件废弃的 String.tr 扩展 → ref.tr() / TranslatorGlobal.instance.translate()
+- [x] dart analyze 0 errors 验证通过
 
 ### 🏗️ 基础架构
 - [x] Flutter 项目重构 + SDK 配置 (compileSdk 36)

@@ -7,12 +7,14 @@ import '../../models/address_model.dart';
 import '../../models/cart_item_model.dart';
 import '../../models/order_model.dart';
 import '../../models/product_model.dart';
+import '../../providers/app_settings_provider.dart';
 import '../../providers/cart_provider.dart';
 import '../../services/address_service.dart';
 import '../../services/order_service.dart';
 import '../../themes/colors.dart';
 import '../../widgets/common/error_handler.dart';
 import '../../widgets/common/glassmorphic_card.dart';
+import '../chat/ai_assistant_screen.dart';
 import '../payment/payment_screen.dart';
 import '../profile/address_list_screen.dart';
 import 'dart:ui';
@@ -183,13 +185,14 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
           ? PaymentMethod.wechat
           : PaymentMethod.alipay;
 
+      final lang = ref.read(appSettingsProvider).language;
       final order = await orderNotifier.createOrder(
         productName: widget.items.length == 1
-            ? widget.items.first.product.titleL10n
+            ? widget.items.first.product.localizedTitleFor(lang)
             : ref.tr(
                 'checkout_bundle_product_name',
                 params: {
-                  'title': widget.items.first.product.titleL10n,
+                  'title': widget.items.first.product.localizedTitleFor(lang),
                   'count': widget.items.length.toString(),
                 },
               ),
@@ -299,6 +302,12 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
             right: 0,
             bottom: 0,
             child: _buildBottomBar(),
+          ),
+          // AI Help Bubble — quick access to AI concierge during checkout
+          Positioned(
+            right: 20,
+            bottom: 100,
+            child: _AIHelpBubble(items: widget.items),
           ),
         ],
       ),
@@ -418,6 +427,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   }
 
   Widget _buildProductsSection() {
+    final lang = ref.watch(appSettingsProvider).language;
     return GlassmorphicCard(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       padding: const EdgeInsets.all(20),
@@ -474,7 +484,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          product.titleL10n,
+                          product.localizedTitleFor(lang),
                           style: const TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w900,
@@ -485,7 +495,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          '${ref.tr('product_material')}: ${product.matL10n}',
+                          '${ref.tr('product_material')}: ${product.localizedMaterialFor(lang)}',
                           style: TextStyle(
                             fontSize: 12,
                             color: JewelryColors.jadeMist.withOpacity(0.52),
@@ -769,6 +779,94 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                       ),
               ),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// AI Help Bubble – floating button shown during checkout
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _AIHelpBubble extends ConsumerWidget {
+  const _AIHelpBubble({required this.items});
+  final List<CartItemModel> items;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final lang = ref.watch(appSettingsProvider).language;
+    final label = lang == AppLanguage.en
+        ? 'AI Help'
+        : lang == AppLanguage.zhTW
+            ? 'AI 諮詢'
+            : 'AI 咨询';
+
+    final productNames = items
+        .take(2)
+        .map((item) => item.product.localizedTitleFor(lang))
+        .join('、');
+    final contextMsg = lang == AppLanguage.en
+        ? 'I\'d like advice on my checkout order (items: $productNames)'
+        : lang == AppLanguage.zhTW
+            ? '我想諮詢結算中的商品（$productNames）'
+            : '我想咨询结算中的商品（$productNames）';
+
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => AIAssistantScreen(
+              initialContext: contextMsg,
+            ),
+          ),
+        );
+      },
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(28),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFF064E3B), Color(0xFF0A2E22)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(28),
+              border: Border.all(
+                color: JewelryColors.emeraldGlow.withOpacity(0.3),
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: JewelryColors.emeraldLuster.withOpacity(0.25),
+                  blurRadius: 16,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(
+                  Icons.auto_awesome,
+                  color: JewelryColors.emeraldGlow,
+                  size: 18,
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  label,
+                  style: const TextStyle(
+                    color: JewelryColors.champagneGold,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

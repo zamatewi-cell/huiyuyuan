@@ -1,0 +1,50 @@
+---
+description: Liquid Glass design system rules for HuiYuYuan Flutter UI
+globs: huiyuyuan_app/lib/screens/**/*.dart,huiyuyuan_app/lib/widgets/**/*.dart
+alwaysApply: false
+---
+
+# Liquid Glass Design System
+
+HuiYuYuan uses a glassmorphism dark theme with jade green and gold accents.
+
+## Color palette
+
+| Token | Usage |
+|-------|-------|
+| `AppColors.jadeGreen` | Primary brand color |
+| `AppColors.goldAccent` | Accent, highlight, and trust badges |
+| `AppColors.darkBackground` | Page backgrounds |
+| `AppColors.glassWhite` | Glass panel overlays |
+
+## Glass panels
+
+```dart
+// GOOD: use reusable glass components.
+GlassCard(
+  child: ...,
+)
+
+// BAD: raw one-off glass styling.
+Container(
+  decoration: BoxDecoration(color: Colors.white.withOpacity(0.1)),
+)
+```
+
+## Typography
+
+- Title: `Theme.of(context).textTheme.titleLarge`
+- Body: `Theme.of(context).textTheme.bodyMedium`
+- Avoid bare `Text(..., style: TextStyle(color: Colors.white))`; prefer theme tokens.
+
+## Avoid
+
+- Emojis in UI unless explicitly requested.
+- Material default blues such as `Colors.blue`; use `AppColors.*`.
+- Hard-coded spacing when `AppSpacing.*` is available.
+
+## New screen checklist
+
+1. Use `Scaffold` with `backgroundColor: AppColors.darkBackground`.
+2. Use existing glass components for content areas.
+3. Use jade green for primary CTAs and gold for secondary/trust cues.

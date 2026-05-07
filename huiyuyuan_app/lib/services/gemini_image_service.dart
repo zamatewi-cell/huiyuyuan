@@ -12,8 +12,8 @@ import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
 
+import '../l10n/translator_global.dart';
 import 'api_service.dart';
-import 'package:huiyuyuan/l10n/string_extension.dart';
 
 /// Image analysis result.
 class ImageAnalysisResult {
@@ -88,14 +88,14 @@ class GeminiImageService {
     try {
       final file = File(imagePath);
       if (!await file.exists()) {
-        return ImageAnalysisResult.error('ai_image_error_not_found'.tr);
+        return ImageAnalysisResult.error(_t('ai_image_error_not_found'));
       }
 
       final bytes = await file.readAsBytes();
       return analyzeProductImageBytes(bytes, _fileNameFromPath(imagePath));
     } catch (e) {
       return ImageAnalysisResult.error(
-        'ai_image_error_failed_with_detail'.trArgs({'error': e}),
+        _t('ai_image_error_failed_with_detail', params: {'error': e}),
       );
     }
   }
@@ -113,14 +113,14 @@ class GeminiImageService {
 
       if (!result.success || result.data == null) {
         return ImageAnalysisResult.error(
-          result.message ?? 'ai_image_error_failed'.tr,
+          result.message ?? _t('ai_image_error_failed'),
         );
       }
 
       return _parseBackendResponse(result.data!);
     } catch (e) {
       return ImageAnalysisResult.error(
-        'ai_image_error_failed_with_detail'.trArgs({'error': e}),
+        _t('ai_image_error_failed_with_detail', params: {'error': e}),
       );
     }
   }
@@ -135,7 +135,9 @@ class GeminiImageService {
 
       final bytes = response.data;
       if (bytes == null || bytes.isEmpty) {
-        return ImageAnalysisResult.error('ai_image_error_download_failed'.tr);
+        return ImageAnalysisResult.error(
+          _t('ai_image_error_download_failed'),
+        );
       }
 
       return analyzeProductImageBytes(
@@ -144,7 +146,7 @@ class GeminiImageService {
       );
     } catch (e) {
       return ImageAnalysisResult.error(
-        'ai_image_error_failed_with_detail'.trArgs({'error': e}),
+        _t('ai_image_error_failed_with_detail', params: {'error': e}),
       );
     }
   }
@@ -170,19 +172,19 @@ class GeminiImageService {
     final finalMaterial = material ?? analysis.material;
     if (finalMaterial != null && finalMaterial.isNotEmpty) {
       buffer.write(
-        ' ${'ai_image_description_material'.trArgs({
-              'material': finalMaterial
+        ' ${_t('ai_image_description_material', params: {
+              'material': finalMaterial,
             })}',
       );
     }
     if (style != null && style.isNotEmpty) {
       buffer.write(
-        ' ${'ai_image_description_style'.trArgs({'style': style})}',
+        ' ${_t('ai_image_description_style', params: {'style': style})}',
       );
     }
     if (analysis.suggestion != null && analysis.suggestion!.isNotEmpty) {
       buffer.write(
-        ' ${'ai_image_description_shooting'.trArgs({
+        ' ${_t('ai_image_description_shooting', params: {
               'suggestion': analysis.suggestion!,
             })}',
       );
@@ -236,7 +238,7 @@ class GeminiImageService {
         final data = Map<String, dynamic>.from(analysis);
         final description = _stringOrNull(data['description']) ??
             raw ??
-            'ai_image_analysis_completed'.tr;
+            _t('ai_image_analysis_completed');
 
         return ImageAnalysisResult.success(
           description: description,
@@ -252,10 +254,10 @@ class GeminiImageService {
         return ImageAnalysisResult.success(description: raw);
       }
 
-      return ImageAnalysisResult.error('ai_image_error_no_result'.tr);
+      return ImageAnalysisResult.error(_t('ai_image_error_no_result'));
     } catch (e) {
       return ImageAnalysisResult.error(
-        'ai_image_error_parse_failed_with_detail'.trArgs({'error': e}),
+        _t('ai_image_error_parse_failed_with_detail', params: {'error': e}),
       );
     }
   }
@@ -298,5 +300,9 @@ class GeminiImageService {
     }
 
     return null;
+  }
+
+  String _t(String key, {Map<String, Object?> params = const {}}) {
+    return TranslatorGlobal.instance.translate(key, params: params);
   }
 }

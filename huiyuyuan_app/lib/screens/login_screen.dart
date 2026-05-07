@@ -1,13 +1,13 @@
-﻿/// HuiYuYuan login entry with an animated glassmorphism shell.
+/// HuiYuYuan login entry with an animated glassmorphism shell.
 library;
 
 import 'dart:async';
+import '../l10n/translator_global.dart';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:huiyuyuan/l10n/string_extension.dart';
 
 import '../config/api_config.dart';
 import '../providers/auth_provider.dart';
@@ -226,7 +226,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
   Future<void> _sendSmsCode() async {
     final phone = _phoneController.text.trim();
     if (!RegExp(r'^1[3-9]\d{9}$').hasMatch(phone)) {
-      _showError('login_error_invalid_phone'.tr);
+      _showError(
+          TranslatorGlobal.instance.translate('login_error_invalid_phone'));
       return;
     }
 
@@ -263,7 +264,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
       });
       _showCodeDialog(result['message'] as String);
     } else {
-      _showError(result['message'] as String? ?? 'login_error_send_failed'.tr);
+      _showError(result['message'] as String? ??
+          TranslatorGlobal.instance.translate('login_error_send_failed'));
     }
   }
 
@@ -277,12 +279,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     final confirmPassword = _confirmPasswordController.text;
 
     if (phone.isEmpty) {
-      _showError('login_error_enter_phone'.tr);
+      _showError(
+          TranslatorGlobal.instance.translate('login_error_enter_phone'));
       return;
     }
 
     if (!RegExp(r'^1[3-9]\d{9}$').hasMatch(phone)) {
-      _showError('login_error_invalid_phone_format'.tr);
+      _showError(TranslatorGlobal.instance
+          .translate('login_error_invalid_phone_format'));
       return;
     }
 
@@ -290,7 +294,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     if ((_customerMode == CustomerAuthMode.password ||
             _customerMode == CustomerAuthMode.register) &&
         _captchaInput.isEmpty) {
-      _showError('login_captcha_required'.tr);
+      _showError(TranslatorGlobal.instance.translate('login_captcha_required'));
       return;
     }
 
@@ -303,7 +307,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
             _customerMode == CustomerAuthMode.register ||
             _customerMode == CustomerAuthMode.reset) &&
         authCode.isEmpty) {
-      _showError('login_error_enter_code'.tr);
+      _showError(TranslatorGlobal.instance.translate('login_error_enter_code'));
       return;
     }
 
@@ -392,8 +396,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
       _showError(
         notifier.lastLoginError ??
             (_customerMode == CustomerAuthMode.password
-                ? 'login_error_account_or_password'.tr
-                : 'login_error_wrong_code'.tr),
+                ? TranslatorGlobal.instance
+                    .translate('login_error_account_or_password')
+                : TranslatorGlobal.instance
+                    .translate('login_error_wrong_code')),
       );
     }
   }
@@ -410,15 +416,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     setState(() => _isLoading = true);
 
     final success = await notifier.loginAdmin(
-          phone,
-          password,
-          authCode,
-        );
+      phone,
+      password,
+      authCode,
+    );
 
     setState(() => _isLoading = false);
 
     if (!success && mounted) {
-      _showError(notifier.lastLoginError ?? 'login_error_password_or_code'.tr);
+      _showError(notifier.lastLoginError ??
+          TranslatorGlobal.instance.translate('login_error_password_or_code'));
     }
   }
 
@@ -431,22 +438,25 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     final notifier = ref.read(authProvider.notifier);
 
     if (username.isEmpty) {
-      _showError('login_error_enter_operator_account'.tr);
+      _showError(TranslatorGlobal.instance
+          .translate('login_error_enter_operator_account'));
       return;
     }
 
     setState(() => _isLoading = true);
 
     final success = await notifier.loginOperator(
-          username,
-          password,
-        );
+      username,
+      password,
+    );
 
     setState(() => _isLoading = false);
 
     if (!success && mounted) {
       _showError(
-        notifier.lastLoginError ?? 'login_error_account_or_password'.tr,
+        notifier.lastLoginError ??
+            TranslatorGlobal.instance
+                .translate('login_error_account_or_password'),
       );
     }
   }
@@ -468,7 +478,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
             const Icon(Icons.sms, color: Color(0xFF4CAF50)),
             const SizedBox(width: 8),
             Text(
-              'login_dialog_code_title'.tr,
+              TranslatorGlobal.instance.translate('login_dialog_code_title'),
               style: const TextStyle(fontSize: 18),
             ),
           ],
@@ -478,7 +488,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
           children: [
             if (code != null) ...[
               Text(
-                'login_dialog_code_message'.tr,
+                TranslatorGlobal.instance
+                    .translate('login_dialog_code_message'),
                 style: const TextStyle(color: Colors.grey),
               ),
               const SizedBox(height: 12),
@@ -503,7 +514,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
               ),
               const SizedBox(height: 8),
               Text(
-                'login_dialog_test_mode'.tr,
+                TranslatorGlobal.instance.translate('login_dialog_test_mode'),
                 style: const TextStyle(fontSize: 11, color: Colors.grey),
               ),
             ] else
@@ -520,19 +531,20 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                 }
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text('ai_copied'.tr),
+                    content:
+                        Text(TranslatorGlobal.instance.translate('ai_copied')),
                     backgroundColor: JewelryColors.success,
                     behavior: SnackBarBehavior.floating,
                   ),
                 );
               },
               icon: const Icon(Icons.copy_all_outlined, size: 18),
-              label: Text('ai_copy'.tr),
+              label: Text(TranslatorGlobal.instance.translate('ai_copy')),
             ),
           TextButton(
             onPressed: () => Navigator.pop(ctx),
             child: Text(
-              'login_dialog_ok'.tr,
+              TranslatorGlobal.instance.translate('login_dialog_ok'),
               style: const TextStyle(color: Color(0xFF4CAF50)),
             ),
           ),

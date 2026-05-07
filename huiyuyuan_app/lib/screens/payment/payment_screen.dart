@@ -16,6 +16,7 @@ import 'package:huiyuyuan/l10n/string_extension.dart';
 import '../../config/api_config.dart';
 import '../../l10n/l10n_provider.dart';
 import '../../models/order_model.dart' hide PaymentMethod;
+import '../../providers/app_settings_provider.dart';
 import '../../services/order_service.dart';
 import '../../services/payment_service.dart';
 import '../../themes/colors.dart';
@@ -198,7 +199,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
       method: _methodFromCode(widget.order.paymentMethod?.name),
       paymentAccountId: widget.order.paymentAccountId,
       paymentAccount: widget.order.paymentAccount,
-      message: 'payment_waiting_admin_confirm'.tr,
+      message: ref.tr('payment_waiting_admin_confirm'),
     );
     _payState = 'waiting';
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -292,7 +293,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
         setState(() => _payState = 'failed');
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('payment_operation_retry'.tr)),
+            SnackBar(content: Text(ref.tr('payment_operation_retry'))),
           );
         }
         return;
@@ -386,7 +387,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
               ),
               const SizedBox(width: 8),
               Text(
-                'payment_page_title'.tr,
+                ref.tr('payment_page_title'),
                 style: const TextStyle(
                   color: JewelryColors.jadeMist,
                   fontWeight: FontWeight.w900,
@@ -464,7 +465,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
       child: Column(
         children: [
           Text(
-            'payment_amount_title'.tr,
+            ref.tr('payment_amount_title'),
             style: TextStyle(
               color: JewelryColors.jadeBlack.withOpacity(0.68),
               fontSize: 14,
@@ -509,6 +510,8 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
   }
 
   Widget _buildOrderInfoCard(Color textPrimary, Color textSecondary) {
+    final language = ref.watch(appSettingsProvider).language;
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
@@ -517,7 +520,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'payment_order_info'.tr,
+            ref.tr('payment_order_info'),
             style: TextStyle(
               color: textPrimary,
               fontSize: 15,
@@ -528,7 +531,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
           _buildInfoRow(ref.tr('order_number'), widget.order.id, textSecondary),
           _buildInfoRow(
             ref.tr('product_info_section'),
-            widget.order.localizedProductName,
+            widget.order.localizedProductNameFor(language),
             textSecondary,
           ),
           _buildInfoRow(
@@ -557,7 +560,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'payment_method_title'.tr,
+            ref.tr('payment_method_title'),
             style: TextStyle(
               color: textPrimary,
               fontSize: 15,
@@ -567,7 +570,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
           const SizedBox(height: 12),
           _buildPaymentOption(
             'wechat',
-            'payment_method_wechat'.tr,
+            ref.tr('payment_method_wechat'),
             Icons.chat_bubble_rounded,
             const Color(0xFF07C160),
             textPrimary,
@@ -575,7 +578,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
           const SizedBox(height: 10),
           _buildPaymentOption(
             'alipay',
-            'payment_method_alipay'.tr,
+            ref.tr('payment_method_alipay'),
             Icons.account_balance_wallet_rounded,
             const Color(0xFF1677FF),
             textPrimary,
@@ -583,7 +586,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
           const SizedBox(height: 10),
           _buildPaymentOption(
             'unionpay',
-            'payment_bank_transfer'.tr,
+            ref.tr('payment_bank_transfer'),
             Icons.account_balance_rounded,
             const Color(0xFF1A3E7C),
             textPrimary,
@@ -607,7 +610,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'payment_collection_info'.tr,
+            ref.tr('payment_collection_info'),
             style: TextStyle(
               color: textPrimary,
               fontSize: 15,
@@ -626,7 +629,8 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
               ),
             ),
             child: Text(
-              _paymentStatus?.message ?? 'payment_waiting_admin_confirm'.tr,
+              _paymentStatus?.message ??
+                  ref.tr('payment_waiting_admin_confirm'),
               style: const TextStyle(
                 color: JewelryColors.emeraldGlow,
                 height: 1.45,
@@ -652,31 +656,31 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
             Center(child: _buildQrFallback(textSecondary)),
           const SizedBox(height: 16),
           _buildInfoRow(
-            'payment_account_type'.tr,
+            ref.tr('payment_account_type'),
             account.typeName.tr,
             textSecondary,
           ),
           _buildInfoRow(
-            'payment_account_name'.tr,
+            ref.tr('payment_account_name'),
             account.name,
             textSecondary,
           ),
           if (account.accountNumber != null &&
               account.accountNumber!.isNotEmpty)
             _buildInfoRow(
-              'payment_account_number'.tr,
+              ref.tr('payment_account_number'),
               account.accountNumber!,
               textSecondary,
             ),
           if (account.bankName != null && account.bankName!.isNotEmpty)
             _buildInfoRow(
-              'payment_bank_name'.tr,
+              ref.tr('payment_bank_name'),
               account.bankName!,
               textSecondary,
             ),
           if ((_paymentStatus?.paymentId ?? '').isNotEmpty)
             _buildInfoRow(
-              'payment_record_number'.tr,
+              ref.tr('payment_record_number'),
               _paymentStatus!.paymentId!,
               textSecondary,
             ),
@@ -698,7 +702,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
         ),
       ),
       child: Text(
-        'payment_qr_unavailable'.tr,
+        ref.tr('payment_qr_unavailable'),
         style: TextStyle(color: textSecondary),
         textAlign: TextAlign.center,
       ),
@@ -724,7 +728,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
                 shadowColor: JewelryColors.emeraldGlow.withOpacity(0.25),
               ),
               child: Text(
-                'payment_refresh_status'.tr,
+                ref.tr('payment_refresh_status'),
                 style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w900,
@@ -748,7 +752,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
                   borderRadius: BorderRadius.circular(18),
                 ),
               ),
-              child: Text('payment_change_method'.tr),
+              child: Text(ref.tr('payment_change_method')),
             ),
           ),
           const SizedBox(height: 12),
@@ -760,7 +764,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
               style: TextButton.styleFrom(
                 foregroundColor: JewelryColors.error,
               ),
-              child: Text('payment_cancel_payment'.tr),
+              child: Text(ref.tr('payment_cancel_payment')),
             ),
           ),
         ],
@@ -799,13 +803,13 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
                       ),
                       const SizedBox(width: 12),
                       Text(
-                        'payment_submitting'.tr,
+                        ref.tr('payment_submitting'),
                         style: const TextStyle(fontSize: 16),
                       ),
                     ],
                   )
                 : Text(
-                    'payment_submit_transfer'.tr,
+                    ref.tr('payment_submit_transfer'),
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w900,
@@ -834,7 +838,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
                   borderRadius: BorderRadius.circular(18),
                 ),
               ),
-              child: Text('payment_retry'.tr),
+              child: Text(ref.tr('payment_retry')),
             ),
           ),
         ],
@@ -849,21 +853,21 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
         backgroundColor: JewelryColors.deepJade,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         title: Text(
-          'payment_cancel_confirm'.tr,
+          ref.tr('payment_cancel_confirm'),
           style: const TextStyle(
             color: JewelryColors.jadeMist,
             fontWeight: FontWeight.w900,
           ),
         ),
         content: Text(
-          'payment_cancel_prompt'.tr,
+          ref.tr('payment_cancel_prompt'),
           style: TextStyle(color: JewelryColors.jadeMist.withOpacity(0.68)),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
             child: Text(
-              'common_cancel'.tr,
+              ref.tr('common_cancel'),
               style: TextStyle(color: JewelryColors.jadeMist.withOpacity(0.56)),
             ),
           ),
@@ -876,7 +880,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
                 borderRadius: BorderRadius.circular(14),
               ),
             ),
-            child: Text('common_confirm'.tr),
+            child: Text(ref.tr('common_confirm')),
           ),
         ],
       ),
@@ -894,14 +898,14 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
         setState(() => _payState = 'failed');
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('payment_status_cancelled'.tr),
+            content: Text(ref.tr('payment_status_cancelled')),
             backgroundColor: JewelryColors.error,
           ),
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('payment_operation_retry'.tr),
+            content: Text(ref.tr('payment_operation_retry')),
             backgroundColor: JewelryColors.error,
           ),
         );
@@ -910,7 +914,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('payment_operation_retry'.tr),
+            content: Text(ref.tr('payment_operation_retry')),
             backgroundColor: JewelryColors.error,
           ),
         );
@@ -1054,7 +1058,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
                 ),
                 const SizedBox(height: 24),
                 Text(
-                  'payment_success_title'.tr,
+                  ref.tr('payment_success_title'),
                   style: const TextStyle(
                     color: JewelryColors.jadeMist,
                     fontSize: 24,
@@ -1085,7 +1089,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
                     ),
                   ),
                   child: Text(
-                    'redirecting_to_order'.tr,
+                    ref.tr('redirecting_to_order'),
                     style: TextStyle(
                       color: JewelryColors.jadeMist.withOpacity(0.68),
                       fontSize: 13,

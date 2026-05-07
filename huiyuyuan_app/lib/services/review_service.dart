@@ -2,7 +2,7 @@
 
 import 'dart:convert';
 
-import 'package:huiyuyuan/l10n/string_extension.dart';
+import 'package:huiyuyuan/l10n/translator_global.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../config/api_config.dart';
@@ -125,7 +125,7 @@ class ReviewService {
     );
 
     if (hasReviewedOrder) {
-      throw Exception('review_error_already_submitted'.tr);
+      throw Exception(_t('review_error_already_submitted'));
     }
 
     final response = await _api.post<ReviewModel>(
@@ -142,7 +142,7 @@ class ReviewService {
     );
 
     if (!response.success || response.data == null) {
-      throw Exception(response.message ?? 'review_error_submit_failed'.tr);
+      throw Exception(response.message ?? _t('review_error_submit_failed'));
     }
 
     final remoteReview = response.data!;
@@ -176,11 +176,11 @@ class ReviewService {
     final index = reviews.indexWhere((review) => review.id == reviewId);
 
     if (index < 0) {
-      throw Exception('review_error_not_found'.tr);
+      throw Exception(_t('review_error_not_found'));
     }
 
     if (reviews[index].hasAdditional) {
-      throw Exception('review_error_already_appended'.tr);
+      throw Exception(_t('review_error_already_appended'));
     }
 
     reviews[index] = ReviewModel(
@@ -250,7 +250,7 @@ class ReviewService {
     }
 
     if (reviews[index].userId != userId) {
-      throw Exception('review_error_delete_forbidden'.tr);
+      throw Exception(_t('review_error_delete_forbidden'));
     }
 
     reviews.removeAt(index);
@@ -365,5 +365,9 @@ class ReviewService {
       ..sort((left, right) => right.value.compareTo(left.value));
 
     return sortedTags.take(5).map((entry) => entry.key).toList(growable: false);
+  }
+
+  String _t(String key, {Map<String, Object?> params = const {}}) {
+    return TranslatorGlobal.instance.translate(key, params: params);
   }
 }

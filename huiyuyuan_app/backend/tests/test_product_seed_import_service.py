@@ -94,7 +94,15 @@ def test_build_in_memory_seed_products_assigns_stable_blockchain_hash():
 
 def test_prepare_upsert_rows_serializes_images_json():
     rows = prepare_upsert_rows([
-        _sample_payload(seed_id="HYY-T001", seed_source="base"),
+        _sample_payload(
+            seed_id="HYY-T001",
+            seed_source="base",
+            craft_highlights="• hand-polished\n• adjustable cord",
+            audience_tags=["gift", "daily wear"],
+            flaw_notes=["tiny natural line"],
+            gallery_detail=["https://example.com/detail.png"],
+            gallery_hand=["https://example.com/hand.png"],
+        ),
     ])
 
     assert len(rows) == 1
@@ -104,6 +112,58 @@ def test_prepare_upsert_rows_serializes_images_json():
         ["https://example.com/p1.png"],
         ensure_ascii=False,
     )
+    assert rows[0]["craft_highlights"] == json.dumps(
+        ["hand-polished", "adjustable cord"],
+        ensure_ascii=False,
+    )
+    assert rows[0]["audience_tags"] == json.dumps(
+        ["gift", "daily wear"],
+        ensure_ascii=False,
+    )
+    assert rows[0]["flaw_notes"] == json.dumps(
+        ["tiny natural line"],
+        ensure_ascii=False,
+    )
+    assert rows[0]["gallery_detail"] == json.dumps(
+        ["https://example.com/detail.png"],
+        ensure_ascii=False,
+    )
+    assert rows[0]["gallery_hand"] == json.dumps(
+        ["https://example.com/hand.png"],
+        ensure_ascii=False,
+    )
+
+
+def test_normalize_seed_payload_accepts_extended_dossier_fields():
+    payload = _sample_payload(
+        audience_tags=["collector"],
+        audience_tags_en=["Collector"],
+        origin_story="矿口故事",
+        origin_story_en="Mine origin story",
+        flaw_notes=["棉线"],
+        flaw_notes_en=["Natural cotton line"],
+        certificate_authority="NGTC",
+        certificate_authority_en="NGTC",
+        certificate_image_url="https://example.com/cert.png",
+        certificate_verify_url="https://example.com/verify",
+        gallery_detail=["https://example.com/detail.png"],
+        gallery_hand=["https://example.com/hand.png"],
+    )
+
+    normalized = normalize_seed_payload(payload)
+
+    assert normalized["audience_tags"] == ["collector"]
+    assert normalized["audience_tags_en"] == ["Collector"]
+    assert normalized["origin_story"] == "矿口故事"
+    assert normalized["origin_story_en"] == "Mine origin story"
+    assert normalized["flaw_notes"] == ["棉线"]
+    assert normalized["flaw_notes_en"] == ["Natural cotton line"]
+    assert normalized["certificate_authority"] == "NGTC"
+    assert normalized["certificate_authority_en"] == "NGTC"
+    assert normalized["certificate_image_url"] == "https://example.com/cert.png"
+    assert normalized["certificate_verify_url"] == "https://example.com/verify"
+    assert normalized["gallery_detail"] == ["https://example.com/detail.png"]
+    assert normalized["gallery_hand"] == ["https://example.com/hand.png"]
 
 
 def test_load_seed_payload_file_supports_frontend_export_shape(tmp_path):
@@ -174,3 +234,16 @@ def test_data_seed_products_adapter_reads_shared_json():
     assert "seed_id" not in SEED_PRODUCTS[0]
     assert SEED_PRODUCTS[0]["id"] == "HYY-HT001"
     assert Path(DEFAULT_SHARED_SEED_PAYLOAD_PATH).exists()
+
+
+def test_shared_seed_payloads_include_top_30_dossier_fields():
+    payloads = load_seed_payload_file(DEFAULT_SHARED_SEED_PAYLOAD_PATH)
+    enriched_payloads = payloads[:30]
+
+    assert len(enriched_payloads) == 30
+    for payload in enriched_payloads:
+        assert isinstance(payload["craft_highlights"], list)
+        assert isinstance(payload["audience_tags"], list)
+        assert isinstance(payload["flaw_notes"], list)
+        assert payload["origin_story"]
+        assert payload["certificate_authority"]

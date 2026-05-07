@@ -9,10 +9,9 @@
 library;
 
 import 'package:flutter/material.dart';
+import '../../l10n/translator_global.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:huiyuyuan/l10n/string_extension.dart';
 
-import '../../l10n/l10n_provider.dart';
 import '../../models/notification_models.dart';
 import '../../providers/notification_provider.dart';
 import '../../themes/colors.dart';
@@ -119,10 +118,10 @@ class _NotificationScreenState extends ConsumerState<NotificationScreen>
   late TabController _tabController;
 
   List<String> get _tabs => [
-        ref.tr('order_all'),
-        ref.tr('notification_tab_orders'),
-        ref.tr('notification_tab_promotions'),
-        ref.tr('notification_tab_system'),
+        TranslatorGlobal.instance.translate('order_all'),
+        TranslatorGlobal.instance.translate('notification_tab_orders'),
+        TranslatorGlobal.instance.translate('notification_tab_promotions'),
+        TranslatorGlobal.instance.translate('notification_tab_system'),
       ];
 
   @override
@@ -175,7 +174,7 @@ class _NotificationScreenState extends ConsumerState<NotificationScreen>
             ),
           ),
           child: Text(
-            ref.tr('notification_title'),
+            TranslatorGlobal.instance.translate('notification_title'),
             style: const TextStyle(
               color: JewelryColors.jadeMist,
               fontWeight: FontWeight.w900,
@@ -189,7 +188,9 @@ class _NotificationScreenState extends ConsumerState<NotificationScreen>
           if (notifier.unreadCount > 0)
             TextButton(
               onPressed: () => notifier.markAllAsRead(),
-              child: Text(ref.tr('notification_mark_all_read'),
+              child: Text(
+                  TranslatorGlobal.instance
+                      .translate('notification_mark_all_read'),
                   style: const TextStyle(
                       color: JewelryColors.emeraldGlow,
                       fontSize: 13,
@@ -254,13 +255,15 @@ class _NotificationScreenState extends ConsumerState<NotificationScreen>
 
   Widget _buildTabLabel(String label, List<NotificationItem> all) {
     int count = 0;
-    if (label == ref.tr('order_all')) {
+    if (label == TranslatorGlobal.instance.translate('order_all')) {
       count = all.where((n) => !n.isRead).length;
-    } else if (label == ref.tr('notification_tab_orders')) {
+    } else if (label ==
+        TranslatorGlobal.instance.translate('notification_tab_orders')) {
       count = all
           .where((n) => !n.isRead && n.type == NotificationType.order)
           .length;
-    } else if (label == ref.tr('notification_tab_promotions')) {
+    } else if (label ==
+        TranslatorGlobal.instance.translate('notification_tab_promotions')) {
       count = all
           .where((n) => !n.isRead && n.type == NotificationType.promotion)
           .length;
@@ -309,7 +312,7 @@ class _NotificationScreenState extends ConsumerState<NotificationScreen>
             ),
             const SizedBox(height: 16),
             Text(
-              ref.tr('notification_empty_title'),
+              TranslatorGlobal.instance.translate('notification_empty_title'),
               style: const TextStyle(
                 color: JewelryColors.jadeMist,
                 fontSize: 16,
@@ -318,7 +321,8 @@ class _NotificationScreenState extends ConsumerState<NotificationScreen>
             ),
             const SizedBox(height: 8),
             Text(
-              ref.tr('notification_empty_subtitle'),
+              TranslatorGlobal.instance
+                  .translate('notification_empty_subtitle'),
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: JewelryColors.jadeMist.withOpacity(0.54),
@@ -597,15 +601,19 @@ class _NotificationCard extends ConsumerWidget {
 String _formatTime(DateTime time) {
   final now = DateTime.now();
   final diff = now.difference(time);
-  if (diff.inMinutes < 1) return 'notification_time_just_now'.tr;
+  if (diff.inMinutes < 1)
+    return TranslatorGlobal.instance.translate('notification_time_just_now');
   if (diff.inMinutes < 60) {
-    return 'notification_time_minutes_ago'.trArgs({'count': diff.inMinutes});
+    return TranslatorGlobal.instance.translate('notification_time_minutes_ago',
+        params: {'count': diff.inMinutes});
   }
   if (diff.inHours < 24) {
-    return 'notification_time_hours_ago'.trArgs({'count': diff.inHours});
+    return TranslatorGlobal.instance.translate('notification_time_hours_ago',
+        params: {'count': diff.inHours});
   }
   if (diff.inDays < 7) {
-    return 'notification_time_days_ago'.trArgs({'count': diff.inDays});
+    return TranslatorGlobal.instance.translate('notification_time_days_ago',
+        params: {'count': diff.inDays});
   }
   return '${time.month}/${time.day}';
 }

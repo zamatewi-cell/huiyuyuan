@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../config/api_config.dart';
 import '../../l10n/l10n_provider.dart';
 import '../../models/order_model.dart';
+import '../../providers/app_settings_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/review_service.dart';
 import '../../themes/colors.dart';
@@ -200,6 +201,8 @@ class _PublishReviewScreenState extends ConsumerState<PublishReviewScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final language = ref.watch(appSettingsProvider).language;
+
     if (widget.order.productId.isEmpty) {
       return Scaffold(
         backgroundColor: JewelryColors.jadeBlack,
@@ -331,7 +334,7 @@ class _PublishReviewScreenState extends ConsumerState<PublishReviewScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              widget.order.localizedProductName,
+                              widget.order.localizedProductNameFor(language),
                               style: const TextStyle(
                                 fontSize: 15,
                                 fontWeight: FontWeight.w900,

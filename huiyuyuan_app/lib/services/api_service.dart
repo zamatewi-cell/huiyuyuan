@@ -14,9 +14,9 @@ import 'package:dio/io.dart';
 import 'package:flutter/foundation.dart';
 
 import '../config/api_config.dart';
+import '../l10n/translator_global.dart';
 import '../models/json_parsing.dart';
 import 'storage_service.dart';
-import 'package:huiyuyuan/l10n/string_extension.dart';
 
 const List<String> _connectionFailureErrorTerms = [
   'socketexception',
@@ -298,7 +298,8 @@ class ApiService {
       return false;
     }
 
-    if (!_matchesCertificateFingerprint(cert.sha1, _productionIpFallbackCertSha1)) {
+    if (!_matchesCertificateFingerprint(
+        cert.sha1, _productionIpFallbackCertSha1)) {
       return false;
     }
 
@@ -468,7 +469,7 @@ class ApiService {
     T Function(dynamic)? fromJson,
   }) async {
     if (ApiConfig.useMockApi) {
-      return ApiResult.error('api_mock_mode'.tr, code: -1);
+      return ApiResult.error(_t('api_mock_mode'), code: -1);
     }
     await _ensureInitialized();
 
@@ -487,7 +488,7 @@ class ApiService {
     T Function(dynamic)? fromJson,
   }) async {
     if (ApiConfig.useMockApi) {
-      return ApiResult.error('api_mock_mode'.tr, code: -1);
+      return ApiResult.error(_t('api_mock_mode'), code: -1);
     }
     await _ensureInitialized();
 
@@ -513,7 +514,7 @@ class ApiService {
       throw DioException(
         requestOptions: RequestOptions(path: path),
         type: DioExceptionType.cancel,
-        error: 'api_mock_mode'.tr,
+        error: _t('api_mock_mode'),
       );
     }
     await _ensureInitialized();
@@ -533,7 +534,7 @@ class ApiService {
     T Function(dynamic)? fromJson,
   }) async {
     if (ApiConfig.useMockApi) {
-      return ApiResult.error('api_mock_mode'.tr, code: -1);
+      return ApiResult.error(_t('api_mock_mode'), code: -1);
     }
     await _ensureInitialized();
 
@@ -556,7 +557,7 @@ class ApiService {
     T Function(dynamic)? fromJson,
   }) async {
     if (ApiConfig.useMockApi) {
-      return ApiResult.error('api_mock_mode'.tr, code: -1);
+      return ApiResult.error(_t('api_mock_mode'), code: -1);
     }
     await _ensureInitialized();
 
@@ -641,7 +642,7 @@ class ApiService {
     Map<String, dynamic>? params,
   }) async {
     if (ApiConfig.useMockApi) {
-      return ApiResult.error('api_mock_mode'.tr, code: -1);
+      return ApiResult.error(_t('api_mock_mode'), code: -1);
     }
     await _ensureInitialized();
 
@@ -653,14 +654,14 @@ class ApiService {
       );
       if (response.statusCode != 200 || response.data == null) {
         return ApiResult.error(
-          'api_error_request_failed'.tr,
+          _t('api_error_request_failed'),
           code: response.statusCode,
         );
       }
 
       final bytes = _asUint8List(response.data);
       if (bytes == null || bytes.isEmpty) {
-        return ApiResult.error('api_error_parse_failed'.tr);
+        return ApiResult.error(_t('api_error_parse_failed'));
       }
 
       return ApiResult.success(bytes);
@@ -682,7 +683,7 @@ class ApiService {
           return ApiResult.success(parsed);
         } catch (error) {
           return ApiResult.error(
-            'api_error_parse_failed'.trArgs({
+            _t('api_error_parse_failed', params: {
               'error': error,
             }),
           );
@@ -700,10 +701,10 @@ class ApiService {
     final responseMap = jsonAsNullableMap(response.data);
     return ApiResult.error(
       responseMap == null
-          ? 'api_error_request_failed'.tr
+          ? _t('api_error_request_failed')
           : jsonAsString(
               responseMap['message'],
-              fallback: 'api_error_request_failed'.tr,
+              fallback: _t('api_error_request_failed'),
             ),
       code: response.statusCode,
     );
@@ -747,15 +748,15 @@ class ApiService {
 
     switch (error.type) {
       case DioExceptionType.connectionTimeout:
-        message = 'api_error_connect_timeout'.tr;
+        message = _t('api_error_connect_timeout');
         code = -1;
         break;
       case DioExceptionType.sendTimeout:
-        message = 'api_error_send_timeout'.tr;
+        message = _t('api_error_send_timeout');
         code = -2;
         break;
       case DioExceptionType.receiveTimeout:
-        message = 'api_error_receive_timeout'.tr;
+        message = _t('api_error_receive_timeout');
         code = -3;
         break;
       case DioExceptionType.badResponse:
@@ -770,23 +771,23 @@ class ApiService {
           statusCode: statusCode,
         );
         if (statusCode == 401) {
-          message = localizedDetailMessage ?? 'error_session_expired'.tr;
+          message = localizedDetailMessage ?? _t('error_session_expired');
         } else if (statusCode == 403) {
-          message = localizedDetailMessage ?? 'api_error_forbidden'.tr;
+          message = localizedDetailMessage ?? _t('api_error_forbidden');
         } else if (statusCode == 404) {
-          message = localizedDetailMessage ?? 'api_error_not_found'.tr;
+          message = localizedDetailMessage ?? _t('api_error_not_found');
         } else if (statusCode >= 500) {
-          message = localizedDetailMessage ?? 'api_error_server_failed'.tr;
+          message = localizedDetailMessage ?? _t('api_error_server_failed');
         } else {
-          message = localizedDetailMessage ?? 'api_error_request_failed'.tr;
+          message = localizedDetailMessage ?? _t('api_error_request_failed');
         }
         break;
       case DioExceptionType.cancel:
-        message = 'api_error_cancelled'.tr;
+        message = _t('api_error_cancelled');
         code = -4;
         break;
       case DioExceptionType.connectionError:
-        message = 'api_error_connection_failed'.tr;
+        message = _t('api_error_connection_failed');
         code = -5;
         break;
       case DioExceptionType.unknown:
@@ -794,24 +795,24 @@ class ApiService {
         if (rawError != null && rawError.isNotEmpty) {
           final normalized = rawError.toLowerCase();
           if (_containsAny(normalized, _connectionFailureErrorTerms)) {
-            message = 'api_error_connection_failed'.tr;
+            message = _t('api_error_connection_failed');
             code = -5;
             break;
           }
-          message = 'api_error_request_exception_with_detail'.trArgs({
+          message = _t('api_error_request_exception_with_detail', params: {
             'error': rawError,
           });
         } else {
-          message = 'api_error_request_exception'.tr;
+          message = _t('api_error_request_exception');
         }
         code = -99;
         break;
       default:
         final fallbackMessage = error.message?.trim();
         if (fallbackMessage == null || fallbackMessage.isEmpty) {
-          message = 'api_error_network_generic'.tr;
+          message = _t('api_error_network_generic');
         } else {
-          message = 'api_error_network_with_detail'.trArgs({
+          message = _t('api_error_network_with_detail', params: {
             'error': fallbackMessage,
           });
         }
@@ -834,25 +835,25 @@ class ApiService {
     final normalized = text.toLowerCase();
 
     if (statusCode == 401) {
-      return 'error_session_expired'.tr;
+      return _t('error_session_expired');
     }
 
     if (statusCode == 403 &&
         (_containsAny(text, _forbiddenDetailTermsZh) ||
             normalized.contains('permission'))) {
-      return 'api_error_forbidden'.tr;
+      return _t('api_error_forbidden');
     }
 
     if (statusCode == 404 &&
         (_containsAny(text, _notFoundDetailTermsZh) ||
             normalized.contains('not found'))) {
-      return 'api_error_not_found'.tr;
+      return _t('api_error_not_found');
     }
 
     if (statusCode >= 500 &&
         (_containsAny(text, _serverErrorDetailTermsZh) ||
             normalized.contains('internal server error'))) {
-      return 'api_error_server_failed'.tr;
+      return _t('api_error_server_failed');
     }
 
     return text;
@@ -905,5 +906,9 @@ class ApiService {
       }
       return true;
     }());
+  }
+
+  String _t(String key, {Map<String, Object?> params = const {}}) {
+    return TranslatorGlobal.instance.translate(key, params: params);
   }
 }

@@ -1,12 +1,11 @@
 import 'dart:math' as math;
+import '../../l10n/translator_global.dart';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
-import '../../l10n/l10n_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../themes/colors.dart';
-import 'package:huiyuyuan/l10n/string_extension.dart';
 
 class LoginAnimatedBackground extends ConsumerWidget {
   const LoginAnimatedBackground({super.key, required this.animation});
@@ -342,7 +341,7 @@ class LoginBrandLogo extends ConsumerWidget {
           shaderCallback: (bounds) =>
               JewelryColors.champagneGradient.createShader(bounds),
           child: Text(
-            ref.tr('app_name'),
+            TranslatorGlobal.instance.translate('app_name'),
             style: TextStyle(
               fontSize: titleSize,
               fontWeight: FontWeight.w800,
@@ -353,7 +352,7 @@ class LoginBrandLogo extends ConsumerWidget {
         ),
         const SizedBox(height: 8),
         Text(
-          ref.tr('app_slogan'),
+          TranslatorGlobal.instance.translate('app_slogan'),
           style: TextStyle(
             fontSize: 14,
             color: JewelryColors.jadeMist.withOpacity(0.68),
@@ -484,7 +483,7 @@ class LoginTabSelector extends ConsumerWidget {
         children: [
           Expanded(
             child: _LoginTabButton(
-              label: 'login_tab_customer'.tr,
+              label: TranslatorGlobal.instance.translate('login_tab_customer'),
               icon: Icons.person_outline,
               selected: selectedTab == 0,
               onTap: () => onTabChanged(0),
@@ -492,7 +491,7 @@ class LoginTabSelector extends ConsumerWidget {
           ),
           Expanded(
             child: _LoginTabButton(
-              label: ref.tr('role_operator'),
+              label: TranslatorGlobal.instance.translate('role_operator'),
               icon: Icons.support_agent,
               selected: selectedTab == 1,
               onTap: () => onTabChanged(1),
@@ -500,7 +499,7 @@ class LoginTabSelector extends ConsumerWidget {
           ),
           Expanded(
             child: _LoginTabButton(
-              label: 'login_tab_admin'.tr,
+              label: TranslatorGlobal.instance.translate('login_tab_admin'),
               icon: Icons.admin_panel_settings,
               selected: selectedTab == 2,
               onTap: () => onTabChanged(2),
@@ -592,7 +591,7 @@ class LoginFooter extends ConsumerWidget {
             ),
             const SizedBox(width: 6),
             Text(
-              'login_security_footer'.tr,
+              TranslatorGlobal.instance.translate('login_security_footer'),
               style: TextStyle(
                 fontSize: 12,
                 color: JewelryColors.jadeMist.withOpacity(0.42),
@@ -602,7 +601,7 @@ class LoginFooter extends ConsumerWidget {
         ),
         const SizedBox(height: 12),
         Text(
-          ref.tr('compliance_copyright'),
+          TranslatorGlobal.instance.translate('compliance_copyright'),
           style: TextStyle(
             fontSize: 11,
             color: JewelryColors.jadeMist.withOpacity(0.3),

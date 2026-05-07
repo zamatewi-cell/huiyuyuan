@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../l10n/translator_global.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:huiyuyuan/l10n/string_extension.dart';
 import 'package:image_picker/image_picker.dart';
@@ -124,7 +125,7 @@ class PaymentManagementScreen extends ConsumerWidget {
             ),
           ),
           child: Text(
-            ref.tr('payment_management_title'),
+            TranslatorGlobal.instance.translate('payment_management_title'),
             style: const TextStyle(
               color: JewelryColors.jadeMist,
               fontWeight: FontWeight.w900,
@@ -166,7 +167,7 @@ class PaymentManagementScreen extends ConsumerWidget {
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _showEditDialog(context, null),
         icon: const Icon(Icons.add),
-        label: Text(ref.tr('payment_add_account')),
+        label: Text(TranslatorGlobal.instance.translate('payment_add_account')),
         backgroundColor: JewelryColors.emeraldLuster,
         foregroundColor: JewelryColors.jadeBlack,
       ),
@@ -188,7 +189,7 @@ class PaymentManagementScreen extends ConsumerWidget {
       return _buildErrorState(
         context,
         ref,
-        state.errorMessage ?? 'payment_operation_retry'.tr,
+        state.errorMessage ?? TranslatorGlobal.instance.translate('payment_operation_retry'),
       );
     }
 
@@ -247,7 +248,7 @@ class PaymentManagementScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 20),
               Text(
-                'payment_empty_title'.tr,
+                TranslatorGlobal.instance.translate('payment_empty_title'),
                 style: const TextStyle(
                   color: JewelryColors.jadeMist,
                   fontWeight: FontWeight.w900,
@@ -256,7 +257,7 @@ class PaymentManagementScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 8),
               Text(
-                'payment_empty_subtitle'.tr,
+                TranslatorGlobal.instance.translate('payment_empty_subtitle'),
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: JewelryColors.jadeMist.withOpacity(0.62),
@@ -267,7 +268,7 @@ class PaymentManagementScreen extends ConsumerWidget {
               FilledButton.icon(
                 onPressed: () => _showEditDialog(context, null),
                 icon: const Icon(Icons.add),
-                label: Text('payment_add_account'.tr),
+                label: Text(TranslatorGlobal.instance.translate('payment_add_account')),
                 style: FilledButton.styleFrom(
                   backgroundColor: JewelryColors.emeraldLuster,
                   foregroundColor: JewelryColors.jadeBlack,
@@ -315,7 +316,7 @@ class PaymentManagementScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 20),
               Text(
-                ref.tr('error'),
+                TranslatorGlobal.instance.translate('error'),
                 style: const TextStyle(
                   color: JewelryColors.jadeMist,
                   fontWeight: FontWeight.w900,
@@ -337,7 +338,7 @@ class PaymentManagementScreen extends ConsumerWidget {
                   ref.read(paymentAccountsProvider.notifier).loadAccounts();
                 },
                 icon: const Icon(Icons.refresh),
-                label: Text(ref.tr('retry')),
+                label: Text(TranslatorGlobal.instance.translate('retry')),
                 style: FilledButton.styleFrom(
                   backgroundColor: JewelryColors.emeraldLuster,
                   foregroundColor: JewelryColors.jadeBlack,
@@ -420,7 +421,7 @@ class _PaymentAccountCard extends ConsumerWidget {
                                 ),
                               ),
                               child: Text(
-                                ref.tr('payment_default_badge'),
+                                TranslatorGlobal.instance.translate('payment_default_badge'),
                                 style: const TextStyle(
                                   color: JewelryColors.emeraldGlow,
                                   fontWeight: FontWeight.w700,
@@ -482,7 +483,7 @@ class _PaymentAccountCard extends ConsumerWidget {
                                 ),
                               ),
                               child: Text(
-                                'payment_qr_preview'.tr,
+                                TranslatorGlobal.instance.translate('payment_qr_preview'),
                                 style: TextStyle(
                                   color:
                                       JewelryColors.jadeMist.withOpacity(0.58),
@@ -509,7 +510,7 @@ class _PaymentAccountCard extends ConsumerWidget {
                       _showErrorSnackBar(
                         context,
                         ref.read(paymentAccountsProvider).errorMessage ??
-                            'payment_operation_retry'.tr,
+                            TranslatorGlobal.instance.translate('payment_operation_retry'),
                       );
                     }
                   },
@@ -533,12 +534,12 @@ class _PaymentAccountCard extends ConsumerWidget {
                         _showErrorSnackBar(
                           context,
                           ref.read(paymentAccountsProvider).errorMessage ??
-                              'payment_set_default_failed'.tr,
+                              TranslatorGlobal.instance.translate('payment_set_default_failed'),
                         );
                       }
                     },
                     icon: const Icon(Icons.check_circle_outline, size: 16),
-                    label: Text('payment_set_default'.tr),
+                    label: Text(TranslatorGlobal.instance.translate('payment_set_default')),
                     style: TextButton.styleFrom(
                       foregroundColor: JewelryColors.emeraldGlow,
                     ),
@@ -552,7 +553,7 @@ class _PaymentAccountCard extends ConsumerWidget {
                     );
                   },
                   icon: const Icon(Icons.edit_outlined, size: 16),
-                  label: Text(ref.tr('edit')),
+                  label: Text(TranslatorGlobal.instance.translate('edit')),
                   style: TextButton.styleFrom(
                     foregroundColor: JewelryColors.jadeMist.withOpacity(0.72),
                   ),
@@ -560,7 +561,7 @@ class _PaymentAccountCard extends ConsumerWidget {
                 TextButton.icon(
                   onPressed: () => _confirmDelete(context, ref, account),
                   icon: const Icon(Icons.delete_outline, size: 16),
-                  label: Text(ref.tr('delete')),
+                  label: Text(TranslatorGlobal.instance.translate('delete')),
                   style: TextButton.styleFrom(
                     foregroundColor: JewelryColors.error,
                   ),
@@ -601,7 +602,7 @@ class _PaymentAccountCard extends ConsumerWidget {
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
           title: Text(
-            ref.tr('delete'),
+            TranslatorGlobal.instance.translate('delete'),
             style: const TextStyle(
               color: JewelryColors.jadeMist,
               fontWeight: FontWeight.w900,
@@ -621,7 +622,7 @@ class _PaymentAccountCard extends ConsumerWidget {
             TextButton(
               onPressed: () => Navigator.pop(dialogContext),
               child: Text(
-                ref.tr('cancel'),
+                TranslatorGlobal.instance.translate('cancel'),
                 style:
                     TextStyle(color: JewelryColors.jadeMist.withOpacity(0.58)),
               ),
@@ -642,10 +643,10 @@ class _PaymentAccountCard extends ConsumerWidget {
                 _showErrorSnackBar(
                   dialogContext,
                   ref.read(paymentAccountsProvider).errorMessage ??
-                      'payment_operation_retry'.tr,
+                      TranslatorGlobal.instance.translate('payment_operation_retry'),
                 );
               },
-              child: Text(ref.tr('delete')),
+              child: Text(TranslatorGlobal.instance.translate('delete')),
             ),
           ],
         );
@@ -732,8 +733,8 @@ class _PaymentAccountDialogState extends ConsumerState<_PaymentAccountDialog> {
                 children: [
                   Text(
                     widget.account == null
-                        ? 'payment_add_account'.tr
-                        : 'payment_edit_account'.tr,
+                        ? TranslatorGlobal.instance.translate('payment_add_account')
+                        : TranslatorGlobal.instance.translate('payment_edit_account'),
                     style: const TextStyle(
                       color: JewelryColors.jadeMist,
                       fontSize: 20,
@@ -747,7 +748,7 @@ class _PaymentAccountDialogState extends ConsumerState<_PaymentAccountDialog> {
                     dropdownColor: JewelryColors.deepJade,
                     iconEnabledColor: JewelryColors.champagneGold,
                     iconDisabledColor: JewelryColors.jadeMist.withOpacity(0.3),
-                    decoration: _inputDecoration('payment_account_type'.tr),
+                    decoration: _inputDecoration(TranslatorGlobal.instance.translate('payment_account_type')),
                     style: const TextStyle(color: JewelryColors.jadeMist),
                     items: PaymentType.values.map((type) {
                       return DropdownMenuItem(
@@ -772,12 +773,12 @@ class _PaymentAccountDialogState extends ConsumerState<_PaymentAccountDialog> {
                     cursorColor: JewelryColors.emeraldGlow,
                     style: const TextStyle(color: JewelryColors.jadeMist),
                     decoration: _inputDecoration(
-                      'payment_account_name'.tr,
-                      hintText: 'payment_account_name_example'.tr,
+                      TranslatorGlobal.instance.translate('payment_account_name'),
+                      hintText: TranslatorGlobal.instance.translate('payment_account_name_example'),
                     ),
                     validator: (value) {
                       if (value == null || value.trim().isEmpty) {
-                        return 'payment_enter_account_name'.tr;
+                        return TranslatorGlobal.instance.translate('payment_enter_account_name');
                       }
                       return null;
                     },
@@ -788,7 +789,7 @@ class _PaymentAccountDialogState extends ConsumerState<_PaymentAccountDialog> {
                       controller: _bankNameController,
                       cursorColor: JewelryColors.emeraldGlow,
                       style: const TextStyle(color: JewelryColors.jadeMist),
-                      decoration: _inputDecoration('payment_bank_name'.tr),
+                      decoration: _inputDecoration(TranslatorGlobal.instance.translate('payment_bank_name')),
                     ),
                     const SizedBox(height: 16),
                   ],
@@ -804,8 +805,8 @@ class _PaymentAccountDialogState extends ConsumerState<_PaymentAccountDialog> {
                     cursorColor: JewelryColors.emeraldGlow,
                     style: const TextStyle(color: JewelryColors.jadeMist),
                     decoration: _inputDecoration(
-                      'payment_qr_code'.tr,
-                      hintText: 'payment_qr_code_hint'.tr,
+                      TranslatorGlobal.instance.translate('payment_qr_code'),
+                      hintText: TranslatorGlobal.instance.translate('payment_qr_code_hint'),
                     ),
                     onChanged: (_) => setState(() {}),
                   ),
@@ -831,7 +832,7 @@ class _PaymentAccountDialogState extends ConsumerState<_PaymentAccountDialog> {
                             ),
                           ),
                           child: Text(
-                            'payment_qr_preview'.tr,
+                            TranslatorGlobal.instance.translate('payment_qr_preview'),
                             style: TextStyle(
                               color: JewelryColors.jadeMist.withOpacity(0.58),
                             ),
@@ -859,8 +860,8 @@ class _PaymentAccountDialogState extends ConsumerState<_PaymentAccountDialog> {
                             : const Icon(Icons.upload_outlined),
                         label: Text(
                           _isUploadingQr
-                              ? 'payment_qr_uploading'.tr
-                              : 'payment_upload_qr'.tr,
+                              ? TranslatorGlobal.instance.translate('payment_qr_uploading')
+                              : TranslatorGlobal.instance.translate('payment_upload_qr'),
                         ),
                         style: OutlinedButton.styleFrom(
                           foregroundColor: JewelryColors.jadeMist,
@@ -878,7 +879,7 @@ class _PaymentAccountDialogState extends ConsumerState<_PaymentAccountDialog> {
                             setState(() => _qrCodeUrlController.clear());
                           },
                           icon: const Icon(Icons.delete_outline),
-                          label: Text('delete'.tr),
+                          label: Text(TranslatorGlobal.instance.translate('delete')),
                           style: TextButton.styleFrom(
                             foregroundColor: JewelryColors.error,
                           ),
@@ -889,14 +890,14 @@ class _PaymentAccountDialogState extends ConsumerState<_PaymentAccountDialog> {
                   SwitchListTile.adaptive(
                     contentPadding: EdgeInsets.zero,
                     title: Text(
-                      'payment_set_default'.tr,
+                      TranslatorGlobal.instance.translate('payment_set_default'),
                       style: const TextStyle(
                         color: JewelryColors.jadeMist,
                         fontWeight: FontWeight.w800,
                       ),
                     ),
                     subtitle: Text(
-                      'payment_default_account_hint'.tr,
+                      TranslatorGlobal.instance.translate('payment_default_account_hint'),
                       style: TextStyle(
                         color: JewelryColors.jadeMist.withOpacity(0.54),
                       ),
@@ -917,7 +918,7 @@ class _PaymentAccountDialogState extends ConsumerState<_PaymentAccountDialog> {
                         onPressed:
                             _isSaving ? null : () => Navigator.pop(context),
                         child: Text(
-                          ref.tr('cancel'),
+                          TranslatorGlobal.instance.translate('cancel'),
                           style: TextStyle(
                             color: JewelryColors.jadeMist.withOpacity(0.58),
                           ),
@@ -944,7 +945,7 @@ class _PaymentAccountDialogState extends ConsumerState<_PaymentAccountDialog> {
                                   color: JewelryColors.jadeBlack,
                                 ),
                               )
-                            : Text(ref.tr('save')),
+                            : Text(TranslatorGlobal.instance.translate('save')),
                       ),
                     ],
                   ),
@@ -991,15 +992,15 @@ class _PaymentAccountDialogState extends ConsumerState<_PaymentAccountDialog> {
   String get _accountNumberLabel {
     switch (_selectedType) {
       case PaymentType.bank:
-        return 'payment_bank_card_number'.tr;
+        return TranslatorGlobal.instance.translate('payment_bank_card_number');
       case PaymentType.alipay:
-        return 'payment_alipay_account'.tr;
+        return TranslatorGlobal.instance.translate('payment_alipay_account');
       case PaymentType.wechat:
-        return 'payment_wechat_account'.tr;
+        return TranslatorGlobal.instance.translate('payment_wechat_account');
       case PaymentType.cash:
-        return 'payment_note'.tr;
+        return TranslatorGlobal.instance.translate('payment_note');
       case PaymentType.other:
-        return 'payment_account_or_description'.tr;
+        return TranslatorGlobal.instance.translate('payment_account_or_description');
     }
   }
 
@@ -1056,22 +1057,22 @@ class _PaymentAccountDialogState extends ConsumerState<_PaymentAccountDialog> {
     _showErrorSnackBar(
       context,
       ref.read(paymentAccountsProvider).errorMessage ??
-          'payment_operation_retry'.tr,
+          TranslatorGlobal.instance.translate('payment_operation_retry'),
     );
   }
 
   String _getTypeName(PaymentType type) {
     switch (type) {
       case PaymentType.bank:
-        return 'payment_type_bank'.tr;
+        return TranslatorGlobal.instance.translate('payment_type_bank');
       case PaymentType.alipay:
-        return 'payment_type_alipay'.tr;
+        return TranslatorGlobal.instance.translate('payment_type_alipay');
       case PaymentType.wechat:
-        return 'payment_type_wechat'.tr;
+        return TranslatorGlobal.instance.translate('payment_type_wechat');
       case PaymentType.cash:
-        return 'payment_type_cash'.tr;
+        return TranslatorGlobal.instance.translate('payment_type_cash');
       case PaymentType.other:
-        return 'payment_type_other'.tr;
+        return TranslatorGlobal.instance.translate('payment_type_other');
     }
   }
 
@@ -1107,11 +1108,11 @@ class _PaymentAccountDialogState extends ConsumerState<_PaymentAccountDialog> {
 
       _showErrorSnackBar(
         context,
-        result.message ?? 'payment_qr_upload_failed'.tr,
+        result.message ?? TranslatorGlobal.instance.translate('payment_qr_upload_failed'),
       );
     } catch (_) {
       if (mounted) {
-        _showErrorSnackBar(context, 'payment_qr_upload_failed'.tr);
+        _showErrorSnackBar(context, TranslatorGlobal.instance.translate('payment_qr_upload_failed'));
       }
     } finally {
       if (mounted) {

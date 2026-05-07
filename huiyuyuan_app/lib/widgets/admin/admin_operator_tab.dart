@@ -1,13 +1,13 @@
 library;
 
 import 'dart:convert';
+import '../../l10n/translator_global.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../l10n/l10n_provider.dart';
-import '../../l10n/string_extension.dart';
 import '../../services/admin_service.dart';
 import '../../themes/colors.dart';
 
@@ -157,7 +157,8 @@ class _AdminOperatorTabState extends ConsumerState<AdminOperatorTab> {
     if (builtIn != null) {
       return ref.tr(builtIn.labelKey);
     }
-    return ref.tr('admin_operator_template_custom');
+    return TranslatorGlobal.instance
+        .translate('admin_operator_template_custom');
   }
 
   Future<void> _loadSavedTemplates() async {
@@ -231,7 +232,8 @@ class _AdminOperatorTabState extends ConsumerState<AdminOperatorTab> {
     final trimmedName = name.trim();
     if (trimmedName.isEmpty) {
       _showSnackBar(
-        ref.tr('admin_operator_template_name_required'),
+        TranslatorGlobal.instance
+            .translate('admin_operator_template_name_required'),
         backgroundColor: JewelryColors.error,
       );
       return;
@@ -260,7 +262,8 @@ class _AdminOperatorTabState extends ConsumerState<AdminOperatorTab> {
       _savedTemplates = updatedTemplates;
       _lastAppliedTemplateKey = savedTemplate.templateKey;
     });
-    _showSnackBar(ref.tr('admin_operator_template_save_success'));
+    _showSnackBar(TranslatorGlobal.instance
+        .translate('admin_operator_template_save_success'));
   }
 
   Future<void> _renameSavedTemplate(_SavedRoleTemplate template) async {
@@ -275,7 +278,8 @@ class _AdminOperatorTabState extends ConsumerState<AdminOperatorTab> {
     final trimmedName = name.trim();
     if (trimmedName.isEmpty) {
       _showSnackBar(
-        ref.tr('admin_operator_template_name_required'),
+        TranslatorGlobal.instance
+            .translate('admin_operator_template_name_required'),
         backgroundColor: JewelryColors.error,
       );
       return;
@@ -299,14 +303,16 @@ class _AdminOperatorTabState extends ConsumerState<AdminOperatorTab> {
         _lastAppliedTemplateKey = renamed.templateKey;
       }
     });
-    _showSnackBar(ref.tr('admin_operator_template_rename_success'));
+    _showSnackBar(TranslatorGlobal.instance
+        .translate('admin_operator_template_rename_success'));
   }
 
   Future<void> _deleteSavedTemplate(_SavedRoleTemplate template) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: Text(ref.tr('admin_operator_template_delete_title')),
+        title: Text(TranslatorGlobal.instance
+            .translate('admin_operator_template_delete_title')),
         content: Text(
           ref.tr(
             'admin_operator_template_delete_confirm',
@@ -316,7 +322,7 @@ class _AdminOperatorTabState extends ConsumerState<AdminOperatorTab> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: Text(ref.tr('cancel')),
+            child: Text(TranslatorGlobal.instance.translate('cancel')),
           ),
           FilledButton(
             onPressed: () => Navigator.of(dialogContext).pop(true),
@@ -324,7 +330,7 @@ class _AdminOperatorTabState extends ConsumerState<AdminOperatorTab> {
               backgroundColor: JewelryColors.error,
               foregroundColor: Colors.white,
             ),
-            child: Text(ref.tr('delete')),
+            child: Text(TranslatorGlobal.instance.translate('delete')),
           ),
         ],
       ),
@@ -348,7 +354,8 @@ class _AdminOperatorTabState extends ConsumerState<AdminOperatorTab> {
         _lastAppliedTemplateKey = _detectActiveTemplateKey(_draftPermissions);
       }
     });
-    _showSnackBar(ref.tr('admin_operator_template_delete_success'));
+    _showSnackBar(TranslatorGlobal.instance
+        .translate('admin_operator_template_delete_success'));
   }
 
   Future<String?> _promptTemplateName({
@@ -364,18 +371,20 @@ class _AdminOperatorTabState extends ConsumerState<AdminOperatorTab> {
           controller: controller,
           autofocus: true,
           decoration: InputDecoration(
-            labelText: ref.tr('admin_operator_template_name_label'),
-            hintText: ref.tr('admin_operator_template_name_hint'),
+            labelText: TranslatorGlobal.instance
+                .translate('admin_operator_template_name_label'),
+            hintText: TranslatorGlobal.instance
+                .translate('admin_operator_template_name_hint'),
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(),
-            child: Text(ref.tr('cancel')),
+            child: Text(TranslatorGlobal.instance.translate('cancel')),
           ),
           FilledButton(
             onPressed: () => Navigator.of(dialogContext).pop(controller.text),
-            child: Text(ref.tr('confirm')),
+            child: Text(TranslatorGlobal.instance.translate('confirm')),
           ),
         ],
       ),
@@ -412,7 +421,8 @@ class _AdminOperatorTabState extends ConsumerState<AdminOperatorTab> {
     if (updated == null) {
       setState(() {
         _isSaving = false;
-        _errorMessage = ref.tr('admin_operator_save_failed');
+        _errorMessage =
+            TranslatorGlobal.instance.translate('admin_operator_save_failed');
       });
       return;
     }
@@ -429,7 +439,7 @@ class _AdminOperatorTabState extends ConsumerState<AdminOperatorTab> {
       _isSaving = false;
     });
 
-    _showSnackBar(ref.tr('admin_operator_saved'));
+    _showSnackBar(TranslatorGlobal.instance.translate('admin_operator_saved'));
   }
 
   void _showSnackBar(
@@ -497,7 +507,8 @@ class _AdminOperatorTabState extends ConsumerState<AdminOperatorTab> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      ref.tr('admin_operator_performance_title'),
+                      TranslatorGlobal.instance
+                          .translate('admin_operator_performance_title'),
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 18,
@@ -506,7 +517,8 @@ class _AdminOperatorTabState extends ConsumerState<AdminOperatorTab> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      ref.tr('admin_operator_performance_subtitle'),
+                      TranslatorGlobal.instance
+                          .translate('admin_operator_performance_subtitle'),
                       style: const TextStyle(
                         color: Colors.white70,
                         fontSize: 12,
@@ -617,37 +629,43 @@ class _AdminOperatorTabState extends ConsumerState<AdminOperatorTab> {
             runSpacing: 12,
             children: [
               _MetricCard(
-                label: ref.tr('admin_operator_metric_contacted'),
+                label: TranslatorGlobal.instance
+                    .translate('admin_operator_metric_contacted'),
                 value: '${report.contactShops}',
                 color: JewelryColors.primary,
                 icon: Icons.store_mall_directory_outlined,
               ),
               _MetricCard(
-                label: ref.tr('admin_operator_metric_intentions'),
+                label: TranslatorGlobal.instance
+                    .translate('admin_operator_metric_intentions'),
                 value: '${report.intentionCount}',
                 color: JewelryColors.gold,
                 icon: Icons.trending_up_rounded,
               ),
               _MetricCard(
-                label: ref.tr('admin_operator_metric_wins'),
+                label: TranslatorGlobal.instance
+                    .translate('admin_operator_metric_wins'),
                 value: '${report.successCount}',
                 color: JewelryColors.success,
                 icon: Icons.handshake_outlined,
               ),
               _MetricCard(
-                label: ref.tr('admin_operator_metric_ai_sessions'),
+                label: TranslatorGlobal.instance
+                    .translate('admin_operator_metric_ai_sessions'),
                 value: '${report.aiUsageCount}',
                 color: const Color(0xFF667EEA),
                 icon: Icons.auto_awesome_rounded,
               ),
               _MetricCard(
-                label: ref.tr('admin_operator_metric_order_amount'),
+                label: TranslatorGlobal.instance
+                    .translate('admin_operator_metric_order_amount'),
                 value: _formatCurrency(report.orderAmount),
                 color: JewelryColors.primary,
                 icon: Icons.payments_outlined,
               ),
               _MetricCard(
-                label: ref.tr('admin_operator_metric_response_sla'),
+                label: TranslatorGlobal.instance
+                    .translate('admin_operator_metric_response_sla'),
                 value: ref.tr(snapshot.responseSlaKey),
                 color: const Color(0xFF14B8A6),
                 icon: Icons.schedule_rounded,
@@ -674,7 +692,8 @@ class _AdminOperatorTabState extends ConsumerState<AdminOperatorTab> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      ref.tr('admin_operator_account_title'),
+                      TranslatorGlobal.instance
+                          .translate('admin_operator_account_title'),
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 18,
@@ -683,7 +702,8 @@ class _AdminOperatorTabState extends ConsumerState<AdminOperatorTab> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      ref.tr('admin_operator_account_subtitle'),
+                      TranslatorGlobal.instance
+                          .translate('admin_operator_account_subtitle'),
                       style: TextStyle(
                         color: Colors.white.withOpacity(0.62),
                         fontSize: 12,
@@ -700,21 +720,25 @@ class _AdminOperatorTabState extends ConsumerState<AdminOperatorTab> {
           ),
           const SizedBox(height: 18),
           _OperatorTextField(
-            label: ref.tr('admin_operator_name_label'),
+            label: TranslatorGlobal.instance
+                .translate('admin_operator_name_label'),
             controller: _nameController,
             icon: Icons.badge_outlined,
           ),
           const SizedBox(height: 12),
           _OperatorTextField(
-            label: ref.tr('admin_operator_phone_label'),
+            label: TranslatorGlobal.instance
+                .translate('admin_operator_phone_label'),
             controller: _phoneController,
             icon: Icons.phone_android_outlined,
             keyboardType: TextInputType.phone,
           ),
           const SizedBox(height: 12),
           _OperatorTextField(
-            label: ref.tr('admin_operator_password_label'),
-            hint: ref.tr('admin_operator_password_hint'),
+            label: TranslatorGlobal.instance
+                .translate('admin_operator_password_label'),
+            hint: TranslatorGlobal.instance
+                .translate('admin_operator_password_hint'),
             controller: _passwordController,
             icon: Icons.lock_reset_outlined,
             obscureText: true,
@@ -724,7 +748,8 @@ class _AdminOperatorTabState extends ConsumerState<AdminOperatorTab> {
             children: [
               Expanded(
                 child: Text(
-                  ref.tr('admin_operator_permissions_title'),
+                  TranslatorGlobal.instance
+                      .translate('admin_operator_permissions_title'),
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 15,
@@ -735,7 +760,8 @@ class _AdminOperatorTabState extends ConsumerState<AdminOperatorTab> {
               OutlinedButton.icon(
                 onPressed: _saveCurrentAsTemplate,
                 icon: const Icon(Icons.bookmark_add_outlined, size: 16),
-                label: Text(ref.tr('admin_operator_template_save')),
+                label: Text(TranslatorGlobal.instance
+                    .translate('admin_operator_template_save')),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: Colors.white,
                   side: BorderSide(color: Colors.white.withOpacity(0.16)),
@@ -745,7 +771,8 @@ class _AdminOperatorTabState extends ConsumerState<AdminOperatorTab> {
           ),
           const SizedBox(height: 6),
           Text(
-            ref.tr('admin_operator_templates_subtitle'),
+            TranslatorGlobal.instance
+                .translate('admin_operator_templates_subtitle'),
             style: TextStyle(
               color: Colors.white.withOpacity(0.6),
               fontSize: 12,
@@ -769,7 +796,8 @@ class _AdminOperatorTabState extends ConsumerState<AdminOperatorTab> {
           if (_savedTemplates.isNotEmpty) ...[
             const SizedBox(height: 14),
             Text(
-              ref.tr('admin_operator_templates_custom_title'),
+              TranslatorGlobal.instance
+                  .translate('admin_operator_templates_custom_title'),
               style: TextStyle(
                 color: Colors.white.withOpacity(0.72),
                 fontSize: 12,
@@ -844,7 +872,8 @@ class _AdminOperatorTabState extends ConsumerState<AdminOperatorTab> {
                     )
                   : const Icon(Icons.save_outlined, size: 18),
               label: Text(
-                ref.tr('admin_operator_save_account'),
+                TranslatorGlobal.instance
+                    .translate('admin_operator_save_account'),
               ),
               style: ElevatedButton.styleFrom(
                 backgroundColor: JewelryColors.primary,
@@ -1154,7 +1183,8 @@ class _RoleTemplateCard extends StatelessWidget {
                 ),
                 if (hasActions)
                   PopupMenuButton<_SavedTemplateAction>(
-                    tooltip: 'admin_operator_template_more_actions'.tr,
+                    tooltip: TranslatorGlobal.instance
+                        .translate('admin_operator_template_more_actions'),
                     icon: Icon(
                       Icons.more_horiz_rounded,
                       color: Colors.white.withOpacity(0.72),
@@ -1178,7 +1208,8 @@ class _RoleTemplateCard extends StatelessWidget {
                           children: [
                             const Icon(Icons.edit_outlined, size: 18),
                             const SizedBox(width: 8),
-                            Text('admin_operator_template_rename'.tr),
+                            Text(TranslatorGlobal.instance
+                                .translate('admin_operator_template_rename')),
                           ],
                         ),
                       ),
@@ -1192,7 +1223,8 @@ class _RoleTemplateCard extends StatelessWidget {
                               color: JewelryColors.error,
                             ),
                             const SizedBox(width: 8),
-                            Text('admin_operator_template_delete'.tr),
+                            Text(TranslatorGlobal.instance
+                                .translate('admin_operator_template_delete')),
                           ],
                         ),
                       ),

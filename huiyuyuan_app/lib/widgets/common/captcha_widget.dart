@@ -5,9 +5,9 @@
 library;
 
 import 'dart:convert';
+import '../../l10n/translator_global.dart';
 
 import 'package:flutter/material.dart';
-import '../../l10n/string_extension.dart';
 import '../../services/api_service.dart';
 
 class CaptchaWidget extends StatefulWidget {
@@ -33,7 +33,8 @@ class _CaptchaWidgetState extends State<CaptchaWidget> {
   @override
   void initState() {
     super.initState();
-    _controller.addListener(() => widget.onCaptchaChanged(_controller.text.trim()));
+    _controller
+        .addListener(() => widget.onCaptchaChanged(_controller.text.trim()));
     _refresh();
   }
 
@@ -86,7 +87,8 @@ class _CaptchaWidgetState extends State<CaptchaWidget> {
             controller: _controller,
             maxLength: 6,
             decoration: InputDecoration(
-              hintText: 'login_captcha_hint'.tr,
+              hintText:
+                  TranslatorGlobal.instance.translate('login_captcha_hint'),
               counterText: '',
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
@@ -127,7 +129,8 @@ class _CaptchaWidgetState extends State<CaptchaWidget> {
                           color: Colors.grey[800],
                           child: Center(
                             child: Text(
-                              'login_captcha_load_fail'.tr,
+                              TranslatorGlobal.instance
+                                  .translate('login_captcha_load_fail'),
                               style: const TextStyle(
                                 color: Colors.white70,
                                 fontSize: 10,
@@ -159,7 +162,7 @@ class _CaptchaWidgetState extends State<CaptchaWidget> {
         color: Colors.grey[800],
         child: Center(
           child: Text(
-            'login_captcha_load_fail'.tr,
+            TranslatorGlobal.instance.translate('login_captcha_load_fail'),
             style: const TextStyle(color: Colors.white70, fontSize: 10),
           ),
         ),

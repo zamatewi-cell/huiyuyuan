@@ -101,27 +101,34 @@ class AppSettingsNotifier extends StateNotifier<AppSettings> {
   }
 
   AppLanguage _parseLanguage(String rawCode) {
-    final normalized = rawCode.trim();
-    switch (normalized) {
-      case 'en':
-      case 'en_US':
-      case 'en-Us':
-      case 'en-US':
-        return AppLanguage.en;
-      case 'zh_TW':
-      case 'zhTW':
-      case 'zh-TW':
-      case 'tw':
-      case 'zh_HK':
-      case 'zh-HK':
-        return AppLanguage.zhTW;
-      case 'zh_CN':
-      case 'zhCN':
-      case 'zh-CN':
-      case 'cn':
-      default:
-        return AppLanguage.zhCN;
+    // Normalize: trim, lowercase, replace hyphens with underscores.
+    final normalized = rawCode.trim().toLowerCase().replaceAll('-', '_');
+    if (normalized.isEmpty) {
+      return AppLanguage.zhCN;
     }
+
+    if (normalized.startsWith('en')) {
+      return AppLanguage.en;
+    }
+    if (normalized == 'zh_tw' ||
+        normalized == 'zhtw' ||
+        normalized == 'tw' ||
+        normalized == 'zh_hk' ||
+        normalized == 'zhhk' ||
+        normalized == 'hk') {
+      return AppLanguage.zhTW;
+    }
+    // zh_CN, zhCN, cn, zh — all fall to Simplified Chinese.
+    // Unrecognised codes also fall through; log for debugging.
+    if (!normalized.startsWith('zh') && normalized != 'cn') {
+      assert(() {
+        // ignore: avoid_print
+        print('[HuiYuYuan i18n] Unrecognised locale code "$rawCode"; '
+            'defaulting to zh-CN.');
+        return true;
+      }());
+    }
+    return AppLanguage.zhCN;
   }
 
   /// 设置语言

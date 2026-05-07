@@ -1,4 +1,4 @@
-﻿/// HuiYuYuan OSS image upload service.
+/// HuiYuYuan OSS image upload service.
 ///
 /// Responsibilities:
 /// - upload images to Alibaba Cloud OSS
@@ -10,9 +10,9 @@ import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:uuid/uuid.dart';
 import '../config/api_config.dart';
+import '../l10n/translator_global.dart';
 import '../models/json_parsing.dart';
 import 'api_service.dart';
-import 'package:huiyuyuan/l10n/string_extension.dart';
 
 /// OSS upload result.
 class OssUploadResult {
@@ -130,7 +130,7 @@ class OssService {
       // Make sure the file exists before uploading.
       final file = File(filePath);
       if (!await file.exists()) {
-        return OssUploadResult.error('oss_error_file_missing'.tr);
+        return OssUploadResult.error(_t('oss_error_file_missing'));
       }
 
       // Resolve a valid STS credential.
@@ -176,11 +176,12 @@ class OssService {
         return OssUploadResult.success(url, objectKey);
       }
 
-      return OssUploadResult.error('oss_error_upload_failed_status'.trArgs({
+      return OssUploadResult.error(
+          _t('oss_error_upload_failed_status', params: {
         'status': response.statusCode ?? '-',
       }));
     } catch (e) {
-      return OssUploadResult.error('oss_error_upload_failed'.trArgs({
+      return OssUploadResult.error(_t('oss_error_upload_failed', params: {
         'error': e,
       }));
     }
@@ -210,7 +211,7 @@ class OssService {
     }
 
     return OssUploadResult.error(
-        result.message ?? 'oss_error_upload_generic'.tr);
+        result.message ?? _t('oss_error_upload_generic'));
   }
 
   /// Uploads multiple images.
@@ -331,5 +332,9 @@ class OssService {
   /// Returns a thumbnail URL.
   String getThumbnailUrl(String url, {int size = 200}) {
     return getPreviewUrl(url, width: size, height: size, quality: 60);
+  }
+
+  String _t(String key, {Map<String, Object?> params = const {}}) {
+    return TranslatorGlobal.instance.translate(key, params: params);
   }
 }

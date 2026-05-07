@@ -1,7 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../l10n/string_extension.dart';
+import '../l10n/app_strings.dart';
 import '../models/payment_account.dart';
+import '../providers/app_settings_provider.dart';
 import '../repositories/payment_account_repository.dart';
 import '../services/api_service.dart';
 
@@ -37,12 +38,21 @@ class PaymentAccountsState {
 
 class PaymentAccountNotifier extends StateNotifier<PaymentAccountsState> {
   final PaymentAccountRepository _repository;
+  final AppLanguage Function() _languageReader;
 
-  PaymentAccountNotifier(ApiService apiService)
-      : this.withRepository(PaymentAccountRepository(apiService: apiService));
+  PaymentAccountNotifier(
+    ApiService apiService, {
+    AppLanguage Function()? languageReader,
+  }) : this.withRepository(
+          PaymentAccountRepository(apiService: apiService),
+          languageReader: languageReader,
+        );
 
-  PaymentAccountNotifier.withRepository(this._repository)
-      : super(const PaymentAccountsState()) {
+  PaymentAccountNotifier.withRepository(
+    this._repository, {
+    AppLanguage Function()? languageReader,
+  })  : _languageReader = languageReader ?? (() => AppLanguage.zhCN),
+        super(const PaymentAccountsState()) {
     loadAccounts();
   }
 
@@ -56,7 +66,7 @@ class PaymentAccountNotifier extends StateNotifier<PaymentAccountsState> {
     if (!result.success || result.data == null) {
       state = state.copyWith(
         state: PaymentLoadingState.error,
-        errorMessage: result.message ?? 'payment_operation_retry'.tr,
+        errorMessage: result.message ?? _t('payment_operation_retry'),
       );
       return;
     }
@@ -73,7 +83,7 @@ class PaymentAccountNotifier extends StateNotifier<PaymentAccountsState> {
       return true;
     }
 
-    _setMutationError(result.message ?? 'payment_operation_retry'.tr);
+    _setMutationError(result.message ?? _t('payment_operation_retry'));
     return false;
   }
 
@@ -86,7 +96,7 @@ class PaymentAccountNotifier extends StateNotifier<PaymentAccountsState> {
       return true;
     }
 
-    _setMutationError(result.message ?? 'payment_operation_retry'.tr);
+    _setMutationError(result.message ?? _t('payment_operation_retry'));
     return false;
   }
 
@@ -101,14 +111,14 @@ class PaymentAccountNotifier extends StateNotifier<PaymentAccountsState> {
       return true;
     }
 
-    _setMutationError(result.message ?? 'payment_operation_retry'.tr);
+    _setMutationError(result.message ?? _t('payment_operation_retry'));
     return false;
   }
 
   Future<bool> toggleActive(String id) async {
     final account = _findAccount(id);
     if (account == null) {
-      _setMutationError('payment_operation_retry'.tr);
+      _setMutationError(_t('payment_operation_retry'));
       return false;
     }
 
@@ -173,6 +183,10 @@ class PaymentAccountNotifier extends StateNotifier<PaymentAccountsState> {
     );
   }
 
+  String _t(String key, {Map<String, Object?> params = const {}}) {
+    return AppStrings.get(_languageReader(), key, params: params);
+  }
+
   List<PaymentAccount> _sortAccounts(List<PaymentAccount> accounts) {
     final sorted = List<PaymentAccount>.from(accounts);
     sorted.sort((left, right) {
@@ -210,5 +224,8 @@ final paymentAccountRepositoryProvider =
 final paymentAccountsProvider =
     StateNotifierProvider<PaymentAccountNotifier, PaymentAccountsState>((ref) {
   final repository = ref.watch(paymentAccountRepositoryProvider);
-  return PaymentAccountNotifier.withRepository(repository);
+  return PaymentAccountNotifier.withRepository(
+    repository,
+    languageReader: () => ref.read(appSettingsProvider).language,
+  );
 });

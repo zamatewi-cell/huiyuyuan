@@ -1,0 +1,51 @@
+# Cursor indexing exclusion list
+# These paths are excluded from Cursor's AI context index to reduce noise.
+# See: https://docs.cursor.com/context/codebase-indexing
+
+# Visual artifacts
+# Browser/desktop screenshots captured during development and QA sessions.
+# They are preserved for reference but should not pollute AI code context.
+docs/screenshots/
+*.png
+*.jpg
+*.jpeg
+*.webp
+*.gif
+
+# Build outputs
+huiyuyuan_app/build/
+huiyuyuan_app/.dart_tool/
+huiyuyuan_app/android/.gradle/
+huiyuyuan_app/android/.kotlin/
+huiyuyuan_app/ios/Pods/
+huiyuyuan_app/ios/Flutter/Generated.xcconfig
+huiyuyuan_app/ios/Flutter/ephemeral/
+huiyuyuan_app/ios/Flutter/flutter_export_environment.sh
+huiyuyuan_app/ios/Runner/GeneratedPluginRegistrant.*
+huiyuyuan_app/macos/Flutter/ephemeral/
+gradle_repro_version_catalog/
+
+# Large binary / lock files
+huiyuyuan_app/pubspec.lock
+*.lock
+*.gradle
+*.aar
+*.apk
+*.aab
+*.jks
+*.keystore
+*.iml
+
+# Local signing / SDK configuration
+**/key.properties
+**/local.properties
+**/GeneratedPluginRegistrant.*
+
+# Python cache and local virtual environments
+**/__pycache__/
+**/*.pyc
+huiyuyuan_app/backend/venv/
+huiyuyuan_app/backend/.venv/
+
+# Legacy / archive docs
+docs/reference/

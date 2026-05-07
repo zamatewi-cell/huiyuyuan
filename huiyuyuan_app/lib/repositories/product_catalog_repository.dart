@@ -1,13 +1,14 @@
-﻿library;
+library;
 
 import '../data/product_runtime_catalog.dart';
 import '../data/product_runtime_store.dart';
+import '../l10n/app_strings.dart';
 import '../l10n/product_translator.dart';
+import '../l10n/translator_global.dart';
 import '../models/product_model.dart';
 import '../models/product_upsert_request.dart';
 import '../providers/app_settings_provider.dart';
 import '../services/storage_service.dart';
-import 'package:huiyuyuan/l10n/string_extension.dart';
 
 typedef LocalProductIdBuilder = String Function();
 
@@ -39,7 +40,7 @@ class ProductCatalogQuery {
   });
 
   bool get hasFilters =>
-      (category != null && category != 'platform_all'.tr) ||
+      (category != null && !_isAllCategory(category)) ||
       material != null ||
       minPrice != null ||
       maxPrice != null ||
@@ -51,8 +52,7 @@ class ProductCatalogQuery {
 
   Map<String, dynamic> toApiParams() {
     return {
-      if (category != null && category != 'platform_all'.tr)
-        'category': category,
+      if (category != null && !_isAllCategory(category)) 'category': category,
       if (material != null) 'material': material,
       if (minPrice != null) 'min_price': minPrice,
       if (maxPrice != null) 'max_price': maxPrice,
@@ -100,7 +100,7 @@ class ProductCatalogRepository {
   List<ProductModel> listProducts(ProductCatalogQuery query) {
     var products = List<ProductModel>.from(_productLoader());
 
-    if (query.category != null && query.category != 'platform_all'.tr) {
+    if (query.category != null && !_isAllCategory(query.category)) {
       products = products.where((p) => p.category == query.category).toList();
     }
     if (query.material != null) {
@@ -264,7 +264,10 @@ class ProductCatalogRepository {
   }
 
   List<String> getCategories() {
-    return ['platform_all'.tr, ..._uniqueValues((product) => product.category)];
+    return [
+      _t('platform_all'),
+      ..._uniqueValues((product) => product.category)
+    ];
   }
 
   List<String> getMaterials() {
@@ -294,8 +297,8 @@ class ProductCatalogRepository {
     required String productId,
     ProductModel? existing,
   }) {
-    final materialVerify =
-        existing?.materialVerify ?? 'product_material_verify_natural_a'.tr;
+    final materialVerify = existing?.materialVerify ??
+        AppStrings.get(AppLanguage.zhCN, 'product_material_verify_natural_a');
     final canonicalCategory =
         ProductTranslator.canonicalCategory(request.category);
     final canonicalMaterial =
@@ -364,10 +367,59 @@ class ProductCatalogRepository {
         AppLanguage.zhTW,
         materialVerify,
       ),
+      appraisalNote: request.appraisalNote ?? existing?.appraisalNote,
+      appraisalNoteEn: request.appraisalNoteEn ?? existing?.appraisalNoteEn,
+      appraisalNoteZhTw:
+          request.appraisalNoteZhTw ?? existing?.appraisalNoteZhTw,
+      craftHighlights: request.craftHighlights ?? existing?.craftHighlights,
+      craftHighlightsEn:
+          request.craftHighlightsEn ?? existing?.craftHighlightsEn,
+      craftHighlightsZhTw:
+          request.craftHighlightsZhTw ?? existing?.craftHighlightsZhTw,
+      weightG: request.weightG ?? existing?.weightG,
+      dimensions: request.dimensions ?? existing?.dimensions,
+      audienceTags: request.audienceTags ?? existing?.audienceTags,
+      audienceTagsEn: request.audienceTagsEn ?? existing?.audienceTagsEn,
+      audienceTagsZhTw: request.audienceTagsZhTw ?? existing?.audienceTagsZhTw,
+      originStory: request.originStory ?? existing?.originStory,
+      originStoryEn: request.originStoryEn ?? existing?.originStoryEn,
+      originStoryZhTw: request.originStoryZhTw ?? existing?.originStoryZhTw,
+      flawNotes: request.flawNotes ?? existing?.flawNotes,
+      flawNotesEn: request.flawNotesEn ?? existing?.flawNotesEn,
+      flawNotesZhTw: request.flawNotesZhTw ?? existing?.flawNotesZhTw,
+      certificateAuthority:
+          request.certificateAuthority ?? existing?.certificateAuthority,
+      certificateAuthorityEn:
+          request.certificateAuthorityEn ?? existing?.certificateAuthorityEn,
+      certificateAuthorityZhTw: request.certificateAuthorityZhTw ??
+          existing?.certificateAuthorityZhTw,
+      certificateImageUrl:
+          request.certificateImageUrl ?? existing?.certificateImageUrl,
+      certificateVerifyUrl:
+          request.certificateVerifyUrl ?? existing?.certificateVerifyUrl,
+      galleryDetail: request.galleryDetail ?? existing?.galleryDetail,
+      galleryHand: request.galleryHand ?? existing?.galleryHand,
     );
   }
 
   static String _defaultLocalProductIdBuilder() {
     return 'LOCAL-${DateTime.now().microsecondsSinceEpoch}';
   }
+
+  String _t(String key, {Map<String, Object?> params = const {}}) {
+    return TranslatorGlobal.instance.translate(key, params: params);
+  }
+}
+
+bool _isAllCategory(String? category) {
+  final value = category?.trim();
+  if (value == null || value.isEmpty) {
+    return false;
+  }
+  if (value == 'platform_all') {
+    return true;
+  }
+  return AppLanguage.values.any(
+    (language) => AppStrings.get(language, 'platform_all') == value,
+  );
 }

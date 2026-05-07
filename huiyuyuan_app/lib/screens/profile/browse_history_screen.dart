@@ -11,6 +11,7 @@ import '../../models/product_model.dart';
 import 'package:flutter/material.dart';
 import '../../l10n/l10n_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../providers/app_settings_provider.dart';
 import 'dart:ui';
 import '../../models/user_data_models.dart';
 import '../../themes/colors.dart';
@@ -352,6 +353,7 @@ class _HistoryCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final lang = ref.watch(appSettingsProvider).language;
     final product = item.product;
     final imageUrl = product.images.isEmpty ? null : product.images.first;
 
@@ -399,9 +401,9 @@ class _HistoryCard extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  product.titleL10n.isEmpty
+                  product.localizedTitleFor(lang).isEmpty
                       ? ref.tr('product_unknown')
-                      : product.titleL10n,
+                      : product.localizedTitleFor(lang),
                   style: const TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w900,
@@ -411,9 +413,9 @@ class _HistoryCard extends ConsumerWidget {
                   overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 4),
-                if (product.matL10n.isNotEmpty)
+                if (product.localizedMaterialFor(lang).isNotEmpty)
                   Text(
-                    product.matL10n,
+                    product.localizedMaterialFor(lang),
                     style: TextStyle(
                       fontSize: 12,
                       color: JewelryColors.jadeMist.withOpacity(0.58),

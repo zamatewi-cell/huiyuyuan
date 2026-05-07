@@ -1,4 +1,4 @@
-﻿import 'package:huiyuyuan/l10n/string_extension.dart';
+import 'package:huiyuyuan/l10n/translator_global.dart';
 
 class _AiTermRule {
   final List<String> aliases;
@@ -45,10 +45,10 @@ class AIInsightService {
       'isCompliant': violations.isEmpty,
       'violations': violations,
       'suggestion': violations.isNotEmpty
-          ? 'ai_compliance_violations'.trArgs({
+          ? _t('ai_compliance_violations', params: {
               'terms': violations.join(' / '),
             })
-          : 'ai_compliance_clean'.tr,
+          : _t('ai_compliance_clean'),
     };
   }
 
@@ -68,53 +68,53 @@ class AIInsightService {
     if (rating >= 4.8) {
       score += 30;
       reasons.add(
-        'ai_shop_eval_rating_excellent'.trArgs({'rating': ratingText}),
+        _t('ai_shop_eval_rating_excellent', params: {'rating': ratingText}),
       );
     } else if (rating >= 4.7) {
       score += 20;
       reasons.add(
-        'ai_shop_eval_rating_good'.trArgs({'rating': ratingText}),
+        _t('ai_shop_eval_rating_good', params: {'rating': ratingText}),
       );
     } else {
       score += 10;
       reasons.add(
-        'ai_shop_eval_rating_average'.trArgs({'rating': ratingText}),
+        _t('ai_shop_eval_rating_average', params: {'rating': ratingText}),
       );
     }
 
     if (conversionRate >= 5) {
       score += 30;
       reasons.add(
-        'ai_shop_eval_conversion_excellent'.trArgs({
+        _t('ai_shop_eval_conversion_excellent', params: {
           'rate': conversionText,
         }),
       );
     } else if (conversionRate >= 3) {
       score += 20;
       reasons.add(
-        'ai_shop_eval_conversion_good'.trArgs({'rate': conversionText}),
+        _t('ai_shop_eval_conversion_good', params: {'rate': conversionText}),
       );
     } else {
       score += 10;
       reasons.add(
-        'ai_shop_eval_conversion_average'.trArgs({'rate': conversionText}),
+        _t('ai_shop_eval_conversion_average', params: {'rate': conversionText}),
       );
     }
 
     if (followers >= 100000) {
       score += 25;
       reasons.add(
-        'ai_shop_eval_followers_large'.trArgs({'count': followerText}),
+        _t('ai_shop_eval_followers_large', params: {'count': followerText}),
       );
     } else if (followers >= 50000) {
       score += 15;
       reasons.add(
-        'ai_shop_eval_followers_medium'.trArgs({'count': followerText}),
+        _t('ai_shop_eval_followers_medium', params: {'count': followerText}),
       );
     } else {
       score += 10;
       reasons.add(
-        'ai_shop_eval_followers_small'.trArgs({'count': followerText}),
+        _t('ai_shop_eval_followers_small', params: {'count': followerText}),
       );
     }
 
@@ -123,16 +123,16 @@ class AIInsightService {
       if (negativeRate < 0.01) {
         score += 15;
         reasons.add(
-          'ai_shop_eval_negative_very_low'.trArgs({'rate': negativeText}),
+          _t('ai_shop_eval_negative_very_low', params: {'rate': negativeText}),
         );
       } else if (negativeRate < 0.02) {
         score += 10;
         reasons.add(
-          'ai_shop_eval_negative_low'.trArgs({'rate': negativeText}),
+          _t('ai_shop_eval_negative_low', params: {'rate': negativeText}),
         );
       } else {
         reasons.add(
-          'ai_shop_eval_negative_high'.trArgs({'rate': negativeText}),
+          _t('ai_shop_eval_negative_high', params: {'rate': negativeText}),
         );
       }
     }
@@ -141,13 +141,13 @@ class AIInsightService {
     late final String priority;
 
     if (score >= 80) {
-      decision = 'ai_shop_eval_decision_strong'.tr;
+      decision = _t('ai_shop_eval_decision_strong');
       priority = 'high';
     } else if (score >= 60) {
-      decision = 'ai_shop_eval_decision_suggest'.tr;
+      decision = _t('ai_shop_eval_decision_suggest');
       priority = 'medium';
     } else {
-      decision = 'ai_shop_eval_decision_hold'.tr;
+      decision = _t('ai_shop_eval_decision_hold');
       priority = 'low';
     }
 
@@ -158,8 +158,8 @@ class AIInsightService {
       'priority': priority,
       'reasons': reasons,
       'suggestedAction': score >= 60
-          ? 'ai_shop_eval_action_contact'.tr
-          : 'ai_shop_eval_action_observe'.tr,
+          ? _t('ai_shop_eval_action_contact')
+          : _t('ai_shop_eval_action_observe'),
     };
   }
 
@@ -225,21 +225,25 @@ class AIInsightService {
 
   String _generateSuggestion(String sentiment, String intent) {
     if (sentiment == 'negative') {
-      return 'ai_chat_suggestion_negative'.tr;
+      return _t('ai_chat_suggestion_negative');
     }
 
     switch (intent) {
       case 'price_inquiry':
-        return 'ai_chat_suggestion_price_inquiry'.tr;
+        return _t('ai_chat_suggestion_price_inquiry');
       case 'authenticity_check':
-        return 'ai_chat_suggestion_authenticity'.tr;
+        return _t('ai_chat_suggestion_authenticity');
       case 'business_inquiry':
-        return 'ai_chat_suggestion_business'.tr;
+        return _t('ai_chat_suggestion_business');
       case 'after_sales':
-        return 'ai_chat_suggestion_after_sales'.tr;
+        return _t('ai_chat_suggestion_after_sales');
       default:
-        return 'ai_chat_suggestion_default'.tr;
+        return _t('ai_chat_suggestion_default');
     }
+  }
+
+  String _t(String key, {Map<String, Object?> params = const {}}) {
+    return TranslatorGlobal.instance.translate(key, params: params);
   }
 
   List<String> get _sensitiveWords => _sensitiveTerms;

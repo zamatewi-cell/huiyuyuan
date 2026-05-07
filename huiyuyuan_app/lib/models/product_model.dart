@@ -6,12 +6,9 @@ import 'json_parsing.dart';
 
 import '../l10n/app_strings.dart';
 import '../l10n/product_translator.dart';
-import '../l10n/translator_global.dart';
 import '../providers/app_settings_provider.dart';
 
 extension LocalizedProductModel on ProductModel {
-  String get titleL10n => localizedTitleFor(TranslatorGlobal.currentLang);
-
   String localizedTitleFor(AppLanguage lang) {
     if (lang == AppLanguage.en) {
       return _resolveEnglish(
@@ -39,8 +36,6 @@ extension LocalizedProductModel on ProductModel {
     }
     return name;
   }
-
-  String get descL10n => localizedDescriptionFor(TranslatorGlobal.currentLang);
 
   String localizedDescriptionFor(AppLanguage lang) {
     if (lang == AppLanguage.en) {
@@ -70,8 +65,6 @@ extension LocalizedProductModel on ProductModel {
     }
     return description;
   }
-
-  String get matL10n => localizedMaterialFor(TranslatorGlobal.currentLang);
 
   String localizedMaterialFor(AppLanguage lang) {
     if (lang == AppLanguage.en) {
@@ -105,8 +98,6 @@ extension LocalizedProductModel on ProductModel {
     return material;
   }
 
-  String get catL10n => localizedCategoryFor(TranslatorGlobal.currentLang);
-
   String localizedCategoryFor(AppLanguage lang) {
     if (lang == AppLanguage.en) {
       return _resolveEnglish(
@@ -138,8 +129,6 @@ extension LocalizedProductModel on ProductModel {
     }
     return category;
   }
-
-  String get originL10n => localizedOriginFor(TranslatorGlobal.currentLang);
 
   String localizedOriginFor(AppLanguage lang) {
     if (origin == null || origin!.trim().isEmpty) {
@@ -193,9 +182,6 @@ extension LocalizedProductModel on ProductModel {
     return origin!;
   }
 
-  String get materialVerifyL10n =>
-      localizedMaterialVerifyFor(TranslatorGlobal.currentLang);
-
   String localizedMaterialVerifyFor(AppLanguage lang) {
     if (lang == AppLanguage.en) {
       return _resolveEnglish(
@@ -221,6 +207,97 @@ extension LocalizedProductModel on ProductModel {
       );
     }
     return materialVerify;
+  }
+
+  /// Returns the appraisal note for [lang], or `null` when not available.
+  ///
+  /// Unlike other getters there is no machine-translation fallback for this
+  /// field — authentication text must be human-reviewed.
+  String? localizedAppraisalNoteFor(AppLanguage lang) {
+    if (lang == AppLanguage.en) return appraisalNoteEn ?? appraisalNote;
+    if (lang == AppLanguage.zhTW) return appraisalNoteZhTw ?? appraisalNote;
+    return appraisalNote;
+  }
+
+  List<String> localizedCraftHighlightsFor(AppLanguage lang) {
+    if (lang == AppLanguage.en) {
+      return _resolveStringList(craftHighlightsEn, craftHighlights);
+    }
+    if (lang == AppLanguage.zhTW) {
+      return _resolveStringList(craftHighlightsZhTw, craftHighlights);
+    }
+    return _cleanStringList(craftHighlights);
+  }
+
+  List<String> localizedAudienceTagsFor(AppLanguage lang) {
+    if (lang == AppLanguage.en) {
+      return _resolveStringList(audienceTagsEn, audienceTags);
+    }
+    if (lang == AppLanguage.zhTW) {
+      return _resolveStringList(audienceTagsZhTw, audienceTags);
+    }
+    return _cleanStringList(audienceTags);
+  }
+
+  String? localizedOriginStoryFor(AppLanguage lang) {
+    if (lang == AppLanguage.en) {
+      return _resolveNullableText(originStoryEn, originStory);
+    }
+    if (lang == AppLanguage.zhTW) {
+      return _resolveNullableText(originStoryZhTw, originStory);
+    }
+    return _resolveNullableText(originStory, null);
+  }
+
+  List<String> localizedFlawNotesFor(AppLanguage lang) {
+    if (lang == AppLanguage.en) {
+      return _resolveStringList(flawNotesEn, flawNotes);
+    }
+    if (lang == AppLanguage.zhTW) {
+      return _resolveStringList(flawNotesZhTw, flawNotes);
+    }
+    return _cleanStringList(flawNotes);
+  }
+
+  String? localizedCertificateAuthorityFor(AppLanguage lang) {
+    if (lang == AppLanguage.en) {
+      return _resolveNullableText(
+        certificateAuthorityEn,
+        certificateAuthority,
+      );
+    }
+    if (lang == AppLanguage.zhTW) {
+      return _resolveNullableText(
+        certificateAuthorityZhTw,
+        certificateAuthority,
+      );
+    }
+    return _resolveNullableText(certificateAuthority, null);
+  }
+
+  List<String> _resolveStringList(
+    List<String>? localized,
+    List<String>? fallback,
+  ) {
+    final localizedValues = _cleanStringList(localized);
+    if (localizedValues.isNotEmpty) return localizedValues;
+    return _cleanStringList(fallback);
+  }
+
+  List<String> _cleanStringList(List<String>? values) {
+    if (values == null) return const [];
+    return values.map((value) => value.trim()).where((value) {
+      return value.isNotEmpty;
+    }).toList(growable: false);
+  }
+
+  String? _resolveNullableText(String? localized, String? fallback) {
+    final localizedText = localized?.trim();
+    if (localizedText != null && localizedText.isNotEmpty) {
+      return localizedText;
+    }
+    final fallbackText = fallback?.trim();
+    return fallbackText == null || fallbackText.isEmpty ? null : fallbackText;
   }
 
   String _resolveEnglish({
@@ -572,6 +649,29 @@ enum ProductCategory {
 }
 
 /// Product model.
+List<String>? _jsonAsNullableStringList(dynamic value) {
+  if (value == null) return null;
+  final List<String> rawItems;
+  if (value is String) {
+    final text = jsonAsNullableString(value);
+    if (text == null) return null;
+    rawItems = text
+        .split(RegExp(r'[\r\n]+'))
+        .map((line) {
+          return line.replaceFirst(RegExp(r'^\s*[•\-*·]\s*'), '').trim();
+        })
+        .where((line) => line.isNotEmpty)
+        .toList(growable: false);
+  } else {
+    rawItems = jsonAsStringList(value);
+  }
+  final items = rawItems
+      .map((item) => item.trim())
+      .where((item) => item.isNotEmpty)
+      .toList(growable: false);
+  return items.isEmpty ? null : items;
+}
+
 class ProductModel {
   final String id;
   final String name;
@@ -614,6 +714,44 @@ class ProductModel {
   final String? materialVerifyEn;
   final String? materialVerifyZhTw;
 
+  // ── 一物一档：鉴定说明（专业珠宝鉴定文字，可含鉴定机构、等级等）─────────────
+  final String? appraisalNote;
+  final String? appraisalNoteEn;
+  final String? appraisalNoteZhTw;
+
+  // ── 一物一档：工艺亮点（加工工艺要点，如雕刻手法、抛光工艺等）─────────────
+  final List<String>? craftHighlights;
+  final List<String>? craftHighlightsEn;
+  final List<String>? craftHighlightsZhTw;
+
+  // ── 物理规格（与语言无关）─────────────────────────────────────────────────
+  /// Weight in grams (null if unknown).
+  final double? weightG;
+
+  /// Physical dimensions string, e.g. "18×12×8 mm".
+  final String? dimensions;
+
+  final List<String>? audienceTags;
+  final List<String>? audienceTagsEn;
+  final List<String>? audienceTagsZhTw;
+
+  final String? originStory;
+  final String? originStoryEn;
+  final String? originStoryZhTw;
+
+  final List<String>? flawNotes;
+  final List<String>? flawNotesEn;
+  final List<String>? flawNotesZhTw;
+
+  final String? certificateAuthority;
+  final String? certificateAuthorityEn;
+  final String? certificateAuthorityZhTw;
+  final String? certificateImageUrl;
+  final String? certificateVerifyUrl;
+
+  final List<String>? galleryDetail;
+  final List<String>? galleryHand;
+
   ProductModel({
     required this.id,
     required this.name,
@@ -645,6 +783,30 @@ class ProductModel {
     this.originZhTw,
     this.materialVerifyEn,
     this.materialVerifyZhTw,
+    this.appraisalNote,
+    this.appraisalNoteEn,
+    this.appraisalNoteZhTw,
+    this.craftHighlights,
+    this.craftHighlightsEn,
+    this.craftHighlightsZhTw,
+    this.weightG,
+    this.dimensions,
+    this.audienceTags,
+    this.audienceTagsEn,
+    this.audienceTagsZhTw,
+    this.originStory,
+    this.originStoryEn,
+    this.originStoryZhTw,
+    this.flawNotes,
+    this.flawNotesEn,
+    this.flawNotesZhTw,
+    this.certificateAuthority,
+    this.certificateAuthorityEn,
+    this.certificateAuthorityZhTw,
+    this.certificateImageUrl,
+    this.certificateVerifyUrl,
+    this.galleryDetail,
+    this.galleryHand,
   });
 
   /// Discount rate.
@@ -693,6 +855,34 @@ class ProductModel {
       originZhTw: jsonAsNullableString(json['origin_zh_tw']),
       materialVerifyEn: jsonAsNullableString(json['material_verify_en']),
       materialVerifyZhTw: jsonAsNullableString(json['material_verify_zh_tw']),
+      appraisalNote: jsonAsNullableString(json['appraisal_note']),
+      appraisalNoteEn: jsonAsNullableString(json['appraisal_note_en']),
+      appraisalNoteZhTw: jsonAsNullableString(json['appraisal_note_zh_tw']),
+      craftHighlights: _jsonAsNullableStringList(json['craft_highlights']),
+      craftHighlightsEn: _jsonAsNullableStringList(json['craft_highlights_en']),
+      craftHighlightsZhTw:
+          _jsonAsNullableStringList(json['craft_highlights_zh_tw']),
+      weightG: json['weight_g'] == null ? null : jsonAsDouble(json['weight_g']),
+      dimensions: jsonAsNullableString(json['dimensions']),
+      audienceTags: _jsonAsNullableStringList(json['audience_tags']),
+      audienceTagsEn: _jsonAsNullableStringList(json['audience_tags_en']),
+      audienceTagsZhTw: _jsonAsNullableStringList(json['audience_tags_zh_tw']),
+      originStory: jsonAsNullableString(json['origin_story']),
+      originStoryEn: jsonAsNullableString(json['origin_story_en']),
+      originStoryZhTw: jsonAsNullableString(json['origin_story_zh_tw']),
+      flawNotes: _jsonAsNullableStringList(json['flaw_notes']),
+      flawNotesEn: _jsonAsNullableStringList(json['flaw_notes_en']),
+      flawNotesZhTw: _jsonAsNullableStringList(json['flaw_notes_zh_tw']),
+      certificateAuthority: jsonAsNullableString(json['certificate_authority']),
+      certificateAuthorityEn:
+          jsonAsNullableString(json['certificate_authority_en']),
+      certificateAuthorityZhTw:
+          jsonAsNullableString(json['certificate_authority_zh_tw']),
+      certificateImageUrl: jsonAsNullableString(json['certificate_image_url']),
+      certificateVerifyUrl:
+          jsonAsNullableString(json['certificate_verify_url']),
+      galleryDetail: _jsonAsNullableStringList(json['gallery_detail']),
+      galleryHand: _jsonAsNullableStringList(json['gallery_hand']),
     );
   }
 
@@ -728,6 +918,30 @@ class ProductModel {
       'origin_zh_tw': originZhTw,
       'material_verify_en': materialVerifyEn,
       'material_verify_zh_tw': materialVerifyZhTw,
+      'appraisal_note': appraisalNote,
+      'appraisal_note_en': appraisalNoteEn,
+      'appraisal_note_zh_tw': appraisalNoteZhTw,
+      'craft_highlights': craftHighlights,
+      'craft_highlights_en': craftHighlightsEn,
+      'craft_highlights_zh_tw': craftHighlightsZhTw,
+      'weight_g': weightG,
+      'dimensions': dimensions,
+      'audience_tags': audienceTags,
+      'audience_tags_en': audienceTagsEn,
+      'audience_tags_zh_tw': audienceTagsZhTw,
+      'origin_story': originStory,
+      'origin_story_en': originStoryEn,
+      'origin_story_zh_tw': originStoryZhTw,
+      'flaw_notes': flawNotes,
+      'flaw_notes_en': flawNotesEn,
+      'flaw_notes_zh_tw': flawNotesZhTw,
+      'certificate_authority': certificateAuthority,
+      'certificate_authority_en': certificateAuthorityEn,
+      'certificate_authority_zh_tw': certificateAuthorityZhTw,
+      'certificate_image_url': certificateImageUrl,
+      'certificate_verify_url': certificateVerifyUrl,
+      'gallery_detail': galleryDetail,
+      'gallery_hand': galleryHand,
     };
   }
 
@@ -762,6 +976,30 @@ class ProductModel {
     String? originZhTw,
     String? materialVerifyEn,
     String? materialVerifyZhTw,
+    String? appraisalNote,
+    String? appraisalNoteEn,
+    String? appraisalNoteZhTw,
+    List<String>? craftHighlights,
+    List<String>? craftHighlightsEn,
+    List<String>? craftHighlightsZhTw,
+    double? weightG,
+    String? dimensions,
+    List<String>? audienceTags,
+    List<String>? audienceTagsEn,
+    List<String>? audienceTagsZhTw,
+    String? originStory,
+    String? originStoryEn,
+    String? originStoryZhTw,
+    List<String>? flawNotes,
+    List<String>? flawNotesEn,
+    List<String>? flawNotesZhTw,
+    String? certificateAuthority,
+    String? certificateAuthorityEn,
+    String? certificateAuthorityZhTw,
+    String? certificateImageUrl,
+    String? certificateVerifyUrl,
+    List<String>? galleryDetail,
+    List<String>? galleryHand,
   }) {
     return ProductModel(
       id: id ?? this.id,
@@ -794,6 +1032,32 @@ class ProductModel {
       originZhTw: originZhTw ?? this.originZhTw,
       materialVerifyEn: materialVerifyEn ?? this.materialVerifyEn,
       materialVerifyZhTw: materialVerifyZhTw ?? this.materialVerifyZhTw,
+      appraisalNote: appraisalNote ?? this.appraisalNote,
+      appraisalNoteEn: appraisalNoteEn ?? this.appraisalNoteEn,
+      appraisalNoteZhTw: appraisalNoteZhTw ?? this.appraisalNoteZhTw,
+      craftHighlights: craftHighlights ?? this.craftHighlights,
+      craftHighlightsEn: craftHighlightsEn ?? this.craftHighlightsEn,
+      craftHighlightsZhTw: craftHighlightsZhTw ?? this.craftHighlightsZhTw,
+      weightG: weightG ?? this.weightG,
+      dimensions: dimensions ?? this.dimensions,
+      audienceTags: audienceTags ?? this.audienceTags,
+      audienceTagsEn: audienceTagsEn ?? this.audienceTagsEn,
+      audienceTagsZhTw: audienceTagsZhTw ?? this.audienceTagsZhTw,
+      originStory: originStory ?? this.originStory,
+      originStoryEn: originStoryEn ?? this.originStoryEn,
+      originStoryZhTw: originStoryZhTw ?? this.originStoryZhTw,
+      flawNotes: flawNotes ?? this.flawNotes,
+      flawNotesEn: flawNotesEn ?? this.flawNotesEn,
+      flawNotesZhTw: flawNotesZhTw ?? this.flawNotesZhTw,
+      certificateAuthority: certificateAuthority ?? this.certificateAuthority,
+      certificateAuthorityEn:
+          certificateAuthorityEn ?? this.certificateAuthorityEn,
+      certificateAuthorityZhTw:
+          certificateAuthorityZhTw ?? this.certificateAuthorityZhTw,
+      certificateImageUrl: certificateImageUrl ?? this.certificateImageUrl,
+      certificateVerifyUrl: certificateVerifyUrl ?? this.certificateVerifyUrl,
+      galleryDetail: galleryDetail ?? this.galleryDetail,
+      galleryHand: galleryHand ?? this.galleryHand,
     );
   }
 }

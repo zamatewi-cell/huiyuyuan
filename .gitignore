@@ -38,6 +38,8 @@ desktop.ini
 
 # Sensitive files
 secrets.dart
+**/key.properties
+**/local.properties
 *.key
 *.pem
 *.p12
@@ -74,6 +76,12 @@ venv/
 
 # Flutter build directories
 **/.gradle/
+**/.kotlin/
+**/*.iml
+**/GeneratedPluginRegistrant.*
+**/Flutter/Generated.xcconfig
+**/Flutter/ephemeral/
+**/Flutter/flutter_export_environment.sh
 huiyuyuan_app/build/
 huiyuyuan_app/.dart_tool/
 huiyuyuan_app/.flutter-plugins
@@ -86,3 +94,16 @@ backups/
 
 # Uploads
 uploads/
+
+# Screenshots / visual acceptance artefacts (moved to docs/screenshots/)
+# Only root-level screenshot PNGs are excluded; app assets under
+# huiyuyuan_app/ remain tracked normally.
+/docs/screenshots/
+/coord-search/
+/final_acceptance_screens/
+# Root-level screenshot image files (not app assets)
+/*.png
+/*.jpg
+/*.jpeg
+/*.webp
+/*.gif

@@ -1,11 +1,12 @@
-﻿library;
+library;
 
+import '../l10n/translator_global.dart';
 import '../utils/text_sanitizer.dart';
+import '../providers/app_settings_provider.dart';
 import 'ai_insight_service.dart';
 import 'ai_dashscope_service.dart';
 import 'ai_product_context_service.dart';
 import 'ai_prompt_service.dart';
-import 'package:huiyuyuan/l10n/string_extension.dart';
 
 class AIService {
   static final AIService _instance = AIService._internal();
@@ -105,7 +106,7 @@ class AIService {
       _promptService.getOfflineResponse(safeUserMessage, language: language),
     );
     final fallback = sanitizeUtf16(
-      'ai_offline_message'.trArgs({'content': offlineResponse}),
+      _t('ai_offline_message', params: {'content': offlineResponse}),
     );
     for (int index = 0; index < fallback.length; index++) {
       onToken(fallback[index]);
@@ -156,7 +157,9 @@ class AIService {
       return sanitizeUtf16(finalSystemPrompt);
     }
 
-    final productContext = await _productContextService.buildProductContext();
+    final productContext = await _productContextService.buildProductContext(
+      language: _languageFromCode(language),
+    );
     if (productContext.isNotEmpty) {
       finalSystemPrompt += '\n\n$productContext';
     }
@@ -165,6 +168,20 @@ class AIService {
 
   static List<Map<String, String>> getQuickQuestions() {
     return const AIPromptService().getQuickQuestions();
+  }
+
+  static AppLanguage _languageFromCode(String code) {
+    final normalized = code.trim().toLowerCase().replaceAll('-', '_');
+    if (normalized.startsWith('en')) return AppLanguage.en;
+    if (normalized == 'zh_tw' ||
+        normalized == 'zhtw' ||
+        normalized == 'tw' ||
+        normalized == 'zh_hk' ||
+        normalized == 'zhhk' ||
+        normalized == 'hk') {
+      return AppLanguage.zhTW;
+    }
+    return AppLanguage.zhCN;
   }
 
   Future<String> generateBusinessDialogue({
@@ -263,5 +280,9 @@ class AIService {
       followers: followers,
       negativeRate: negativeRate,
     );
+  }
+
+  String _t(String key, {Map<String, Object?> params = const {}}) {
+    return TranslatorGlobal.instance.translate(key, params: params);
   }
 }

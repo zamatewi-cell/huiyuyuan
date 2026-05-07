@@ -16,7 +16,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../config/app_config.dart';
 import '../../l10n/app_strings.dart';
 import '../../l10n/l10n_provider.dart';
-import '../../l10n/string_extension.dart';
 import '../../models/app_update_download_state.dart';
 import '../../models/user_model.dart';
 import '../../providers/app_settings_provider.dart';
@@ -2103,7 +2102,7 @@ class _ReminderSettingsSheetState
                       const SizedBox(width: 12),
                       Expanded(
                         child: Text(
-                          'notification_unread_summary'.trArgs({
+                          ref.tr('notification_unread_summary', params: {
                             'count': unreadNotifications,
                           }),
                           style: TextStyle(
@@ -2130,7 +2129,7 @@ class _ReminderSettingsSheetState
                             vertical: 10,
                           ),
                         ),
-                        child: Text('notification_view_center'.tr),
+                        child: Text(ref.tr('notification_view_center')),
                       ),
                     ],
                   ),

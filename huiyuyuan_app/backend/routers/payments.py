@@ -9,6 +9,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
 from sqlalchemy.orm import Session
 
+from config import IS_PRODUCTION
 from database import get_db
 from security import (
     AuthorizationDep,
@@ -38,6 +39,15 @@ from services.payment_service import (
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/payments", tags=["Payments"])
+
+TEST_PAYMENT_METHODS = {"test_alipay", "test_wechat"}
+
+
+def _is_explicit_test_order(order) -> bool:
+    """Return True only when the order was explicitly marked as a test order."""
+    if isinstance(order, dict):
+        return order.get("is_test_order") is True
+    return getattr(order, "is_test_order", False) is True
 
 
 def _require_payment_review_access(
@@ -147,8 +157,17 @@ async def create_payment(
         db=db,
     )
 
-    # Auto-confirm for 0.01 test orders (skip admin confirmation)
-    if amount == 0.01 and record:
+    normalized_payment_method = (payment_method or "").strip().lower()
+    auto_confirm_eligible = (
+        not IS_PRODUCTION
+        and amount == 0.01
+        and normalized_payment_method in TEST_PAYMENT_METHODS
+        and _is_explicit_test_order(order)
+    )
+
+    # Auto-confirm for explicit 0.01 test orders only.
+    # MUST NOT run in production or for normal manual-voucher payment methods.
+    if auto_confirm_eligible and record:
         from datetime import datetime
         updated = update_payment_status(
             record["payment_id"],

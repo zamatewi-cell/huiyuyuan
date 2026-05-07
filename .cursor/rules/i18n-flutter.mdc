@@ -1,0 +1,45 @@
+---
+description: Flutter i18n rules for HuiYuYuan reactive language switching
+globs: huiyuyuan_app/lib/**/*.dart
+alwaysApply: false
+---
+
+# Flutter i18n Rules
+
+## Deprecated APIs are not allowed
+
+```dart
+// BAD: static lookup does not rebuild on language change.
+Text("shop_title".tr)
+product.titleL10n
+TranslatorGlobal.currentLang
+
+// GOOD: reactive language read and explicit model localization.
+final lang = ref.watch(appSettingsProvider).language;
+Text(ref.tr("shop_title"))
+product.localizedTitleFor(lang)
+```
+
+## Widget translation
+
+- Use `ref.watch(appSettingsProvider).language` to get `AppLanguage lang`.
+- Pass `lang` explicitly to `product.localizedXxxFor(lang)` methods.
+- Use `ref.tr("key")` for widget UI strings.
+
+## Async contexts
+
+Use `ref.read`, not `ref.watch`, inside `onPressed`, `onTap`, and async methods:
+
+```dart
+final lang = ref.read(appSettingsProvider).language;
+```
+
+## Lint check
+
+Run `dart run tool/lint_i18n.dart` before merge. It must report 0 issues.
+
+## Adding new languages
+
+1. Add an entry to the `AppLanguage` enum.
+2. Add strings to `app_strings.dart` for zh-CN, en, and zh-TW.
+3. Update language parsing in `app_settings_provider.dart`.

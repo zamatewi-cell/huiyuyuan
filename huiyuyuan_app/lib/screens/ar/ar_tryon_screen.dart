@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
+import '../../l10n/translator_global.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:huiyuyuan/l10n/string_extension.dart';
 
-import '../../l10n/l10n_provider.dart';
 import '../../themes/colors.dart';
 import '../../widgets/common/glassmorphic_card.dart';
 
@@ -129,34 +128,39 @@ class _ARTryOnScreenState extends ConsumerState<ARTryOnScreen> {
 
   final List<_JewelryPreview> _jewelryList = [
     _JewelryPreview(
-      name: 'ar_tryon_name_hetian_bracelet'.tr,
+      name:
+          TranslatorGlobal.instance.translate('ar_tryon_name_hetian_bracelet'),
       color: const Color(0xFFF5F5DC),
       price: 299,
-      material: 'ar_tryon_material_hetian_jade'.tr,
+      material:
+          TranslatorGlobal.instance.translate('ar_tryon_material_hetian_jade'),
     ),
     _JewelryPreview(
-      name: 'ar_tryon_name_jadeite_pendant'.tr,
+      name:
+          TranslatorGlobal.instance.translate('ar_tryon_name_jadeite_pendant'),
       color: const Color(0xFF32CD32),
       price: 599,
-      material: 'ar_tryon_material_jadeite'.tr,
+      material:
+          TranslatorGlobal.instance.translate('ar_tryon_material_jadeite'),
     ),
     _JewelryPreview(
-      name: 'ar_tryon_name_agate_bead'.tr,
+      name: TranslatorGlobal.instance.translate('ar_tryon_name_agate_bead'),
       color: const Color(0xFFFF6347),
       price: 199,
-      material: 'ar_tryon_material_agate'.tr,
+      material: TranslatorGlobal.instance.translate('ar_tryon_material_agate'),
     ),
     _JewelryPreview(
-      name: 'ar_tryon_name_amethyst_chain'.tr,
+      name: TranslatorGlobal.instance.translate('ar_tryon_name_amethyst_chain'),
       color: const Color(0xFF9370DB),
       price: 168,
-      material: 'ar_tryon_material_amethyst'.tr,
+      material:
+          TranslatorGlobal.instance.translate('ar_tryon_material_amethyst'),
     ),
     _JewelryPreview(
-      name: 'ar_tryon_name_jasper_pendant'.tr,
+      name: TranslatorGlobal.instance.translate('ar_tryon_name_jasper_pendant'),
       color: const Color(0xFF228B22),
       price: 880,
-      material: 'ar_tryon_material_jasper'.tr,
+      material: TranslatorGlobal.instance.translate('ar_tryon_material_jasper'),
     ),
   ];
 
@@ -181,7 +185,7 @@ class _ARTryOnScreenState extends ConsumerState<ARTryOnScreen> {
             ),
           ),
           child: Text(
-            'ar_tryon_title'.tr,
+            TranslatorGlobal.instance.translate('ar_tryon_title'),
             style: const TextStyle(
               color: JewelryColors.jadeMist,
               fontWeight: FontWeight.w900,
@@ -192,7 +196,7 @@ class _ARTryOnScreenState extends ConsumerState<ARTryOnScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.camera_alt_outlined),
-            tooltip: 'ar_tryon_take_photo'.tr,
+            tooltip: TranslatorGlobal.instance.translate('ar_tryon_take_photo'),
             onPressed: _takePhoto,
           ),
           IconButton(
@@ -248,7 +252,8 @@ class _ARTryOnScreenState extends ConsumerState<ARTryOnScreen> {
               left: 18,
               child: _buildStatusPill(
                 icon: Icons.view_in_ar,
-                label: 'ar_tryon_rotate_hint'.tr,
+                label:
+                    TranslatorGlobal.instance.translate('ar_tryon_rotate_hint'),
                 color: selectedJewelry.color,
               ),
             ),
@@ -278,7 +283,8 @@ class _ARTryOnScreenState extends ConsumerState<ARTryOnScreen> {
                     _buildVirtualJadeRing(selectedJewelry),
                     const SizedBox(height: 26),
                     Text(
-                      'ar_tryon_wrist_hint'.tr,
+                      TranslatorGlobal.instance
+                          .translate('ar_tryon_wrist_hint'),
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         color: JewelryColors.jadeMist.withOpacity(0.64),
@@ -535,14 +541,16 @@ class _ARTryOnScreenState extends ConsumerState<ARTryOnScreen> {
                   onPressed: () {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: Text(ref.tr('product_added_favorite')),
+                        content: Text(TranslatorGlobal.instance
+                            .translate('product_added_favorite')),
                         backgroundColor: JewelryColors.emeraldShadow,
                         behavior: SnackBarBehavior.floating,
                       ),
                     );
                   },
                   icon: const Icon(Icons.favorite_border),
-                  label: Text('ar_tryon_favorite'.tr),
+                  label: Text(
+                      TranslatorGlobal.instance.translate('ar_tryon_favorite')),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: JewelryColors.jadeMist,
                     side: BorderSide(
@@ -561,7 +569,8 @@ class _ARTryOnScreenState extends ConsumerState<ARTryOnScreen> {
                 child: ElevatedButton.icon(
                   onPressed: _recommendToCustomer,
                   icon: const Icon(Icons.send_rounded),
-                  label: Text('ar_tryon_recommend_customer'.tr),
+                  label: Text(TranslatorGlobal.instance
+                      .translate('ar_tryon_recommend_customer')),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: JewelryColors.emeraldLuster,
                     foregroundColor: JewelryColors.jadeBlack,
@@ -589,7 +598,8 @@ class _ARTryOnScreenState extends ConsumerState<ARTryOnScreen> {
             const SizedBox(width: 8),
             Expanded(
               child: Text(
-                'ar_tryon_saved_result'.trArgs({
+                TranslatorGlobal.instance
+                    .translate('ar_tryon_saved_result', params: {
                   'name': _jewelryList[_selectedJewelry].name,
                 }),
               ),
@@ -636,7 +646,7 @@ class _ARTryOnScreenState extends ConsumerState<ARTryOnScreen> {
             ),
             const SizedBox(height: 18),
             Text(
-              'ar_tryon_share_to'.tr,
+              TranslatorGlobal.instance.translate('ar_tryon_share_to'),
               style: const TextStyle(
                 color: JewelryColors.jadeMist,
                 fontSize: 18,
@@ -647,13 +657,21 @@ class _ARTryOnScreenState extends ConsumerState<ARTryOnScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                _buildShareItem(Icons.chat, ref.tr('share_wechat'),
+                _buildShareItem(
+                    Icons.chat,
+                    TranslatorGlobal.instance.translate('share_wechat'),
                     JewelryColors.emeraldGlow),
-                _buildShareItem(Icons.group, ref.tr('share_moments'),
+                _buildShareItem(
+                    Icons.group,
+                    TranslatorGlobal.instance.translate('share_moments'),
                     JewelryColors.emeraldLuster),
                 _buildShareItem(
-                    Icons.qr_code, ref.tr('share_qq'), JewelryColors.info),
-                _buildShareItem(Icons.link, ref.tr('share_link'),
+                    Icons.qr_code,
+                    TranslatorGlobal.instance.translate('share_qq'),
+                    JewelryColors.info),
+                _buildShareItem(
+                    Icons.link,
+                    TranslatorGlobal.instance.translate('share_link'),
                     JewelryColors.champagneGold),
               ],
             ),
@@ -669,7 +687,8 @@ class _ARTryOnScreenState extends ConsumerState<ARTryOnScreen> {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('ar_tryon_shared_to'.trArgs({'label': label})),
+            content: Text(TranslatorGlobal.instance
+                .translate('ar_tryon_shared_to', params: {'label': label})),
             backgroundColor: JewelryColors.emeraldShadow,
             behavior: SnackBarBehavior.floating,
           ),
@@ -707,14 +726,15 @@ class _ARTryOnScreenState extends ConsumerState<ARTryOnScreen> {
         backgroundColor: JewelryColors.deepJade,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         title: Text(
-          'ar_tryon_recommend_title'.tr,
+          TranslatorGlobal.instance.translate('ar_tryon_recommend_title'),
           style: const TextStyle(
             color: JewelryColors.jadeMist,
             fontWeight: FontWeight.w900,
           ),
         ),
         content: Text(
-          'ar_tryon_recommend_confirm'.trArgs({
+          TranslatorGlobal.instance
+              .translate('ar_tryon_recommend_confirm', params: {
             'name': _jewelryList[_selectedJewelry].name,
           }),
           style: TextStyle(
@@ -726,7 +746,7 @@ class _ARTryOnScreenState extends ConsumerState<ARTryOnScreen> {
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: Text(
-              ref.tr('cancel'),
+              TranslatorGlobal.instance.translate('cancel'),
               style: TextStyle(color: JewelryColors.jadeMist.withOpacity(0.58)),
             ),
           ),
@@ -736,7 +756,8 @@ class _ARTryOnScreenState extends ConsumerState<ARTryOnScreen> {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                   content: Text(
-                    'ar_tryon_recommend_success'.trArgs({
+                    TranslatorGlobal.instance
+                        .translate('ar_tryon_recommend_success', params: {
                       'name': _jewelryList[_selectedJewelry].name,
                     }),
                   ),
@@ -753,7 +774,7 @@ class _ARTryOnScreenState extends ConsumerState<ARTryOnScreen> {
                 borderRadius: BorderRadius.circular(14),
               ),
             ),
-            child: Text(ref.tr('confirm')),
+            child: Text(TranslatorGlobal.instance.translate('confirm')),
           ),
         ],
       ),

@@ -28,8 +28,11 @@ const Set<String> _orderActivityRawTags = {
 class DashboardStats {
   final int totalOrders;
   final double totalAmount;
+  final int todayOrders;
+  final double todayRevenue;
   final int pendingOrders;
   final int shippedOrders;
+  final int pendingRefund;
   final int totalProducts;
   final int lowStockProducts;
   final int totalCustomers;
@@ -37,8 +40,11 @@ class DashboardStats {
   const DashboardStats({
     required this.totalOrders,
     required this.totalAmount,
+    required this.todayOrders,
+    required this.todayRevenue,
     required this.pendingOrders,
     required this.shippedOrders,
+    required this.pendingRefund,
     required this.totalProducts,
     required this.lowStockProducts,
     required this.totalCustomers,
@@ -50,10 +56,13 @@ class DashboardStats {
       totalAmount: json.containsKey('total_amount')
           ? jsonAsDouble(json['total_amount'])
           : jsonAsDouble(json['total_revenue']),
+      todayOrders: jsonAsInt(json['today_orders']),
+      todayRevenue: jsonAsDouble(json['today_revenue']),
       pendingOrders: json.containsKey('pending_orders')
           ? jsonAsInt(json['pending_orders'])
           : jsonAsInt(json['pending_ship']),
       shippedOrders: jsonAsInt(json['shipped_orders']),
+      pendingRefund: jsonAsInt(json['pending_refund']),
       totalProducts: jsonAsInt(json['total_products']),
       lowStockProducts: json.containsKey('low_stock_products')
           ? jsonAsInt(json['low_stock_products'])

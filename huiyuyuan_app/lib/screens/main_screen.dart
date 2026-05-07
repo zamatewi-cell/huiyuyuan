@@ -14,6 +14,7 @@ import '../themes/colors.dart';
 import '../widgets/common/notification_badge_icon.dart';
 import 'admin/admin_dashboard.dart';
 import 'chat/ai_assistant_screen.dart';
+import 'home/home_curation_screen.dart';
 import 'operator/operator_home.dart';
 import 'order/order_list_screen.dart';
 import 'profile/profile_screen.dart';
@@ -43,7 +44,7 @@ final mainScreenPageBuilderProvider = Provider<MainScreenPageBuilder>((ref) {
         ];
       case UserType.customer:
         return const [
-          ProductListScreen(),
+          HomeCurationScreen(),
           OrderListScreen(),
           ShopRadar(),
           AIAssistantScreen(),

@@ -2,12 +2,13 @@ library;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:huiyuyuan/l10n/string_extension.dart';
 
 import '../config/api_config.dart';
+import '../l10n/app_strings.dart';
 import '../models/json_parsing.dart';
 import '../models/payment_models.dart';
 import '../services/api_service.dart';
+import 'app_settings_provider.dart';
 
 enum PaymentReconciliationLoadingState { initial, loading, loaded, error }
 
@@ -44,13 +45,17 @@ class PaymentReconciliationState {
 
 class PaymentReconciliationNotifier
     extends StateNotifier<PaymentReconciliationState> {
-  PaymentReconciliationNotifier({ApiService? apiService})
-      : _api = apiService ?? ApiService(),
+  PaymentReconciliationNotifier({
+    ApiService? apiService,
+    AppLanguage Function()? languageReader,
+  })  : _api = apiService ?? ApiService(),
+        _languageReader = languageReader ?? (() => AppLanguage.zhCN),
         super(const PaymentReconciliationState()) {
     loadRecords();
   }
 
   final ApiService _api;
+  final AppLanguage Function() _languageReader;
 
   Future<void> loadRecords({PaymentStatus? status}) async {
     state = state.copyWith(
@@ -79,7 +84,7 @@ class PaymentReconciliationNotifier
         state = state.copyWith(
           state: PaymentReconciliationLoadingState.error,
           errorMessage:
-              result.message ?? 'payment_reconciliation_load_failed'.tr,
+              result.message ?? _t('payment_reconciliation_load_failed'),
         );
         return;
       }
@@ -101,7 +106,7 @@ class PaymentReconciliationNotifier
       debugPrint('[PaymentReconciliation] load failed: $error');
       state = state.copyWith(
         state: PaymentReconciliationLoadingState.error,
-        errorMessage: 'payment_reconciliation_load_failed'.tr,
+        errorMessage: _t('payment_reconciliation_load_failed'),
       );
     }
   }
@@ -114,7 +119,7 @@ class PaymentReconciliationNotifier
         );
         if (!result.success) {
           state = state.copyWith(
-            errorMessage: result.message ?? 'please_retry_later'.tr,
+            errorMessage: result.message ?? _t('please_retry_later'),
           );
           return false;
         }
@@ -122,7 +127,7 @@ class PaymentReconciliationNotifier
         return true;
       } catch (error) {
         debugPrint('[PaymentReconciliation] confirm failed: $error');
-        state = state.copyWith(errorMessage: 'please_retry_later'.tr);
+        state = state.copyWith(errorMessage: _t('please_retry_later'));
         return false;
       }
     }
@@ -151,7 +156,7 @@ class PaymentReconciliationNotifier
         );
         if (!result.success) {
           state = state.copyWith(
-            errorMessage: result.message ?? 'please_retry_later'.tr,
+            errorMessage: result.message ?? _t('please_retry_later'),
           );
           return false;
         }
@@ -159,7 +164,7 @@ class PaymentReconciliationNotifier
         return true;
       } catch (error) {
         debugPrint('[PaymentReconciliation] dispute failed: $error');
-        state = state.copyWith(errorMessage: 'please_retry_later'.tr);
+        state = state.copyWith(errorMessage: _t('please_retry_later'));
         return false;
       }
     }
@@ -219,11 +224,17 @@ class PaymentReconciliationNotifier
         return 'refunded';
     }
   }
+
+  String _t(String key, {Map<String, Object?> params = const {}}) {
+    return AppStrings.get(_languageReader(), key, params: params);
+  }
 }
 
 final paymentReconciliationProvider = StateNotifierProvider<
     PaymentReconciliationNotifier, PaymentReconciliationState>((ref) {
-  return PaymentReconciliationNotifier();
+  return PaymentReconciliationNotifier(
+    languageReader: () => ref.read(appSettingsProvider).language,
+  );
 });
 
 final List<AdminPaymentRecord> _mockRecords = <AdminPaymentRecord>[

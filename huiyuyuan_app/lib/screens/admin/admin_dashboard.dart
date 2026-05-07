@@ -16,6 +16,7 @@ import '../../l10n/product_translator.dart';
 import '../../providers/app_settings_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/notification_provider.dart';
+import '../../models/product_model.dart';
 import '../../providers/product_catalog_provider.dart';
 import '../../services/admin_service.dart';
 import '../../widgets/admin/admin_product_management_tab.dart';
@@ -248,7 +249,11 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard>
         controller: _tabController,
         indicatorSize: TabBarIndicatorSize.tab,
         indicator: BoxDecoration(
-          gradient: JewelryColors.emeraldLusterGradient,
+          gradient: const LinearGradient(
+            colors: [Color(0xFFD97706), Color(0xFFF59E0B)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
           borderRadius: BorderRadius.circular(18),
         ),
         labelColor: JewelryColors.jadeBlack,
@@ -408,6 +413,8 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard>
           _buildStoreInfoCard(),
           const SizedBox(height: 20),
           _buildGlassStatsGrid(),
+          const SizedBox(height: 20),
+          _buildTodoBulletin(),
           const SizedBox(height: 24),
           _buildRestockSuggestions(),
           const SizedBox(height: 24),
@@ -513,7 +520,7 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard>
     );
   }
 
-  // 2x2 glass stat cards.
+  // 2x2 glass stat cards — four distinct, actionable metrics.
   Widget _buildGlassStatsGrid() {
     final catalogProductCount =
         ref.watch(productCatalogProductsProvider).length;
@@ -522,10 +529,12 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard>
       return _buildStatsLoadingGrid();
     }
 
-    final totalOrders = _stats?.totalOrders ?? 0;
-    final totalAmount = _stats?.totalAmount ?? 0.0;
-    final pendingCount = _stats?.pendingOrders ?? 0;
-    final shippedCount = _stats?.shippedOrders ?? 0;
+    final todayRevenue = _stats?.todayRevenue ?? 0.0;
+    final totalRevenue = _stats?.totalAmount ?? 0.0;
+    final todayOrders = _stats?.todayOrders ?? 0;
+    final pendingShip = _stats?.pendingOrders ?? 0;
+    final pendingRefund = _stats?.pendingRefund ?? 0;
+    final lowStock = _stats?.lowStockProducts ?? 0;
     final totalProducts = _stats?.totalProducts ?? catalogProductCount;
 
     String formatAmount(double amount) {
@@ -543,38 +552,48 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard>
       mainAxisSpacing: 12,
       childAspectRatio: 1.5,
       children: [
+        // Card 1: Today's revenue (most important daily KPI)
         _buildGlassStatCard(
-          title: ref.tr('order_total'),
-          value: formatAmount(totalAmount),
+          title: ref.tr('admin_today_revenue'),
+          value: formatAmount(todayRevenue),
           prefix: '¥',
           subtitle: ref
-              .tr('admin_total_orders')
-              .replaceFirst('{count}', '$totalOrders'),
+              .tr('admin_total_revenue_sub')
+              .replaceFirst('{amount}', formatAmount(totalRevenue)),
           icon: Icons.trending_up_rounded,
-          accentColor: const Color(0xFF06B6D4),
+          accentColor: const Color(0xFFF59E0B),
+          urgent: false,
         ),
-        _buildGlassStatCard(
-          title: ref.tr('admin_product_count'),
-          value: '$totalProducts',
-          subtitle: ref.tr('admin_all_on_sale'),
-          icon: Icons.diamond_rounded,
-          accentColor: const Color(0xFF10B981),
-        ),
+        // Card 2: Pending shipment (requires immediate action)
         _buildGlassStatCard(
           title: ref.tr('order_pending_shipment'),
-          value: '$pendingCount',
+          value: '$pendingShip',
           subtitle: ref
-              .tr('admin_shipped_orders_count')
-              .replaceFirst('{count}', '$shippedCount'),
+              .tr('admin_today_orders_sub')
+              .replaceFirst('{count}', '$todayOrders'),
           icon: Icons.local_shipping_rounded,
-          accentColor: const Color(0xFFF59E0B),
+          accentColor: const Color(0xFF06B6D4),
+          urgent: pendingShip > 0,
         ),
+        // Card 3: Pending refund (requires review)
         _buildGlassStatCard(
-          title: ref.tr('admin_product_categories'),
-          value: '$totalProducts',
-          subtitle: ref.tr('admin_jewelry_desc'),
-          icon: Icons.auto_awesome_rounded,
+          title: ref.tr('admin_pending_refund'),
+          value: '$pendingRefund',
+          subtitle: ref.tr('admin_pending_refund_sub'),
+          icon: Icons.assignment_return_rounded,
+          accentColor: const Color(0xFFEF4444),
+          urgent: pendingRefund > 0,
+        ),
+        // Card 4: Low stock alert
+        _buildGlassStatCard(
+          title: ref.tr('admin_low_stock_alert'),
+          value: '$lowStock',
+          subtitle: ref
+              .tr('admin_total_products_sub')
+              .replaceFirst('{count}', '$totalProducts'),
+          icon: Icons.inventory_2_rounded,
           accentColor: const Color(0xFF8B5CF6),
+          urgent: lowStock > 0,
         ),
       ],
     );
@@ -599,6 +618,7 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard>
     required String subtitle,
     required IconData icon,
     required Color accentColor,
+    bool urgent = false,
   }) {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -606,13 +626,16 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard>
         gradient: LinearGradient(
           colors: [
             JewelryColors.deepJade.withOpacity(0.62),
-            accentColor.withOpacity(0.08),
+            accentColor.withOpacity(urgent ? 0.14 : 0.08),
           ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: accentColor.withOpacity(0.15)),
+        border: Border.all(
+            color: urgent
+                ? accentColor.withOpacity(0.35)
+                : accentColor.withOpacity(0.15)),
         boxShadow: [
           BoxShadow(
               color: accentColor.withOpacity(0.06),
@@ -721,6 +744,226 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard>
               const SizedBox(height: 8),
               loadingLine(width: 118, height: 11),
             ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── 今日待办 Timeline ────────────────────────────────────────────────────
+  Widget _buildTodoBulletin() {
+    final pendingShip = _stats?.pendingOrders ?? 0;
+    final pendingRefund = _stats?.pendingRefund ?? 0;
+    final lowStock = _stats?.lowStockProducts ?? 0;
+
+    // Build the todo item list; only show non-zero items.
+    final items = <_TodoItem>[
+      if (pendingShip > 0)
+        _TodoItem(
+          icon: Icons.local_shipping_rounded,
+          color: const Color(0xFF06B6D4),
+          title: ref.tr('admin_todo_pending_ship').replaceFirst('{count}', '$pendingShip'),
+          subtitle: ref.tr('admin_todo_pending_ship_sub'),
+          urgent: pendingShip > 3,
+        ),
+      if (pendingRefund > 0)
+        _TodoItem(
+          icon: Icons.assignment_return_rounded,
+          color: const Color(0xFFEF4444),
+          title: ref.tr('admin_todo_pending_refund').replaceFirst('{count}', '$pendingRefund'),
+          subtitle: ref.tr('admin_todo_pending_refund_sub'),
+          urgent: true,
+        ),
+      if (lowStock > 0)
+        _TodoItem(
+          icon: Icons.inventory_2_rounded,
+          color: const Color(0xFF8B5CF6),
+          title: ref.tr('admin_todo_low_stock').replaceFirst('{count}', '$lowStock'),
+          subtitle: ref.tr('admin_todo_low_stock_sub'),
+          urgent: false,
+        ),
+    ];
+
+    if (items.isEmpty && !_isDashboardLoading) {
+      // Everything clear — show a "all done" card
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(18),
+          color: const Color(0xFF064E3B).withOpacity(0.35),
+          border: Border.all(
+            color: JewelryColors.emeraldGlow.withOpacity(0.2),
+          ),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.check_circle_outline_rounded,
+                color: JewelryColors.emeraldGlow, size: 22),
+            const SizedBox(width: 12),
+            Text(
+              ref.tr('admin_todo_all_clear'),
+              style: const TextStyle(
+                color: JewelryColors.emeraldGlow,
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Section header
+        Row(
+          children: [
+            Container(
+              width: 3,
+              height: 18,
+              decoration: BoxDecoration(
+                color: const Color(0xFFF59E0B),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Text(
+              ref.tr('admin_today_todo'),
+              style: const TextStyle(
+                color: JewelryColors.champagneGold,
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(width: 8),
+            if (items.isNotEmpty)
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF59E0B).withOpacity(0.18),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(
+                  '${items.length}',
+                  style: const TextStyle(
+                    color: Color(0xFFF59E0B),
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        // Timeline items
+        ...items.asMap().entries.map((entry) {
+          final index = entry.key;
+          final item = entry.value;
+          final isLast = index == items.length - 1;
+          return _buildTodoTimelineItem(item, isLast: isLast);
+        }),
+      ],
+    );
+  }
+
+  Widget _buildTodoTimelineItem(_TodoItem item, {bool isLast = false}) {
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Timeline line + dot
+          SizedBox(
+            width: 28,
+            child: Column(
+              children: [
+                Container(
+                  width: 26,
+                  height: 26,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: item.color.withOpacity(0.15),
+                    border:
+                        Border.all(color: item.color.withOpacity(0.4), width: 1.5),
+                  ),
+                  child: Icon(item.icon, color: item.color, size: 13),
+                ),
+                if (!isLast)
+                  Expanded(
+                    child: Container(
+                      width: 1.5,
+                      color: item.color.withOpacity(0.18),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          // Content
+          Expanded(
+            child: Padding(
+              padding: EdgeInsets.only(bottom: isLast ? 0 : 14),
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(14),
+                  color: item.color.withOpacity(item.urgent ? 0.10 : 0.05),
+                  border: Border.all(
+                    color: item.color
+                        .withOpacity(item.urgent ? 0.30 : 0.12),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            item.title,
+                            style: TextStyle(
+                              color: item.urgent
+                                  ? item.color
+                                  : JewelryColors.jadeMist,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            item.subtitle,
+                            style: TextStyle(
+                              color:
+                                  JewelryColors.jadeMist.withOpacity(0.45),
+                              fontSize: 11,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (item.urgent)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: item.color.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          ref.tr('admin_urgent'),
+                          style: TextStyle(
+                            color: item.color,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
           ),
         ],
       ),
@@ -1019,6 +1262,12 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard>
         ),
         const SizedBox(height: 14),
         ...filtered.take(5).map((a) => _buildActivityItemFromApi(a)),
+        // AI 咨询热点 —— 仅在全量视图或 AI 筛选时展示
+        if (_activityFilter == AdminActivityTags.all ||
+            _activityFilter == AdminActivityTags.ai) ...[
+          const SizedBox(height: 20),
+          _buildAIHotspotSection(),
+        ],
       ],
     );
   }
@@ -1148,6 +1397,121 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard>
       return fallback;
     }
     return ref.tr(key, params: args ?? const {});
+  }
+
+  // ── AI 咨询热点 ─────────────────────────────────────────────────────────
+  Widget _buildAIHotspotSection() {
+    // Use AI-tagged activities as hotspot signals; fall back to top hot products.
+    final aiActivities = _activities
+        .where((a) => a.resolvedTagKey == AdminActivityTags.ai)
+        .take(3)
+        .toList();
+
+    final hotProducts = ref
+        .watch(productCatalogProductsProvider)
+        .where((p) => p.isHot)
+        .take(4)
+        .toList();
+
+    if (aiActivities.isEmpty && hotProducts.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Container(
+              width: 3,
+              height: 18,
+              decoration: BoxDecoration(
+                color: const Color(0xFF8B5CF6),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Text(
+              ref.tr('admin_ai_hotspot'),
+              style: const TextStyle(
+                color: JewelryColors.jadeMist,
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        if (aiActivities.isNotEmpty) ...[
+          ...aiActivities.map((a) {
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: _buildActivityItemFromApi(a),
+            );
+          }),
+          const SizedBox(height: 8),
+        ],
+        // Top hot products by sales_count
+        if (hotProducts.isNotEmpty) ...[
+          Text(
+            ref.tr('admin_ai_hotspot_products'),
+            style: TextStyle(
+              color: JewelryColors.jadeMist.withOpacity(0.5),
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0.5,
+            ),
+          ),
+          const SizedBox(height: 8),
+          ...hotProducts.map((p) {
+            final lang = ref.read(appSettingsProvider).language;
+            final title = p.localizedTitleFor(lang);
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 6),
+              child: Row(
+                children: [
+                  Container(
+                    width: 6,
+                    height: 6,
+                    decoration: const BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Color(0xFF8B5CF6),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      title,
+                      style: const TextStyle(
+                        color: JewelryColors.jadeMist,
+                        fontSize: 12,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF8B5CF6).withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      '${p.salesCount}',
+                      style: const TextStyle(
+                        color: Color(0xFF8B5CF6),
+                        fontSize: 10,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }),
+        ],
+      ],
+    );
   }
 
   // Card-style quick actions.
@@ -1461,4 +1825,22 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard>
   Widget _buildOperatorTab() {
     return const AdminOperatorTab();
   }
+}
+
+// ── Data class for TODO timeline items ───────────────────────────────────────
+
+class _TodoItem {
+  final IconData icon;
+  final Color color;
+  final String title;
+  final String subtitle;
+  final bool urgent;
+
+  const _TodoItem({
+    required this.icon,
+    required this.color,
+    required this.title,
+    required this.subtitle,
+    required this.urgent,
+  });
 }

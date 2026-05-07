@@ -2,6 +2,7 @@
 library;
 
 import 'package:flutter/material.dart';
+import '../../l10n/translator_global.dart';
 import '../../l10n/l10n_provider.dart';
 import '../../l10n/product_translator.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -13,7 +14,6 @@ import '../../providers/app_settings_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/inventory_provider.dart';
 import '../../themes/colors.dart';
-import 'package:huiyuyuan/l10n/string_extension.dart';
 
 /// Formats an amount for compact display.
 String _fmtMoney(AppLanguage language, double v) {
@@ -244,7 +244,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen>
             ),
             const SizedBox(height: 18),
             Text(
-              ref.tr('operator_permission_denied'),
+              TranslatorGlobal.instance.translate('operator_permission_denied'),
               textAlign: TextAlign.center,
               style: const TextStyle(
                 color: JewelryColors.jadeMist,
@@ -287,7 +287,8 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('admin_inventory_mgmt'.tr,
+                Text(
+                    TranslatorGlobal.instance.translate('admin_inventory_mgmt'),
                     style: const TextStyle(
                         color: JewelryColors.jadeMist,
                         fontSize: 18,
@@ -334,7 +335,9 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen>
               size: 14,
             ),
             const SizedBox(width: 4),
-            Text(ref.tr('inventory_alert_badge', params: {'count': total}),
+            Text(
+                TranslatorGlobal.instance.translate('inventory_alert_badge',
+                    params: {'count': total}),
                 style: const TextStyle(
                     color: JewelryColors.jadeMist,
                     fontSize: 12,
@@ -374,7 +377,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen>
               children: [
                 const Icon(Icons.analytics_rounded, size: 15),
                 const SizedBox(width: 5),
-                Text(ref.tr('inventory_overview')),
+                Text(TranslatorGlobal.instance.translate('inventory_overview')),
               ],
             ),
           ),
@@ -384,7 +387,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen>
               children: [
                 const Icon(Icons.inventory_2_rounded, size: 15),
                 const SizedBox(width: 5),
-                Text(ref.tr('product_stock')),
+                Text(TranslatorGlobal.instance.translate('product_stock')),
               ],
             ),
           ),
@@ -394,7 +397,8 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen>
               children: [
                 const Icon(Icons.receipt_long_rounded, size: 15),
                 const SizedBox(width: 5),
-                Text(ref.tr('inventory_transactions')),
+                Text(TranslatorGlobal.instance
+                    .translate('inventory_transactions')),
               ],
             ),
           ),
@@ -409,7 +413,8 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen>
       backgroundColor: const Color(0xFF06B6D4),
       onPressed: _showStockOperationSheet,
       icon: const Icon(Icons.add_rounded, color: Colors.white),
-      label: Text('inventory_stock_movement'.tr,
+      label: Text(
+          TranslatorGlobal.instance.translate('inventory_stock_movement'),
           style: const TextStyle(
               color: Colors.white, fontWeight: FontWeight.bold)),
     );
@@ -448,26 +453,29 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen>
       childAspectRatio: 1.4,
       children: [
         _buildStatCard(
-          'inventory_stat_sku_types'.tr,
+          TranslatorGlobal.instance.translate('inventory_stat_sku_types'),
           '${stats.totalSkus} SKU',
-          'inventory_stat_all_recorded'.tr,
+          TranslatorGlobal.instance.translate('inventory_stat_all_recorded'),
           Icons.category_rounded,
           const LinearGradient(colors: [Color(0xFF06B6D4), Color(0xFF0EA5E9)]),
         ),
         _buildStatCard(
-          'inventory_stat_total_stock'.tr,
-          ref.tr('inventory_units', params: {'count': stats.totalUnits}),
-          'inventory_stat_physical_stock'.tr,
+          TranslatorGlobal.instance.translate('inventory_stat_total_stock'),
+          TranslatorGlobal.instance.translate('inventory_units',
+              params: {'count': stats.totalUnits}),
+          TranslatorGlobal.instance.translate('inventory_stat_physical_stock'),
           Icons.inventory_2_rounded,
           JewelryColors.primaryGradient,
         ),
         _buildStatCard(
-          'inventory_stat_low_stock_alert'.tr,
-          ref.tr('inventory_item_types',
+          TranslatorGlobal.instance.translate('inventory_stat_low_stock_alert'),
+          TranslatorGlobal.instance.translate('inventory_item_types',
               params: {'count': stats.lowStockCount}),
           stats.lowStockCount > 0
-              ? ref.tr('inventory_low_stock_need_restock')
-              : ref.tr('inventory_low_stock_ready'),
+              ? TranslatorGlobal.instance
+                  .translate('inventory_low_stock_need_restock')
+              : TranslatorGlobal.instance
+                  .translate('inventory_low_stock_ready'),
           Icons.warning_amber_rounded,
           stats.lowStockCount > 0
               ? const LinearGradient(
@@ -476,10 +484,12 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen>
                   colors: [Color(0xFF10B981), Color(0xFF059669)]),
         ),
         _buildStatCard(
-          'inventory_stat_monthly_transactions'.tr,
-          ref.tr('inventory_record_count',
+          TranslatorGlobal.instance
+              .translate('inventory_stat_monthly_transactions'),
+          TranslatorGlobal.instance.translate('inventory_record_count',
               params: {'count': stats.txCountThisMonth}),
-          'inventory_stat_stock_movement_records'.tr,
+          TranslatorGlobal.instance
+              .translate('inventory_stat_stock_movement_records'),
           Icons.receipt_long_rounded,
           JewelryColors.goldGradient,
         ),
@@ -536,7 +546,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('inventory_valuation_title'.tr,
+        Text(TranslatorGlobal.instance.translate('inventory_valuation_title'),
             style: const TextStyle(
                 color: Colors.white,
                 fontSize: 15,
@@ -552,19 +562,22 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen>
           child: Row(
             children: [
               _buildValueItem(
-                'inventory_total_cost_value'.tr,
+                TranslatorGlobal.instance
+                    .translate('inventory_total_cost_value'),
                 _fmtMoney(language, stats.totalCostValue),
                 const Color(0xFF94A3B8),
               ),
               _buildValueDivider(),
               _buildValueItem(
-                'inventory_total_market_value'.tr,
+                TranslatorGlobal.instance
+                    .translate('inventory_total_market_value'),
                 _fmtMoney(language, stats.totalSellingValue),
                 const Color(0xFF34D399),
               ),
               _buildValueDivider(),
               _buildValueItem(
-                'inventory_margin_potential'.tr,
+                TranslatorGlobal.instance
+                    .translate('inventory_margin_potential'),
                 _fmtMoney(
                   language,
                   stats.totalSellingValue - stats.totalCostValue,
@@ -610,14 +623,15 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen>
             const Icon(Icons.warning_rounded,
                 color: Color(0xFFF97316), size: 18),
             const SizedBox(width: 6),
-            Text('inventory_alert_title'.tr,
+            Text(TranslatorGlobal.instance.translate('inventory_alert_title'),
                 style: const TextStyle(
                     color: Colors.white,
                     fontSize: 15,
                     fontWeight: FontWeight.w600)),
             const Spacer(),
             Text(
-                ref.tr('inventory_item_count', params: {'count': items.length}),
+                TranslatorGlobal.instance.translate('inventory_item_count',
+                    params: {'count': items.length}),
                 style: const TextStyle(color: Color(0xFFF97316), fontSize: 12)),
           ],
         ),
@@ -627,7 +641,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen>
           TextButton(
             onPressed: () => _tabController.animateTo(1),
             child: Text(
-                ref.tr('inventory_view_all_alerts',
+                TranslatorGlobal.instance.translate('inventory_view_all_alerts',
                     params: {'count': items.length}),
                 style: const TextStyle(color: Color(0xFF06B6D4))),
           ),
@@ -664,8 +678,10 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen>
             ),
             child: Text(
               isOut
-                  ? 'inventory_status_sold_out'.tr
-                  : 'inventory_status_low_stock'.tr,
+                  ? TranslatorGlobal.instance
+                      .translate('inventory_status_sold_out')
+                  : TranslatorGlobal.instance
+                      .translate('inventory_status_low_stock'),
               style: const TextStyle(
                   color: Colors.white,
                   fontSize: 10,
@@ -690,7 +706,8 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen>
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
-                ref.tr('inventory_units', params: {'count': item.currentStock}),
+                TranslatorGlobal.instance.translate('inventory_units',
+                    params: {'count': item.currentStock}),
                 style: TextStyle(
                     color: isOut
                         ? const Color(0xFFEF4444)
@@ -699,7 +716,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen>
                     fontSize: 14),
               ),
               Text(
-                  ref.tr('inventory_safety_line',
+                  TranslatorGlobal.instance.translate('inventory_safety_line',
                       params: {'count': item.minStock}),
                   style: TextStyle(
                       color: Colors.white.withOpacity(0.4), fontSize: 10)),
@@ -717,14 +734,15 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen>
 
     // Category list.
     final categories = [
-      ref.tr('order_all'),
+      TranslatorGlobal.instance.translate('order_all'),
       ...{...items.map((e) => _inventoryCategoryL10n(language, e.category))}
     ];
     final filtered = items.where((e) {
       final localizedName = _inventoryProductNameL10n(language, e.productName);
       final localizedCategory = _inventoryCategoryL10n(language, e.category);
-      final matchCat = _filterCategory == ref.tr('order_all') ||
-          localizedCategory == _filterCategory;
+      final matchCat =
+          _filterCategory == TranslatorGlobal.instance.translate('order_all') ||
+              localizedCategory == _filterCategory;
       final matchSearch = _searchQuery.isEmpty ||
           localizedName.contains(_searchQuery) ||
           e.productName.contains(_searchQuery) ||
@@ -750,7 +768,8 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen>
                     onChanged: (v) => setState(() => _searchQuery = v),
                     style: const TextStyle(color: Colors.white, fontSize: 14),
                     decoration: InputDecoration(
-                      hintText: 'inventory_search_name_or_id'.tr,
+                      hintText: TranslatorGlobal.instance
+                          .translate('inventory_search_name_or_id'),
                       hintStyle: TextStyle(
                           color: Colors.white.withOpacity(0.4), fontSize: 14),
                       prefixIcon: Icon(Icons.search,
@@ -807,7 +826,9 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen>
         Expanded(
           child: filtered.isEmpty
               ? Center(
-                  child: Text('inventory_empty_products'.tr,
+                  child: Text(
+                      TranslatorGlobal.instance
+                          .translate('inventory_empty_products'),
                       style: TextStyle(color: Colors.white.withOpacity(0.4))))
               : ListView.builder(
                   padding: const EdgeInsets.fromLTRB(16, 4, 16, 80),
@@ -910,14 +931,20 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen>
                         color: stockColor,
                         fontSize: 22,
                         fontWeight: FontWeight.bold)),
-                Text('inventory_unit_piece'.tr,
+                Text(
+                    TranslatorGlobal.instance.translate('inventory_unit_piece'),
                     style: TextStyle(
                         color: Colors.white.withOpacity(0.45), fontSize: 11)),
                 if (isOut)
-                  _tag('inventory_status_sold_out'.tr, const Color(0xFFEF4444))
+                  _tag(
+                      TranslatorGlobal.instance
+                          .translate('inventory_status_sold_out'),
+                      const Color(0xFFEF4444))
                 else if (isLow)
                   _tag(
-                      'inventory_status_low_stock'.tr, const Color(0xFFF97316)),
+                      TranslatorGlobal.instance
+                          .translate('inventory_status_low_stock'),
+                      const Color(0xFFF97316)),
               ],
             ),
           ],
@@ -954,7 +981,9 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen>
     final txs = ref.watch(inventoryTxProvider);
     return txs.isEmpty
         ? Center(
-            child: Text('inventory_empty_transactions'.tr,
+            child: Text(
+                TranslatorGlobal.instance
+                    .translate('inventory_empty_transactions'),
                 style: TextStyle(color: Colors.white.withOpacity(0.4))))
         : ListView.builder(
             padding: const EdgeInsets.fromLTRB(16, 14, 16, 80),
@@ -1039,7 +1068,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen>
                       overflow: TextOverflow.ellipsis),
                 const SizedBox(height: 3),
                 Text(
-                  '${tx.operatorName ?? 'product_unknown'.tr} · ${DateFormat('MM-dd HH:mm').format(tx.createdAt)}',
+                  '${tx.operatorName ?? TranslatorGlobal.instance.translate('product_unknown')} · ${DateFormat('MM-dd HH:mm').format(tx.createdAt)}',
                   style: TextStyle(
                       color: Colors.white.withOpacity(0.35), fontSize: 10),
                 ),
@@ -1052,7 +1081,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen>
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
-                  ref.tr('inventory_tx_quantity',
+                  TranslatorGlobal.instance.translate('inventory_tx_quantity',
                       params: {'sign': sign, 'count': tx.quantity}),
                   style: TextStyle(
                       color: color, fontSize: 16, fontWeight: FontWeight.bold)),
@@ -1069,7 +1098,9 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen>
   // Bottom sheet for stock in/out actions.
   void _showStockOperationSheet() {
     if (!_canWriteInventory(ref.read(currentUserProvider))) {
-      _showSnack(ref.tr('operator_permission_denied'), isError: true);
+      _showSnack(
+          TranslatorGlobal.instance.translate('operator_permission_denied'),
+          isError: true);
       return;
     }
     showModalBottomSheet(
@@ -1091,7 +1122,9 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen>
     final language = ref.read(appSettingsProvider).language;
     final item = notifier.getItem(productId);
     if (item == null) {
-      _showSnack('inventory_item_not_found'.tr, isError: true);
+      _showSnack(
+          TranslatorGlobal.instance.translate('inventory_item_not_found'),
+          isError: true);
       return;
     }
 
@@ -1116,8 +1149,10 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen>
     if (!success) {
       _showSnack(
         type == InventoryTxType.stockOut
-            ? 'inventory_error_insufficient_stock'.tr
-            : 'inventory_error_operation_failed'.tr,
+            ? TranslatorGlobal.instance
+                .translate('inventory_error_insufficient_stock')
+            : TranslatorGlobal.instance
+                .translate('inventory_error_operation_failed'),
         isError: true,
       );
       return;
@@ -1136,11 +1171,13 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen>
       stockBefore: before,
       stockAfter: after,
       note: note,
-      operatorName: operatorName ?? 'inventory_operator_admin'.tr,
+      operatorName: operatorName ??
+          TranslatorGlobal.instance.translate('inventory_operator_admin'),
       createdAt: DateTime.now(),
     ));
 
-    _showSnack(ref.tr('inventory_operation_success', params: {
+    _showSnack(TranslatorGlobal.instance
+        .translate('inventory_operation_success', params: {
       'action': type.label,
       'productName': localizedProductName,
       'quantity': quantity,
@@ -1179,7 +1216,9 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen>
   void _showStockOperationSheetForProduct(
       String productId, InventoryTxType type) {
     if (!_canWriteInventory(ref.read(currentUserProvider))) {
-      _showSnack(ref.tr('operator_permission_denied'), isError: true);
+      _showSnack(
+          TranslatorGlobal.instance.translate('operator_permission_denied'),
+          isError: true);
       return;
     }
     showModalBottomSheet(
@@ -1232,8 +1271,8 @@ class _StockOperationSheetState extends ConsumerState<_StockOperationSheet> {
   late InventoryTxType _type;
   final _qtyController = TextEditingController(text: '1');
   final _noteController = TextEditingController();
-  final _opController =
-      TextEditingController(text: 'inventory_operator_admin'.tr);
+  final _opController = TextEditingController(
+      text: TranslatorGlobal.instance.translate('inventory_operator_admin'));
   String _productSearch = '';
 
   @override
@@ -1288,7 +1327,9 @@ class _StockOperationSheetState extends ConsumerState<_StockOperationSheet> {
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Row(
               children: [
-                Text('inventory_operation_sheet_title'.tr,
+                Text(
+                    TranslatorGlobal.instance
+                        .translate('inventory_operation_sheet_title'),
                     style: const TextStyle(
                         color: Colors.white,
                         fontSize: 18,
@@ -1308,7 +1349,8 @@ class _StockOperationSheetState extends ConsumerState<_StockOperationSheet> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Operation type.
-                  _sectionLabel('inventory_operation_type'.tr),
+                  _sectionLabel(TranslatorGlobal.instance
+                      .translate('inventory_operation_type')),
                   const SizedBox(height: 8),
                   Row(
                     children: InventoryTxType.values.map((t) {
@@ -1351,10 +1393,12 @@ class _StockOperationSheetState extends ConsumerState<_StockOperationSheet> {
                   ),
                   const SizedBox(height: 18),
                   // Product selector.
-                  _sectionLabel('inventory_select_product'.tr),
+                  _sectionLabel(TranslatorGlobal.instance
+                      .translate('inventory_select_product')),
                   const SizedBox(height: 8),
                   _inputField(
-                    hint: 'inventory_search_product_name'.tr,
+                    hint: TranslatorGlobal.instance
+                        .translate('inventory_search_product_name'),
                     onChanged: (v) => setState(() => _productSearch = v),
                   ),
                   const SizedBox(height: 8),
@@ -1401,7 +1445,9 @@ class _StockOperationSheetState extends ConsumerState<_StockOperationSheet> {
                               _selectedProductId = null;
                               _productSearch = '';
                             }),
-                            child: Text('inventory_switch_product'.tr,
+                            child: Text(
+                                TranslatorGlobal.instance
+                                    .translate('inventory_switch_product'),
                                 style: const TextStyle(
                                     color: Color(0xFF06B6D4), fontSize: 12)),
                           ),
@@ -1440,7 +1486,8 @@ class _StockOperationSheetState extends ConsumerState<_StockOperationSheet> {
                                         overflow: TextOverflow.ellipsis),
                                   ),
                                   Text(
-                                      ref.tr('inventory_short_units',
+                                      TranslatorGlobal.instance.translate(
+                                          'inventory_short_units',
                                           params: {'count': item.currentStock}),
                                       style: TextStyle(
                                           color: Colors.white.withOpacity(0.5),
@@ -1455,30 +1502,37 @@ class _StockOperationSheetState extends ConsumerState<_StockOperationSheet> {
                   const SizedBox(height: 18),
                   // Quantity field.
                   _sectionLabel(_type == InventoryTxType.adjustment
-                      ? 'inventory_adjust_to_units'.tr
-                      : 'inventory_quantity_units'.tr),
+                      ? TranslatorGlobal.instance
+                          .translate('inventory_adjust_to_units')
+                      : TranslatorGlobal.instance
+                          .translate('inventory_quantity_units')),
                   const SizedBox(height: 8),
                   _inputField(
                     controller: _qtyController,
-                    hint: 'inventory_input_quantity'.tr,
+                    hint: TranslatorGlobal.instance
+                        .translate('inventory_input_quantity'),
                     keyboardType: TextInputType.number,
                   ),
                   const SizedBox(height: 18),
                   // Notes field.
-                  _sectionLabel('inventory_note_optional'.tr),
+                  _sectionLabel(TranslatorGlobal.instance
+                      .translate('inventory_note_optional')),
                   const SizedBox(height: 8),
                   _inputField(
                     controller: _noteController,
-                    hint: 'inventory_note_placeholder'.tr,
+                    hint: TranslatorGlobal.instance
+                        .translate('inventory_note_placeholder'),
                     maxLines: 2,
                   ),
                   const SizedBox(height: 18),
                   // Operator field.
-                  _sectionLabel('inventory_operator_label'.tr),
+                  _sectionLabel(TranslatorGlobal.instance
+                      .translate('inventory_operator_label')),
                   const SizedBox(height: 8),
                   _inputField(
                     controller: _opController,
-                    hint: 'inventory_operator_name_hint'.tr,
+                    hint: TranslatorGlobal.instance
+                        .translate('inventory_operator_name_hint'),
                   ),
                   const SizedBox(height: 28),
                   // Confirm button.
@@ -1492,7 +1546,9 @@ class _StockOperationSheetState extends ConsumerState<_StockOperationSheet> {
                             borderRadius: BorderRadius.circular(14)),
                       ),
                       onPressed: _onConfirm,
-                      child: Text('inventory_confirm_operation'.tr,
+                      child: Text(
+                          TranslatorGlobal.instance
+                              .translate('inventory_confirm_operation'),
                           style: const TextStyle(
                               color: Colors.white,
                               fontSize: 16,
@@ -1549,14 +1605,16 @@ class _StockOperationSheetState extends ConsumerState<_StockOperationSheet> {
   void _onConfirm() {
     if (_selectedProductId == null) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('inventory_validation_select_product'.tr),
+          content: Text(TranslatorGlobal.instance
+              .translate('inventory_validation_select_product')),
           backgroundColor: const Color(0xFFEF4444)));
       return;
     }
     final qty = int.tryParse(_qtyController.text.trim());
     if (qty == null || qty <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('inventory_validation_quantity'.tr),
+          content: Text(TranslatorGlobal.instance
+              .translate('inventory_validation_quantity')),
           backgroundColor: const Color(0xFFEF4444)));
       return;
     }
@@ -1630,8 +1688,9 @@ class _ItemDetailSheet extends ConsumerWidget {
           Row(
             children: [
               _detailItem(
-                  'inventory_detail_current_stock'.tr,
-                  ref.tr('inventory_units',
+                  TranslatorGlobal.instance
+                      .translate('inventory_detail_current_stock'),
+                  TranslatorGlobal.instance.translate('inventory_units',
                       params: {'count': item.currentStock}),
                   item.isOutOfStock
                       ? const Color(0xFFEF4444)
@@ -1639,13 +1698,21 @@ class _ItemDetailSheet extends ConsumerWidget {
                           ? const Color(0xFFF97316)
                           : const Color(0xFF34D399)),
               _detailItem(
-                  'inventory_detail_safety_stock'.tr,
-                  ref.tr('inventory_units', params: {'count': item.minStock}),
+                  TranslatorGlobal.instance
+                      .translate('inventory_detail_safety_stock'),
+                  TranslatorGlobal.instance.translate('inventory_units',
+                      params: {'count': item.minStock}),
                   Colors.white60),
-              _detailItem('inventory_detail_cost_price'.tr,
-                  '¥${item.costPrice.toStringAsFixed(0)}', Colors.white60),
-              _detailItem('inventory_detail_selling_price'.tr,
-                  '¥${item.sellingPrice.toStringAsFixed(0)}', Colors.white60),
+              _detailItem(
+                  TranslatorGlobal.instance
+                      .translate('inventory_detail_cost_price'),
+                  '¥${item.costPrice.toStringAsFixed(0)}',
+                  Colors.white60),
+              _detailItem(
+                  TranslatorGlobal.instance
+                      .translate('inventory_detail_selling_price'),
+                  '¥${item.sellingPrice.toStringAsFixed(0)}',
+                  Colors.white60),
             ],
           ),
           const SizedBox(height: 20),
@@ -1659,7 +1726,8 @@ class _ItemDetailSheet extends ConsumerWidget {
                 border: Border.all(color: Colors.white.withOpacity(0.08)),
               ),
               child: Text(
-                ref.tr('operator_permission_denied'),
+                TranslatorGlobal.instance
+                    .translate('operator_permission_denied'),
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: Colors.white.withOpacity(0.82),
@@ -1672,13 +1740,19 @@ class _ItemDetailSheet extends ConsumerWidget {
             Row(
               children: [
                 Expanded(
-                  child: _actionBtn('inventory_action_stock_in'.tr,
-                      const Color(0xFF34D399), onStockIn),
+                  child: _actionBtn(
+                      TranslatorGlobal.instance
+                          .translate('inventory_action_stock_in'),
+                      const Color(0xFF34D399),
+                      onStockIn),
                 ),
                 const SizedBox(width: 10),
                 Expanded(
-                  child: _actionBtn('inventory_action_stock_out'.tr,
-                      const Color(0xFFEF4444), onStockOut),
+                  child: _actionBtn(
+                      TranslatorGlobal.instance
+                          .translate('inventory_action_stock_out'),
+                      const Color(0xFFEF4444),
+                      onStockOut),
                 ),
               ],
             ),
@@ -1687,7 +1761,9 @@ class _ItemDetailSheet extends ConsumerWidget {
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('inventory_adjustment_direct'.tr,
+                Text(
+                    TranslatorGlobal.instance
+                        .translate('inventory_adjustment_direct'),
                     style: TextStyle(
                         color: Colors.white.withOpacity(0.55), fontSize: 12)),
                 const SizedBox(height: 8),
@@ -1705,7 +1781,8 @@ class _ItemDetailSheet extends ConsumerWidget {
                           style: const TextStyle(
                               color: Colors.white, fontSize: 14),
                           decoration: InputDecoration(
-                            hintText: 'inventory_target_stock_hint'.tr,
+                            hintText: TranslatorGlobal.instance
+                                .translate('inventory_target_stock_hint'),
                             hintStyle: const TextStyle(color: Colors.white38),
                             border: InputBorder.none,
                             contentPadding: const EdgeInsets.symmetric(
@@ -1726,7 +1803,8 @@ class _ItemDetailSheet extends ConsumerWidget {
                           style: const TextStyle(
                               color: Colors.white, fontSize: 14),
                           decoration: InputDecoration(
-                            hintText: 'inventory_adjust_reason_hint'.tr,
+                            hintText: TranslatorGlobal.instance
+                                .translate('inventory_adjust_reason_hint'),
                             hintStyle: const TextStyle(color: Colors.white38),
                             border: InputBorder.none,
                             contentPadding: const EdgeInsets.symmetric(
@@ -1754,7 +1832,8 @@ class _ItemDetailSheet extends ConsumerWidget {
                                   : noteController.text);
                         }
                       },
-                      child: Text(ref.tr('confirm'),
+                      child: Text(
+                          TranslatorGlobal.instance.translate('confirm'),
                           style: const TextStyle(
                               color: Colors.white, fontSize: 13)),
                     ),

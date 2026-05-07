@@ -2,16 +2,18 @@ library;
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../config/api_config.dart';
 import '../../data/product_data.dart';
 import '../../l10n/product_translator.dart';
 import '../../models/product_model.dart';
+import '../../providers/app_settings_provider.dart';
 import '../../themes/colors.dart';
 import '../../themes/jewelry_theme.dart';
 import '../animations/custom_shimmer.dart';
 
-class ProductImageView extends StatefulWidget {
+class ProductImageView extends ConsumerStatefulWidget {
   const ProductImageView({
     super.key,
     required this.product,
@@ -32,10 +34,10 @@ class ProductImageView extends StatefulWidget {
   final BorderRadius? borderRadius;
 
   @override
-  State<ProductImageView> createState() => _ProductImageViewState();
+  ConsumerState<ProductImageView> createState() => _ProductImageViewState();
 }
 
-class _ProductImageViewState extends State<ProductImageView> {
+class _ProductImageViewState extends ConsumerState<ProductImageView> {
   static const Set<String> _knownBrokenUnsplashIds = {
     '1661645464570-9a4f3d4dd061',
     '1681276170092-446cd1b5b32d',
@@ -219,8 +221,18 @@ class _ProductImageViewState extends State<ProductImageView> {
                   spacing: 8,
                   runSpacing: 8,
                   children: [
-                    _buildBadge(context, widget.product.catL10n, accent),
-                    _buildBadge(context, widget.product.matL10n, accent),
+                    _buildBadge(
+                      context,
+                      widget.product.localizedCategoryFor(
+                          ref.watch(appSettingsProvider).language),
+                      accent,
+                    ),
+                    _buildBadge(
+                      context,
+                      widget.product.localizedMaterialFor(
+                          ref.watch(appSettingsProvider).language),
+                      accent,
+                    ),
                   ],
                 ),
               ),

@@ -6,10 +6,10 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 
 import '../config/api_config.dart';
+import '../l10n/translator_global.dart';
 import '../models/json_parsing.dart';
 import '../models/payment_models.dart';
 import '../services/api_service.dart';
-import 'package:huiyuyuan/l10n/string_extension.dart';
 
 class PaymentRepository {
   PaymentRepository({Dio? dio, ApiService? apiService})
@@ -40,7 +40,7 @@ class PaymentRepository {
           'order_id': orderId,
           'amount': amount,
           'method': method.code,
-          'description': description ?? 'payment_order_subject'.tr,
+          'description': description ?? _t('payment_order_subject'),
         },
       );
 
@@ -51,7 +51,7 @@ class PaymentRepository {
         }
       }
 
-      throw Exception('payment_create_order_failed'.tr);
+      throw Exception(_t('payment_create_order_failed'));
     } on DioException catch (error) {
       debugPrint('[PaymentRepository] createPaymentOrder failed: $error');
       return _createMockPaymentOrder(orderId, amount, method);
@@ -84,7 +84,7 @@ class PaymentRepository {
       'biz_content': jsonEncode({
         'out_trade_no': order.orderId,
         'total_amount': order.amount.toStringAsFixed(2),
-        'subject': 'payment_order_subject'.tr,
+        'subject': _t('payment_order_subject'),
         'product_code': 'QUICK_MSECURITY_PAY',
       }),
     };
@@ -124,10 +124,10 @@ class PaymentRepository {
         data: {'method': method.code},
       );
       if (!result.success) {
-        throw Exception(result.message ?? 'payment_create_order_failed'.tr);
+        throw Exception(result.message ?? _t('payment_create_order_failed'));
       }
       if (result.data == null) {
-        throw Exception('payment_create_order_failed'.tr);
+        throw Exception(_t('payment_create_order_failed'));
       }
 
       final data = _extractMap(result.data);
@@ -179,7 +179,7 @@ class PaymentRepository {
           'order_id': orderId,
           'payment_id': paymentId,
           'amount': amount,
-          'reason': reason ?? 'payment_refund_reason_customer'.tr,
+          'reason': reason ?? _t('payment_refund_reason_customer'),
         },
       );
 
@@ -190,18 +190,18 @@ class PaymentRepository {
           refundId: jsonAsString(data['refund_id']),
           message: jsonAsString(
             data['message'],
-            fallback: 'payment_refund_submitted'.tr,
+            fallback: _t('payment_refund_submitted'),
           ),
         );
       }
 
-      throw Exception('payment_refund_request_failed'.tr);
+      throw Exception(_t('payment_refund_request_failed'));
     } catch (error) {
       debugPrint('[PaymentRepository] requestRefund failed: $error');
       return RefundRequestResult(
         success: true,
         refundId: 'REFUND-${DateTime.now().millisecondsSinceEpoch}',
-        message: 'payment_refund_submitted_eta'.tr,
+        message: _t('payment_refund_submitted_eta'),
       );
     }
   }
@@ -217,13 +217,13 @@ class PaymentRepository {
         }
       }
 
-      throw Exception('payment_refund_status_query_failed'.tr);
+      throw Exception(_t('payment_refund_status_query_failed'));
     } catch (error) {
       debugPrint('[PaymentRepository] queryRefundStatus failed: $error');
       return RefundStatusResult(
         refundId: refundId,
         status: RefundStatus.processing,
-        message: 'payment_refund_processing'.tr,
+        message: _t('payment_refund_processing'),
       );
     }
   }
@@ -274,5 +274,9 @@ class PaymentRepository {
       buffer.write(chars[DateTime.now().microsecond % chars.length]);
     }
     return buffer.toString();
+  }
+
+  String _t(String key, {Map<String, Object?> params = const {}}) {
+    return TranslatorGlobal.instance.translate(key, params: params);
   }
 }

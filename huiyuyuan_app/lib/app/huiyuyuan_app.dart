@@ -67,7 +67,6 @@ class _HuiYuYuanAppState extends ConsumerState<HuiYuYuanApp> {
     TranslatorGlobal.updateLanguage(settings.language);
 
     return MaterialApp(
-      key: ValueKey(settings.language),
       title: AppStrings.get(settings.language, 'app_name'),
       debugShowCheckedModeBanner: false,
       theme: JewelryTheme.light,

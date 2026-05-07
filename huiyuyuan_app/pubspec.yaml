@@ -1,7 +1,7 @@
 ﻿name: huiyuyuan
 description: 汇玉源珠宝智能交易平台 - 企业智能版
 publish_to: 'none'
-version: 3.0.4+6
+version: 4.0.0+7
 
 environment:
   sdk: '>=3.0.0 <4.0.0'

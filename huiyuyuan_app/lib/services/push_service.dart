@@ -1,4 +1,4 @@
-﻿library;
+library;
 
 import 'dart:async';
 import 'dart:convert';
@@ -7,13 +7,17 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../config/api_config.dart';
+import '../l10n/translator_global.dart';
 import '../models/json_parsing.dart';
 import 'api_service.dart';
 import 'storage_service.dart';
-import 'package:huiyuyuan/l10n/string_extension.dart';
 
 /// SharedPreferences cache key for stored notifications.
 const _kNotificationsCacheKey = 'push_notifications_cache';
+
+String _t(String key, {Map<String, Object?> params = const {}}) {
+  return TranslatorGlobal.instance.translate(key, params: params);
+}
 
 /// Supported notification categories.
 enum NotificationType {
@@ -31,17 +35,17 @@ enum NotificationType {
   String get label {
     switch (this) {
       case NotificationType.order:
-        return 'push_type_order'.tr;
+        return _t('push_type_order');
       case NotificationType.promotion:
-        return 'push_type_promotion'.tr;
+        return _t('push_type_promotion');
       case NotificationType.system:
-        return 'push_type_system'.tr;
+        return _t('push_type_system');
       case NotificationType.live:
-        return 'push_type_live'.tr;
+        return _t('push_type_live');
       case NotificationType.logistics:
-        return 'push_type_logistics'.tr;
+        return _t('push_type_logistics');
       case NotificationType.chat:
-        return 'push_type_chat'.tr;
+        return _t('push_type_chat');
     }
   }
 
@@ -85,14 +89,14 @@ class PushNotification {
     if (titleKey == null || titleKey!.isEmpty) {
       return title;
     }
-    return titleKey!.trArgs(titleArgs ?? const {});
+    return _t(titleKey!, params: titleArgs ?? const {});
   }
 
   String get localizedBody {
     if (bodyKey == null || bodyKey!.isEmpty) {
       return body;
     }
-    return bodyKey!.trArgs(bodyArgs ?? const {});
+    return _t(bodyKey!, params: bodyArgs ?? const {});
   }
 
   factory PushNotification.fromJson(Map<String, dynamic> json) {
@@ -367,7 +371,6 @@ class PushService {
       final response = await _api.get(ApiConfig.notifications);
       final serverNotifications = parsePushNotifications(response.data);
       if (response.success && serverNotifications.isNotEmpty) {
-
         final existingIds = _notifications.map((item) => item.id).toSet();
         for (final notification in serverNotifications) {
           if (!existingIds.contains(notification.id)) {
@@ -469,8 +472,8 @@ class PushService {
     /*
     final androidDetails = AndroidNotificationDetails(
       'huiyuyuan_channel',
-      'push_channel_name'.tr,
-      channelDescription: 'push_channel_description'.tr,
+      _t('push_channel_name'),
+      channelDescription: _t('push_channel_description'),
       importance: Importance.high,
       priority: Priority.high,
       playSound: _settings.soundEnabled,
@@ -583,9 +586,9 @@ class PushService {
     final bodyKey = body == null ? 'push_test_body' : null;
     final notification = PushNotification(
       id: 'test_${DateTime.now().millisecondsSinceEpoch}',
-      title: title ?? titleKey!.tr,
+      title: title ?? _t(titleKey!),
       titleKey: titleKey,
-      body: body ?? bodyKey!.tr,
+      body: body ?? _t(bodyKey!),
       bodyKey: bodyKey,
       type: type,
       receivedAt: DateTime.now(),

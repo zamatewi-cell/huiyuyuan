@@ -26,12 +26,73 @@ _I18N_FIELDS = [
     "origin_zh_tw", "material_verify_zh_tw",
 ]
 
+_DOSSIER_TEXT_FIELDS = [
+    "appraisal_note", "appraisal_note_en", "appraisal_note_zh_tw",
+    "weight_g", "dimensions",
+    "origin_story", "origin_story_en", "origin_story_zh_tw",
+    "certificate_authority", "certificate_authority_en",
+    "certificate_authority_zh_tw",
+    "certificate_image_url", "certificate_verify_url",
+]
+
+_DOSSIER_JSONB_FIELDS = [
+    "craft_highlights", "craft_highlights_en", "craft_highlights_zh_tw",
+    "audience_tags", "audience_tags_en", "audience_tags_zh_tw",
+    "flaw_notes", "flaw_notes_en", "flaw_notes_zh_tw",
+    "gallery_detail", "gallery_hand",
+]
+
+_PRODUCT_WRITE_FIELDS = [
+    "name", "description", "price", "original_price",
+    "category", "material", "images", "stock",
+    "is_hot", "is_new", "is_welfare", "origin",
+    *_DOSSIER_TEXT_FIELDS,
+    *_DOSSIER_JSONB_FIELDS,
+]
+
+_PRODUCT_JSONB_FIELDS = {"images", *_DOSSIER_JSONB_FIELDS}
+
+
+def _jsonb_bind(field: str) -> str:
+    if field in _PRODUCT_JSONB_FIELDS:
+        return f"CAST(:{field} AS JSONB)"
+    return f":{field}"
+
+
+def _jsonb_string_list(value) -> Optional[List[str]]:
+    if value is None:
+        return None
+    parsed = value
+    if isinstance(value, str):
+        try:
+            parsed = json.loads(value)
+        except json.JSONDecodeError:
+            parsed = [value]
+    if not isinstance(parsed, list):
+        return None
+    items = [str(item).strip() for item in parsed if str(item).strip()]
+    return items or None
+
+
+def _product_write_params(product: ProductCreate) -> dict:
+    payload = product.model_dump()
+    payload["images"] = sanitize_product_images(
+        payload.get("images"),
+        payload.get("material"),
+    )
+    for field in _PRODUCT_JSONB_FIELDS:
+        value = payload.get(field)
+        if field == "images":
+            value = value or []
+        payload[field] = None if value is None else json.dumps(value, ensure_ascii=False)
+    return payload
+
 
 def _row_to_product(mapping) -> Product:
-    images = mapping["images"]
-    if isinstance(images, str):
-        images = json.loads(images)
-    images = sanitize_product_images(images if isinstance(images, list) else [], mapping.get("material"))
+    images = sanitize_product_images(
+        _jsonb_string_list(mapping["images"]) or [],
+        mapping.get("material"),
+    )
 
     kwargs = dict(
         id=mapping["id"],
@@ -57,6 +118,10 @@ def _row_to_product(mapping) -> Product:
     # 加载翻译字段（如果存在）
     for field in _I18N_FIELDS:
         kwargs[field] = mapping.get(field)
+    for field in _DOSSIER_TEXT_FIELDS:
+        kwargs[field] = mapping.get(field)
+    for field in _DOSSIER_JSONB_FIELDS:
+        kwargs[field] = _jsonb_string_list(mapping.get(field))
 
     return Product(**kwargs)
 
@@ -226,23 +291,26 @@ async def create_product(
     certificate = f"GTC-2026-{product_id[-6:]}"
     if db is not None:
         try:
-            db.execute(text(
-                "INSERT INTO products (id, name, description, price, original_price, "
-                "category, material, images, stock, is_hot, is_new, is_welfare, "
-                "origin, certificate, blockchain_hash) "
-                "VALUES (:id, :name, :description, :price, :original_price, "
-                ":category, :material, :images::jsonb, :stock, :is_hot, :is_new, "
-                ":is_welfare, :origin, :certificate, :blockchain_hash)"
-            ), {
-                "id": product_id, "name": product.name,
-                "description": product.description, "price": product.price,
-                "original_price": product.original_price,
-                "category": product.category, "material": product.material,
-                "images": json.dumps(product.images), "stock": product.stock,
-                "is_hot": product.is_hot, "is_new": product.is_new,
-                "is_welfare": product.is_welfare, "origin": product.origin,
-                "certificate": certificate, "blockchain_hash": blockchain_hash,
-            })
+            columns = ["id", *_PRODUCT_WRITE_FIELDS, "certificate", "blockchain_hash"]
+            values = [
+                ":id",
+                *[_jsonb_bind(field) for field in _PRODUCT_WRITE_FIELDS],
+                ":certificate",
+                ":blockchain_hash",
+            ]
+            params = {
+                "id": product_id,
+                **_product_write_params(product),
+                "certificate": certificate,
+                "blockchain_hash": blockchain_hash,
+            }
+            db.execute(
+                text(
+                    f"INSERT INTO products ({', '.join(columns)}) "
+                    f"VALUES ({', '.join(values)})"
+                ),
+                params,
+            )
             db.commit()
 
             # 后台异步翻译
@@ -284,22 +352,20 @@ async def update_product(
             existing = _db_product(db, product_id, active_only=False)
             if not existing:
                 raise HTTPException(status_code=404, detail="商品不存在")
-            result = db.execute(text(
-                "UPDATE products SET name = :name, description = :description, "
-                "price = :price, original_price = :original_price, "
-                "category = :category, material = :material, "
-                "images = :images::jsonb, stock = :stock, is_hot = :is_hot, "
-                "is_new = :is_new, is_welfare = :is_welfare, origin = :origin "
-                "WHERE id = :id"
-            ), {
-                "id": product_id, "name": product.name,
-                "description": product.description, "price": product.price,
-                "original_price": product.original_price,
-                "category": product.category, "material": product.material,
-                "images": json.dumps(product.images), "stock": product.stock,
-                "is_hot": product.is_hot, "is_new": product.is_new,
-                "is_welfare": product.is_welfare, "origin": product.origin,
-            })
+            assignments = [
+                f"{field} = {_jsonb_bind(field)}"
+                for field in _PRODUCT_WRITE_FIELDS
+            ]
+            result = db.execute(
+                text(
+                    f"UPDATE products SET {', '.join(assignments)} "
+                    "WHERE id = :id"
+                ),
+                {
+                    "id": product_id,
+                    **_product_write_params(product),
+                },
+            )
             if result.rowcount == 0:
                 raise HTTPException(status_code=404, detail="商品不存在")
             db.commit()

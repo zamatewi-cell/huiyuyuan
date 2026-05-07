@@ -5,6 +5,7 @@ import '../../l10n/l10n_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../models/product_model.dart';
+import '../../providers/app_settings_provider.dart';
 import '../../providers/product_catalog_provider.dart';
 import '../../providers/product_search_provider.dart';
 import '../../themes/colors.dart';
@@ -203,22 +204,24 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
   }
 
   Widget _buildSuggestionList(List<ProductModel> suggestions, bool isDark) {
+    final lang = ref.watch(appSettingsProvider).language;
     return Container(
       constraints: const BoxConstraints(maxHeight: 280),
       color: isDark ? JewelryColors.darkCard : Colors.white,
       child: ListView(
         shrinkWrap: true,
         children: suggestions.map((product) {
+          final title = product.localizedTitleFor(lang);
           return ListTile(
             leading: Icon(Icons.search, color: Colors.grey[400], size: 18),
             title: Text(
-              product.titleL10n,
+              title,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
-            subtitle: Text(product.catL10n),
+            subtitle: Text(product.localizedCategoryFor(lang)),
             trailing: Icon(Icons.north_west, color: Colors.grey[400], size: 16),
-            onTap: () => _selectKeyword(product.titleL10n),
+            onTap: () => _selectKeyword(title),
           );
         }).toList(growable: false),
       ),
@@ -343,6 +346,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
   }
 
   Widget _buildMiniProductCard(ProductModel product, bool isDark) {
+    final lang = ref.watch(appSettingsProvider).language;
     return GestureDetector(
       onTap: () => Navigator.push(
         context,
@@ -373,7 +377,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
             Padding(
               padding: const EdgeInsets.all(10),
               child: Text(
-                product.titleL10n,
+                product.localizedTitleFor(lang),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(color: context.adaptiveTextPrimary),
@@ -509,6 +513,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
   }
 
   Widget _buildResultCard(ProductModel product, bool isDark, int index) {
+    final lang = ref.watch(appSettingsProvider).language;
     return GestureDetector(
       onTap: () => Navigator.push(
         context,
@@ -540,14 +545,14 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(product.titleL10n,
+                  Text(product.localizedTitleFor(lang),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                           color: context.adaptiveTextPrimary,
                           fontWeight: FontWeight.w600)),
                   const SizedBox(height: 6),
-                  Text(product.matL10n,
+                  Text(product.localizedMaterialFor(lang),
                       style: TextStyle(
                           color: context.adaptiveTextSecondary, fontSize: 12)),
                   const SizedBox(height: 10),

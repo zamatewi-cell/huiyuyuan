@@ -3,6 +3,7 @@ import '../../models/product_model.dart';
 import '../../l10n/l10n_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import '../../providers/app_settings_provider.dart';
 import '../../providers/cart_provider.dart';
 import '../../models/cart_item_model.dart';
 import '../../l10n/product_translator.dart';
@@ -10,7 +11,6 @@ import '../../themes/colors.dart';
 import '../../widgets/common/glassmorphic_card.dart';
 import 'dart:ui';
 import 'checkout_screen.dart';
-import 'package:huiyuyuan/l10n/string_extension.dart';
 
 // 向后兼容：旧代码如果 import cart_screen.dart 获取 cartProvider 仍然可用
 export '../../providers/cart_provider.dart' show cartProvider;
@@ -186,7 +186,7 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                 if (cartItems.isNotEmpty)
                   TextButton(
                     onPressed: () => _showClearDialog(cartNotifier),
-                    child: Text('cart_clear'.tr,
+                    child: Text(ref.tr('cart_clear'),
                         style: TextStyle(
                           color: JewelryColors.jadeMist.withOpacity(0.62),
                           fontWeight: FontWeight.w700,
@@ -289,11 +289,12 @@ class _CartScreenState extends ConsumerState<CartScreen> {
   }
 
   Widget _buildCartItem(CartItemModel item, CartNotifier notifier) {
+    final lang = ref.watch(appSettingsProvider).language;
     final product = item.product;
-    final name = product.titleL10n;
+    final name = product.localizedTitleFor(lang);
     final price = product.price;
     final quantity = item.quantity;
-    final material = product.matL10n;
+    final material = product.localizedMaterialFor(lang);
     final imageUrl = product.images.isNotEmpty ? product.images.first : null;
 
     return Dismissible(
@@ -580,14 +581,14 @@ class _CartScreenState extends ConsumerState<CartScreen> {
       builder: (context) => AlertDialog(
         backgroundColor: JewelryColors.deepJade,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        title: Text('cart_clear_title'.tr),
+        title: Text(ref.tr('cart_clear_title')),
         titleTextStyle: const TextStyle(
           color: JewelryColors.jadeMist,
           fontSize: 18,
           fontWeight: FontWeight.w900,
         ),
         content: Text(
-          'cart_clear_confirm'.tr,
+          ref.tr('cart_clear_confirm'),
           style: TextStyle(color: JewelryColors.jadeMist.withOpacity(0.68)),
         ),
         actions: [
@@ -615,7 +616,7 @@ class _CartScreenState extends ConsumerState<CartScreen> {
     final selectedItems = notifier.selectedItems;
     if (selectedItems.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('cart_select_checkout_items'.tr)),
+        SnackBar(content: Text(ref.tr('cart_select_checkout_items'))),
       );
       return;
     }

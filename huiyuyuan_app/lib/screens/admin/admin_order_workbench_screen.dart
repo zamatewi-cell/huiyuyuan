@@ -1,13 +1,13 @@
 library;
 
 import 'package:flutter/material.dart';
+import '../../l10n/translator_global.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:huiyuyuan/l10n/string_extension.dart';
 
 import '../../config/api_config.dart';
-import '../../l10n/l10n_provider.dart';
 import '../../models/payment_models.dart' as pay;
 import '../../models/user_model.dart';
+import '../../providers/app_settings_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/order_service.dart';
 import '../../themes/colors.dart';
@@ -217,7 +217,7 @@ class _AdminOrderWorkbenchScreenState
             ),
           ),
           child: Text(
-            ref.tr('admin_orders'),
+            TranslatorGlobal.instance.translate('admin_orders'),
             style: const TextStyle(
               color: JewelryColors.jadeMist,
               fontWeight: FontWeight.w900,
@@ -229,7 +229,7 @@ class _AdminOrderWorkbenchScreenState
           IconButton(
             onPressed: () => ref.read(orderProvider.notifier).refresh(),
             icon: const Icon(Icons.refresh_rounded),
-            tooltip: ref.tr('refresh'),
+            tooltip: TranslatorGlobal.instance.translate('refresh'),
           ),
         ],
       ),
@@ -263,14 +263,19 @@ class _AdminOrderWorkbenchScreenState
                           const SizedBox(height: 14),
                           if (orders.isEmpty)
                             _buildEmptyCard(
-                              title: ref.tr('order_empty_title'),
-                              subtitle: ref.tr('order_empty_subtitle'),
+                              title: TranslatorGlobal.instance
+                                  .translate('order_empty_title'),
+                              subtitle: TranslatorGlobal.instance
+                                  .translate('order_empty_subtitle'),
                             )
                           else if (filteredOrders.isEmpty)
                             _buildEmptyCard(
-                              title: ref.tr('no_data'),
-                              subtitle: ref.tr('admin_order_no_action_needed'),
-                              actionLabel: ref.tr('order_all'),
+                              title: TranslatorGlobal.instance
+                                  .translate('no_data'),
+                              subtitle: TranslatorGlobal.instance
+                                  .translate('admin_order_no_action_needed'),
+                              actionLabel: TranslatorGlobal.instance
+                                  .translate('order_all'),
                               onAction: () {
                                 setState(
                                   () => _selectedFilter = _AdminOrderFilter.all,
@@ -372,7 +377,7 @@ class _AdminOrderWorkbenchScreenState
             ),
             const SizedBox(height: 18),
             Text(
-              ref.tr('operator_permission_denied'),
+              TranslatorGlobal.instance.translate('operator_permission_denied'),
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: context.adaptiveTextPrimary,
@@ -444,7 +449,7 @@ class _AdminOrderWorkbenchScreenState
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  ref.tr('admin_orders'),
+                  TranslatorGlobal.instance.translate('admin_orders'),
                   style: const TextStyle(
                     color: JewelryColors.jadeMist,
                     fontSize: 20,
@@ -453,7 +458,8 @@ class _AdminOrderWorkbenchScreenState
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  ref.tr('admin_order_workbench_subtitle'),
+                  TranslatorGlobal.instance
+                      .translate('admin_order_workbench_subtitle'),
                   style: TextStyle(
                     color: JewelryColors.jadeMist.withOpacity(0.68),
                     fontSize: 13,
@@ -466,15 +472,18 @@ class _AdminOrderWorkbenchScreenState
                   runSpacing: 8,
                   children: [
                     _buildHeroMetric(
-                      ref.tr('admin_order_to_confirm'),
+                      TranslatorGlobal.instance
+                          .translate('admin_order_to_confirm'),
                       summary.toConfirm,
                     ),
                     _buildHeroMetric(
-                      ref.tr('order_pending_shipment'),
+                      TranslatorGlobal.instance
+                          .translate('order_pending_shipment'),
                       summary.toShip,
                     ),
                     _buildHeroMetric(
-                      ref.tr('admin_order_in_transit'),
+                      TranslatorGlobal.instance
+                          .translate('admin_order_in_transit'),
                       summary.inTransit,
                     ),
                   ],
@@ -546,28 +555,28 @@ class _AdminOrderWorkbenchScreenState
   Widget _buildSummaryGrid(_OrderWorkbenchSummary summary) {
     final items = [
       (
-        label: ref.tr('admin_order_to_confirm'),
+        label: TranslatorGlobal.instance.translate('admin_order_to_confirm'),
         count: summary.toConfirm,
         icon: Icons.verified_rounded,
         color: const Color(0xFFF59E0B),
         filter: _AdminOrderFilter.toConfirm,
       ),
       (
-        label: ref.tr('order_pending_shipment'),
+        label: TranslatorGlobal.instance.translate('order_pending_shipment'),
         count: summary.toShip,
         icon: Icons.local_shipping_rounded,
         color: const Color(0xFF0EA5E9),
         filter: _AdminOrderFilter.toShip,
       ),
       (
-        label: ref.tr('admin_order_in_transit'),
+        label: TranslatorGlobal.instance.translate('admin_order_in_transit'),
         count: summary.inTransit,
         icon: Icons.route_rounded,
         color: const Color(0xFF8B5CF6),
         filter: _AdminOrderFilter.inTransit,
       ),
       (
-        label: ref.tr('order_completed'),
+        label: TranslatorGlobal.instance.translate('order_completed'),
         count: summary.completed,
         icon: Icons.task_alt_rounded,
         color: JewelryColors.emeraldLuster,
@@ -629,8 +638,8 @@ class _AdminOrderWorkbenchScreenState
               const SizedBox(height: 4),
               Text(
                 selected
-                    ? ref.tr('common_view_detail')
-                    : ref.tr('profile_pending'),
+                    ? TranslatorGlobal.instance.translate('common_view_detail')
+                    : TranslatorGlobal.instance.translate('profile_pending'),
                 style: TextStyle(
                   fontSize: 11,
                   color: item.color,
@@ -662,7 +671,7 @@ class _AdminOrderWorkbenchScreenState
             ),
             const SizedBox(width: 8),
             Text(
-              ref.tr('profile_pending'),
+              TranslatorGlobal.instance.translate('profile_pending'),
               style: const TextStyle(
                 color: JewelryColors.jadeMist,
                 fontSize: 16,
@@ -695,7 +704,8 @@ class _AdminOrderWorkbenchScreenState
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    ref.tr('admin_order_no_action_needed'),
+                    TranslatorGlobal.instance
+                        .translate('admin_order_no_action_needed'),
                     style: const TextStyle(
                       color: JewelryColors.jadeMist,
                       fontSize: 14,
@@ -726,6 +736,7 @@ class _AdminOrderWorkbenchScreenState
     required bool canMarkPaymentException,
   }) {
     final accentColor = _effectiveStatusColor(order);
+    final language = ref.watch(appSettingsProvider).language;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
@@ -748,7 +759,7 @@ class _AdminOrderWorkbenchScreenState
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    order.localizedProductName,
+                    order.localizedProductNameFor(language),
                     style: TextStyle(
                       color: context.adaptiveTextPrimary,
                       fontSize: 14,
@@ -759,7 +770,7 @@ class _AdminOrderWorkbenchScreenState
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    '${ref.tr('order_number')}: ${order.id}',
+                    '${TranslatorGlobal.instance.translate('order_number')}: ${order.id}',
                     style: TextStyle(
                       color: context.adaptiveTextSecondary,
                       fontSize: 12,
@@ -826,6 +837,8 @@ class _AdminOrderWorkbenchScreenState
     required bool canReconcilePayments,
     required bool canMarkPaymentException,
   }) {
+    final language = ref.watch(appSettingsProvider).language;
+
     return PremiumCard(
       margin: const EdgeInsets.only(bottom: 14),
       backgroundColor: context.adaptiveSurface,
@@ -837,7 +850,7 @@ class _AdminOrderWorkbenchScreenState
             children: [
               Expanded(
                 child: Text(
-                  '${ref.tr('order_number')}: ${order.id}',
+                  '${TranslatorGlobal.instance.translate('order_number')}: ${order.id}',
                   style: TextStyle(
                     color: context.adaptiveTextSecondary,
                     fontSize: 12,
@@ -859,7 +872,7 @@ class _AdminOrderWorkbenchScreenState
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      order.localizedProductName,
+                      order.localizedProductNameFor(language),
                       style: TextStyle(
                         color: context.adaptiveTextPrimary,
                         fontSize: 15,
@@ -870,7 +883,7 @@ class _AdminOrderWorkbenchScreenState
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      '${ref.tr('common_quantity')}: x${order.quantity}',
+                      '${TranslatorGlobal.instance.translate('common_quantity')}: x${order.quantity}',
                       style: TextStyle(
                         color: context.adaptiveTextSecondary,
                         fontSize: 13,
@@ -897,51 +910,53 @@ class _AdminOrderWorkbenchScreenState
             children: [
               _buildMetaChip(
                 Icons.person_outline_rounded,
-                '${ref.tr('address_recipient_name')}: ${_recipientText(order)}',
+                '${TranslatorGlobal.instance.translate('address_recipient_name')}: ${_recipientText(order)}',
               ),
               _buildMetaChip(
                 Icons.schedule_rounded,
-                '${ref.tr('order_time')}: ${_formatDateTime(order.createdAt)}',
+                '${TranslatorGlobal.instance.translate('order_time')}: ${_formatDateTime(order.createdAt)}',
               ),
               if (order.paymentMethod != null)
                 _buildMetaChip(
                   Icons.wallet_rounded,
-                  '${ref.tr('payment_method_title')}: ${_paymentMethodLabel(order)}',
+                  '${TranslatorGlobal.instance.translate('payment_method_title')}: ${_paymentMethodLabel(order)}',
                   color: order.paymentMethod!.color,
                 ),
               if (order.paymentAccount?.name.trim().isNotEmpty ?? false)
                 _buildMetaChip(
                   Icons.account_balance_rounded,
-                  '${ref.tr('payment_account_name')}: ${order.paymentAccount!.name}',
+                  '${TranslatorGlobal.instance.translate('payment_account_name')}: ${order.paymentAccount!.name}',
                 ),
               if (_needsPaymentConfirm(order) && order.paymentId != null)
                 _buildMetaChip(
                   Icons.receipt_long_rounded,
-                  '${ref.tr('payment_record_number')}: ${order.paymentId}',
+                  '${TranslatorGlobal.instance.translate('payment_record_number')}: ${order.paymentId}',
                 ),
               if (_isPaymentDisputed(order))
                 _buildMetaChip(
                   Icons.warning_amber_rounded,
-                  ref.tr('payment_status_disputed'),
+                  TranslatorGlobal.instance
+                      .translate('payment_status_disputed'),
                   color: const Color(0xFFEF4444),
                 ),
               if (order.paymentAdminNote?.trim().isNotEmpty ?? false)
                 _buildMetaChip(
                   Icons.sticky_note_2_outlined,
-                  '${ref.tr('payment_admin_note_label')}: ${order.paymentAdminNote!}',
+                  '${TranslatorGlobal.instance.translate('payment_admin_note_label')}: ${order.paymentAdminNote!}',
                   color: const Color(0xFFF59E0B),
                 ),
               if (order.paymentAccount?.accountNumber?.trim().isNotEmpty ??
                   false)
                 _buildMetaChip(
                   Icons.qr_code_rounded,
-                  '${ref.tr('payment_account_number')}: ${order.paymentAccount!.accountNumber}',
+                  '${TranslatorGlobal.instance.translate('payment_account_number')}: ${order.paymentAccount!.accountNumber}',
                 ),
               if (order.status == OrderStatus.pending &&
                   !_needsPaymentConfirm(order))
                 _buildMetaChip(
                   Icons.hourglass_bottom_rounded,
-                  ref.tr('admin_order_waiting_customer_payment'),
+                  TranslatorGlobal.instance
+                      .translate('admin_order_waiting_customer_payment'),
                 ),
             ],
           ),
@@ -1063,7 +1078,8 @@ class _AdminOrderWorkbenchScreenState
           foregroundColor: Colors.white,
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         ),
-        child: Text(ref.tr('order_confirm_payment')),
+        child:
+            Text(TranslatorGlobal.instance.translate('order_confirm_payment')),
       );
     }
 
@@ -1072,14 +1088,15 @@ class _AdminOrderWorkbenchScreenState
         canMarkPaymentException) {
       return OutlinedButton(
         onPressed: () => _markPaymentException(order),
-        child: Text(ref.tr('payment_mark_exception')),
+        child:
+            Text(TranslatorGlobal.instance.translate('payment_mark_exception')),
       );
     }
 
     if (!canManageOrders) {
       return OutlinedButton(
         onPressed: () => _openOrderDetail(order),
-        child: Text(ref.tr('common_view_detail')),
+        child: Text(TranslatorGlobal.instance.translate('common_view_detail')),
       );
     }
 
@@ -1090,7 +1107,7 @@ class _AdminOrderWorkbenchScreenState
         foregroundColor: Colors.white,
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       ),
-      child: Text(ref.tr('order_ship')),
+      child: Text(TranslatorGlobal.instance.translate('order_ship')),
     );
   }
 
@@ -1104,7 +1121,7 @@ class _AdminOrderWorkbenchScreenState
       OutlinedButton.icon(
         onPressed: () => _openOrderDetail(order),
         icon: const Icon(Icons.open_in_new_rounded, size: 16),
-        label: Text(ref.tr('common_view_detail')),
+        label: Text(TranslatorGlobal.instance.translate('common_view_detail')),
       ),
     ];
 
@@ -1114,7 +1131,7 @@ class _AdminOrderWorkbenchScreenState
           OutlinedButton.icon(
             onPressed: () => _openLogistics(order),
             icon: const Icon(Icons.route_rounded, size: 16),
-            label: Text(ref.tr('order_logistics')),
+            label: Text(TranslatorGlobal.instance.translate('order_logistics')),
           ),
         );
       }
@@ -1127,7 +1144,8 @@ class _AdminOrderWorkbenchScreenState
           FilledButton.icon(
             onPressed: () => _confirmPayment(order),
             icon: const Icon(Icons.verified_rounded, size: 16),
-            label: Text(ref.tr('order_confirm_payment')),
+            label: Text(
+                TranslatorGlobal.instance.translate('order_confirm_payment')),
             style: FilledButton.styleFrom(
               backgroundColor: const Color(0xFFF59E0B),
               foregroundColor: Colors.white,
@@ -1140,7 +1158,8 @@ class _AdminOrderWorkbenchScreenState
           OutlinedButton.icon(
             onPressed: () => _markPaymentException(order),
             icon: const Icon(Icons.report_gmailerrorred_rounded, size: 16),
-            label: Text(ref.tr('payment_mark_exception')),
+            label: Text(
+                TranslatorGlobal.instance.translate('payment_mark_exception')),
           ),
         );
       }
@@ -1152,7 +1171,7 @@ class _AdminOrderWorkbenchScreenState
         FilledButton.icon(
           onPressed: () => _shipOrder(order),
           icon: const Icon(Icons.local_shipping_rounded, size: 16),
-          label: Text(ref.tr('order_ship')),
+          label: Text(TranslatorGlobal.instance.translate('order_ship')),
           style: FilledButton.styleFrom(
             backgroundColor: const Color(0xFF0EA5E9),
             foregroundColor: Colors.white,
@@ -1167,7 +1186,7 @@ class _AdminOrderWorkbenchScreenState
         OutlinedButton.icon(
           onPressed: () => _openLogistics(order),
           icon: const Icon(Icons.route_rounded, size: 16),
-          label: Text(ref.tr('order_logistics')),
+          label: Text(TranslatorGlobal.instance.translate('order_logistics')),
         ),
       );
     }
@@ -1297,15 +1316,15 @@ class _AdminOrderWorkbenchScreenState
   String _filterLabel(_AdminOrderFilter filter) {
     switch (filter) {
       case _AdminOrderFilter.all:
-        return ref.tr('order_all');
+        return TranslatorGlobal.instance.translate('order_all');
       case _AdminOrderFilter.toConfirm:
-        return ref.tr('admin_order_to_confirm');
+        return TranslatorGlobal.instance.translate('admin_order_to_confirm');
       case _AdminOrderFilter.toShip:
-        return ref.tr('order_pending_shipment');
+        return TranslatorGlobal.instance.translate('order_pending_shipment');
       case _AdminOrderFilter.inTransit:
-        return ref.tr('admin_order_in_transit');
+        return TranslatorGlobal.instance.translate('admin_order_in_transit');
       case _AdminOrderFilter.completed:
-        return ref.tr('order_completed');
+        return TranslatorGlobal.instance.translate('order_completed');
     }
   }
 
@@ -1344,10 +1363,10 @@ class _AdminOrderWorkbenchScreenState
       return pay.paymentStatusFromValue(order.paymentRecordStatus).label;
     }
     if (_needsPaymentConfirm(order)) {
-      return ref.tr('admin_order_to_confirm');
+      return TranslatorGlobal.instance.translate('admin_order_to_confirm');
     }
     if (_isInTransit(order)) {
-      return ref.tr('admin_order_in_transit');
+      return TranslatorGlobal.instance.translate('admin_order_in_transit');
     }
     return order.status.localizedLabel;
   }
@@ -1371,9 +1390,9 @@ class _AdminOrderWorkbenchScreenState
       return order.paymentAdminNote!.trim();
     }
     if (_needsPaymentConfirm(order)) {
-      return '${ref.tr('payment_record_number')}: ${order.paymentId}';
+      return '${TranslatorGlobal.instance.translate('payment_record_number')}: ${order.paymentId}';
     }
-    return '${ref.tr('address_recipient_name')}: ${_recipientText(order)}';
+    return '${TranslatorGlobal.instance.translate('address_recipient_name')}: ${_recipientText(order)}';
   }
 
   bool _isPaymentDisputed(OrderModel order) {
@@ -1401,12 +1420,12 @@ class _AdminOrderWorkbenchScreenState
   String _paymentMethodLabel(OrderModel order) {
     switch (order.paymentMethod) {
       case PaymentMethod.wechat:
-        return 'payment_type_wechat'.tr;
+        return TranslatorGlobal.instance.translate('payment_type_wechat');
       case PaymentMethod.alipay:
-        return 'payment_type_alipay'.tr;
+        return TranslatorGlobal.instance.translate('payment_type_alipay');
       case PaymentMethod.balance:
       case PaymentMethod.unionpay:
-        return 'payment_bank_transfer'.tr;
+        return TranslatorGlobal.instance.translate('payment_bank_transfer');
       case null:
         return '--';
     }
@@ -1422,22 +1441,25 @@ class _AdminOrderWorkbenchScreenState
 
   Future<void> _confirmPayment(OrderModel order) async {
     if (!_canReconcilePayments(ref.read(currentUserProvider))) {
-      _showSnackBar(ref.tr('operator_permission_denied'));
+      _showSnackBar(
+          TranslatorGlobal.instance.translate('operator_permission_denied'));
       return;
     }
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: Text(ref.tr('order_confirm_payment')),
-        content: Text(ref.tr('order_confirm_payment_hint')),
+        title:
+            Text(TranslatorGlobal.instance.translate('order_confirm_payment')),
+        content: Text(
+            TranslatorGlobal.instance.translate('order_confirm_payment_hint')),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),
-            child: Text(ref.tr('cancel')),
+            child: Text(TranslatorGlobal.instance.translate('cancel')),
           ),
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, true),
-            child: Text(ref.tr('confirm')),
+            child: Text(TranslatorGlobal.instance.translate('confirm')),
           ),
         ],
       ),
@@ -1453,20 +1475,22 @@ class _AdminOrderWorkbenchScreenState
     }
     _showSnackBar(
       ok
-          ? ref.tr('order_confirm_payment_success')
-          : ref.tr('please_retry_later'),
+          ? TranslatorGlobal.instance.translate('order_confirm_payment_success')
+          : TranslatorGlobal.instance.translate('please_retry_later'),
     );
   }
 
   Future<void> _shipOrder(OrderModel order) async {
     if (!_canManageOrders(ref.read(currentUserProvider))) {
-      _showSnackBar(ref.tr('operator_permission_denied'));
+      _showSnackBar(
+          TranslatorGlobal.instance.translate('operator_permission_denied'));
       return;
     }
     final result = await ShippingDialog.show(
       context,
       orderId: order.id,
-      productName: order.localizedProductName,
+      productName:
+          order.localizedProductNameFor(ref.read(appSettingsProvider).language),
     );
     if (result == null || !mounted) {
       return;
@@ -1481,17 +1505,20 @@ class _AdminOrderWorkbenchScreenState
       return;
     }
     _showSnackBar(
-      ok ? ref.tr('order_ship_success') : ref.tr('please_retry_later'),
+      ok
+          ? TranslatorGlobal.instance.translate('order_ship_success')
+          : TranslatorGlobal.instance.translate('please_retry_later'),
     );
   }
 
   Future<void> _markPaymentException(OrderModel order) async {
     if (!_canMarkPaymentException(ref.read(currentUserProvider))) {
-      _showSnackBar(ref.tr('operator_permission_denied'));
+      _showSnackBar(
+          TranslatorGlobal.instance.translate('operator_permission_denied'));
       return;
     }
     if (order.paymentId == null || order.paymentId!.trim().isEmpty) {
-      _showSnackBar(ref.tr('please_retry_later'));
+      _showSnackBar(TranslatorGlobal.instance.translate('please_retry_later'));
       return;
     }
 
@@ -1500,24 +1527,27 @@ class _AdminOrderWorkbenchScreenState
     final reason = await showDialog<String>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: Text(ref.tr('payment_mark_exception')),
+        title:
+            Text(TranslatorGlobal.instance.translate('payment_mark_exception')),
         content: TextField(
           controller: controller,
           autofocus: true,
           maxLines: 3,
           decoration: InputDecoration(
-            labelText: ref.tr('payment_admin_note_label'),
-            hintText: ref.tr('payment_mark_exception_prompt'),
+            labelText:
+                TranslatorGlobal.instance.translate('payment_admin_note_label'),
+            hintText: TranslatorGlobal.instance
+                .translate('payment_mark_exception_prompt'),
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext),
-            child: Text(ref.tr('cancel')),
+            child: Text(TranslatorGlobal.instance.translate('cancel')),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(dialogContext, controller.text),
-            child: Text(ref.tr('confirm')),
+            child: Text(TranslatorGlobal.instance.translate('confirm')),
           ),
         ],
       ),
@@ -1532,7 +1562,8 @@ class _AdminOrderWorkbenchScreenState
 
     final trimmedReason = reason.trim();
     if (trimmedReason.isEmpty) {
-      _showSnackBar(ref.tr('payment_mark_exception_reason_required'));
+      _showSnackBar(TranslatorGlobal.instance
+          .translate('payment_mark_exception_reason_required'));
       return;
     }
 
@@ -1547,8 +1578,9 @@ class _AdminOrderWorkbenchScreenState
 
     _showSnackBar(
       ok
-          ? ref.tr('payment_mark_exception_success')
-          : ref.tr('please_retry_later'),
+          ? TranslatorGlobal.instance
+              .translate('payment_mark_exception_success')
+          : TranslatorGlobal.instance.translate('please_retry_later'),
     );
   }
 

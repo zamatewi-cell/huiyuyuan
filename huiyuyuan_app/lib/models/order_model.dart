@@ -1,4 +1,4 @@
-﻿/// HuiYuYuan order model with extended fulfillment metadata.
+/// HuiYuYuan order model with extended fulfillment metadata.
 /// Includes shipping, payment, logistics, and lifecycle timestamps.
 library;
 
@@ -89,7 +89,8 @@ class LogisticsEntry {
     final shipped =
         RegExp(r'^商家已发货，\s*(.+?)\s*运单号\s*(.+)$').firstMatch(description);
     if (shipped != null) {
-      return 'logistics_entry_shipped'.trArgs({
+      return TranslatorGlobal.instance
+          .translate('logistics_entry_shipped', params: {
         'company': shipped.group(1)!.trim(),
         'number': shipped.group(2)!.trim(),
       });
@@ -97,7 +98,8 @@ class LogisticsEntry {
 
     final pickedUp = RegExp(r'^快件已被\s*(.+?)\s*揽收$').firstMatch(description);
     if (pickedUp != null) {
-      return 'logistics_entry_picked_up'.trArgs({
+      return TranslatorGlobal.instance
+          .translate('logistics_entry_picked_up', params: {
         'company': pickedUp.group(1)!.trim(),
       });
     }
@@ -105,7 +107,8 @@ class LogisticsEntry {
     final paid = RegExp(r'^订单已支付\s*[¥￥]?\s*([0-9.]+)\s*\(([^)]+)\)$')
         .firstMatch(description);
     if (paid != null) {
-      return 'logistics_entry_order_paid'.trArgs({
+      return TranslatorGlobal.instance
+          .translate('logistics_entry_order_paid', params: {
         'amount': paid.group(1)!.trim(),
         'method': paid.group(2)!.trim(),
       });
@@ -119,7 +122,8 @@ class LogisticsEntry {
       r'^\u5546\u5bb6\u5df2\u53d1\u8d27\uff0c\s*(.+?)\s*\u8fd0\u5355\u53f7\s*(.+)$',
     ).firstMatch(description);
     if (shipped != null) {
-      return 'logistics_entry_shipped'.trArgs({
+      return TranslatorGlobal.instance
+          .translate('logistics_entry_shipped', params: {
         'company': shipped.group(1)!.trim(),
         'number': shipped.group(2)!.trim(),
       });
@@ -129,7 +133,8 @@ class LogisticsEntry {
       r'^\u5feb\u4ef6\u5df2\u88ab\s*(.+?)\s*\u63fd\u6536$',
     ).firstMatch(description);
     if (pickedUp != null) {
-      return 'logistics_entry_picked_up'.trArgs({
+      return TranslatorGlobal.instance
+          .translate('logistics_entry_picked_up', params: {
         'company': pickedUp.group(1)!.trim(),
       });
     }
@@ -138,7 +143,8 @@ class LogisticsEntry {
       r'^\u8ba2\u5355\u5df2\u652f\u4ed8\s*[\u00A5\uFFE5]?\s*([0-9.]+)\s*\(([^)]+)\)$',
     ).firstMatch(description);
     if (paid != null) {
-      return 'logistics_entry_order_paid'.trArgs({
+      return TranslatorGlobal.instance
+          .translate('logistics_entry_order_paid', params: {
         'amount': paid.group(1)!.trim(),
         'method': paid.group(2)!.trim(),
       });
@@ -566,9 +572,6 @@ class OrderModel {
 }
 
 extension LocalizedOrderModel on OrderModel {
-  String get localizedProductName =>
-      localizedProductNameFor(TranslatorGlobal.currentLang);
-
   String localizedProductNameFor(AppLanguage lang) {
     final source = productName.trim();
     if (source.isEmpty) {

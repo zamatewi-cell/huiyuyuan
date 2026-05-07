@@ -2,6 +2,7 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../l10n/l10n_provider.dart';
 import '../../models/cart_item_model.dart';
@@ -13,6 +14,7 @@ import '../../services/storage_service.dart';
 import '../../themes/colors.dart';
 import '../../widgets/image/product_image_view.dart';
 import '../../widgets/product_reviews_widget.dart';
+import '../chat/ai_assistant_screen.dart';
 import 'checkout_screen.dart';
 
 class _ProductDetailBackdrop extends StatelessWidget {
@@ -255,6 +257,23 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
     final localizedCategory =
         widget.product.localizedCategoryFor(currentLanguage);
     final localizedOrigin = widget.product.localizedOriginFor(currentLanguage);
+    final appraisalNote =
+        widget.product.localizedAppraisalNoteFor(currentLanguage)?.trim();
+    final craftHighlightItems =
+        widget.product.localizedCraftHighlightsFor(currentLanguage);
+    final audienceTags = widget.product.localizedAudienceTagsFor(
+      currentLanguage,
+    );
+    final originStory =
+        widget.product.localizedOriginStoryFor(currentLanguage)?.trim();
+    final flawNotes = widget.product.localizedFlawNotesFor(currentLanguage);
+    final certificateAuthority = widget.product
+        .localizedCertificateAuthorityFor(currentLanguage)
+        ?.trim();
+    final certificateImageUrl = widget.product.certificateImageUrl?.trim();
+    final certificateVerifyUrl = widget.product.certificateVerifyUrl?.trim();
+    final galleryDetail = _cleanDossierItems(widget.product.galleryDetail);
+    final galleryHand = _cleanDossierItems(widget.product.galleryHand);
 
     return Scaffold(
       backgroundColor: JewelryColors.jadeBlack,
@@ -545,9 +564,239 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
                                 if (widget.product.certificate != null)
                                   _buildInfoRow(ref.tr('product_cert_no'),
                                       widget.product.certificate!),
+                                if (widget.product.weightG != null)
+                                  _buildInfoRow(
+                                    ref.tr('product_weight'),
+                                    ref.tr(
+                                      'product_weight_value',
+                                      params: {
+                                        'weight': widget.product.weightG!
+                                            .toStringAsFixed(
+                                                widget.product.weightG! ==
+                                                        widget.product.weightG!
+                                                            .roundToDouble()
+                                                    ? 0
+                                                    : 1),
+                                      },
+                                    ),
+                                  ),
+                                if (widget.product.dimensions != null &&
+                                    widget.product.dimensions!.isNotEmpty)
+                                  _buildInfoRow(
+                                    ref.tr('product_dimensions'),
+                                    widget.product.dimensions!,
+                                  ),
                               ],
                             ),
                           ),
+
+                          // Appraisal note (only when the field is populated).
+                          if (_hasDossierText(appraisalNote))
+                            _DetailGlassPanel(
+                              padding: const EdgeInsets.all(20),
+                              margin: const EdgeInsets.only(bottom: 14),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  _DetailSectionTitle(
+                                    icon: Icons.verified_outlined,
+                                    text: ref.tr('product_appraisal_note'),
+                                  ),
+                                  const SizedBox(height: 12),
+                                  Text(
+                                    appraisalNote!,
+                                    style: const TextStyle(
+                                      color: Colors.white70,
+                                      fontSize: 14,
+                                      height: 1.65,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+
+                          // Craft highlights (only when populated).
+                          if (craftHighlightItems.isNotEmpty)
+                            _DetailGlassPanel(
+                              padding: const EdgeInsets.all(20),
+                              margin: const EdgeInsets.only(bottom: 14),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  _DetailSectionTitle(
+                                    icon: Icons.auto_fix_high_outlined,
+                                    text: ref.tr('product_craft_highlights'),
+                                  ),
+                                  const SizedBox(height: 12),
+                                  Column(
+                                    children: craftHighlightItems
+                                        .map(_buildBulletItem)
+                                        .toList(growable: false),
+                                  ),
+                                ],
+                              ),
+                            ),
+
+                          if (audienceTags.isNotEmpty)
+                            _DetailGlassPanel(
+                              padding: const EdgeInsets.all(20),
+                              margin: const EdgeInsets.only(bottom: 14),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  _DetailSectionTitle(
+                                    icon: Icons.person_search_outlined,
+                                    text: ref.tr('product_audience_tags'),
+                                  ),
+                                  const SizedBox(height: 12),
+                                  Wrap(
+                                    spacing: 8,
+                                    runSpacing: 8,
+                                    children: audienceTags
+                                        .map((tag) => _buildTag(
+                                              tag,
+                                              JewelryColors.champagneGold,
+                                            ))
+                                        .toList(growable: false),
+                                  ),
+                                ],
+                              ),
+                            ),
+
+                          if (_hasDossierText(originStory))
+                            _DetailGlassPanel(
+                              padding: const EdgeInsets.all(20),
+                              margin: const EdgeInsets.only(bottom: 14),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  _DetailSectionTitle(
+                                    icon: Icons.terrain_outlined,
+                                    text: ref.tr('product_origin_story'),
+                                  ),
+                                  const SizedBox(height: 12),
+                                  Text(
+                                    originStory!,
+                                    style: const TextStyle(
+                                      color: Colors.white70,
+                                      fontSize: 14,
+                                      height: 1.65,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+
+                          if (flawNotes.isNotEmpty)
+                            _DetailGlassPanel(
+                              padding: const EdgeInsets.all(20),
+                              margin: const EdgeInsets.only(bottom: 14),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  _DetailSectionTitle(
+                                    icon: Icons.visibility_outlined,
+                                    text: ref.tr('product_flaw_notes'),
+                                  ),
+                                  const SizedBox(height: 12),
+                                  Column(
+                                    children: flawNotes
+                                        .map(_buildBulletItem)
+                                        .toList(growable: false),
+                                  ),
+                                ],
+                              ),
+                            ),
+
+                          if (_hasDossierText(certificateAuthority) ||
+                              _hasDossierText(certificateImageUrl) ||
+                              _hasDossierText(certificateVerifyUrl))
+                            _DetailGlassPanel(
+                              padding: const EdgeInsets.all(20),
+                              margin: const EdgeInsets.only(bottom: 14),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  _DetailSectionTitle(
+                                    icon: Icons.fact_check_outlined,
+                                    text:
+                                        ref.tr('product_certificate_evidence'),
+                                  ),
+                                  const SizedBox(height: 12),
+                                  if (_hasDossierText(certificateAuthority))
+                                    _buildInfoRow(
+                                      ref.tr('product_certificate_authority'),
+                                      certificateAuthority!,
+                                    ),
+                                  if (_hasDossierText(certificateImageUrl)) ...[
+                                    const SizedBox(height: 12),
+                                    ProductImageView(
+                                      product: widget.product,
+                                      imageUrl: certificateImageUrl,
+                                      height: 160,
+                                      width: double.infinity,
+                                      borderRadius: BorderRadius.circular(18),
+                                    ),
+                                  ],
+                                  if (_hasDossierText(
+                                      certificateVerifyUrl)) ...[
+                                    const SizedBox(height: 12),
+                                    Align(
+                                      alignment: Alignment.centerLeft,
+                                      child: TextButton.icon(
+                                        style: TextButton.styleFrom(
+                                          foregroundColor:
+                                              JewelryColors.emeraldGlow,
+                                        ),
+                                        onPressed: () =>
+                                            _openCertificateVerifyUrl(
+                                          certificateVerifyUrl!,
+                                        ),
+                                        icon: const Icon(
+                                          Icons.open_in_new,
+                                          size: 18,
+                                        ),
+                                        label: Text(
+                                          ref.tr(
+                                            'product_certificate_verify',
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            ),
+
+                          if (galleryDetail.isNotEmpty ||
+                              galleryHand.isNotEmpty)
+                            _DetailGlassPanel(
+                              padding: const EdgeInsets.all(20),
+                              margin: const EdgeInsets.only(bottom: 14),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  _DetailSectionTitle(
+                                    icon: Icons.collections_outlined,
+                                    text: ref.tr('product_gallery'),
+                                  ),
+                                  if (galleryDetail.isNotEmpty) ...[
+                                    const SizedBox(height: 14),
+                                    _buildGalleryStrip(
+                                      label: ref.tr('product_gallery_detail'),
+                                      images: galleryDetail,
+                                    ),
+                                  ],
+                                  if (galleryHand.isNotEmpty) ...[
+                                    const SizedBox(height: 14),
+                                    _buildGalleryStrip(
+                                      label: ref.tr('product_gallery_hand'),
+                                      images: galleryHand,
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            ),
 
                           // Product description.
                           _DetailGlassPanel(
@@ -775,7 +1024,46 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
                     ],
                   ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 10),
+                // AI Consult shortcut.
+                GestureDetector(
+                  onTap: () {
+                    final lang = ref.read(appSettingsProvider).language;
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => AIAssistantScreen(
+                          productId: widget.product.id,
+                          productName: widget.product.localizedTitleFor(lang),
+                          initialContext: 'product_ai_consult_context',
+                        ),
+                      ),
+                    );
+                  },
+                  child: Container(
+                    width: 52,
+                    height: 52,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: JewelryColors.emeraldShadow,
+                      border: Border.all(
+                        color: JewelryColors.emeraldGlow.withOpacity(0.35),
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: JewelryColors.emeraldLuster.withOpacity(0.18),
+                          blurRadius: 12,
+                        ),
+                      ],
+                    ),
+                    child: const Icon(
+                      Icons.auto_awesome,
+                      color: JewelryColors.emeraldGlow,
+                      size: 22,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
                 // Add to cart.
                 Expanded(
                   child: OutlinedButton(
@@ -951,6 +1239,86 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
     );
   }
 
+  bool _hasDossierText(String? value) {
+    return value != null && value.trim().isNotEmpty;
+  }
+
+  List<String> _cleanDossierItems(List<String>? values) {
+    if (values == null) return const [];
+    return values
+        .map((value) => value.trim())
+        .where((value) => value.isNotEmpty)
+        .toList(growable: false);
+  }
+
+  Widget _buildBulletItem(String text) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 7,
+            height: 7,
+            margin: const EdgeInsets.only(top: 8, right: 10),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: JewelryColors.champagneGold.withOpacity(0.84),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              text,
+              style: const TextStyle(
+                color: Colors.white70,
+                fontSize: 14,
+                height: 1.55,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGalleryStrip({
+    required String label,
+    required List<String> images,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            color: JewelryColors.champagneGold.withOpacity(0.72),
+            fontSize: 13,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        const SizedBox(height: 8),
+        SizedBox(
+          height: 132,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            physics: const BouncingScrollPhysics(),
+            itemCount: images.length,
+            separatorBuilder: (_, __) => const SizedBox(width: 10),
+            itemBuilder: (context, index) {
+              return ProductImageView(
+                product: widget.product,
+                imageUrl: images[index],
+                width: 132,
+                height: 132,
+                borderRadius: BorderRadius.circular(18),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
   Future<void> _toggleFavorite() async {
     await _storage.toggleFavorite(widget.product.id);
     // Check mounted after await to avoid using context after disposal.
@@ -1022,6 +1390,21 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
         builder: (context) => CheckoutScreen(items: [cartItem]),
       ),
     );
+  }
+
+  Future<void> _openCertificateVerifyUrl(String url) async {
+    final uri = Uri.tryParse(url.trim());
+    if (uri == null || !uri.hasScheme) {
+      return;
+    }
+    final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!opened && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(ref.tr('product_certificate_open_failed')),
+        ),
+      );
+    }
   }
 
   void _showShareSheet() {

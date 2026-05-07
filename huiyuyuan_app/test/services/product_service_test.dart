@@ -1,4 +1,4 @@
-﻿// 汇玉源 - 商品服务测试
+// 汇玉源 - 商品服务测试
 //
 // 测试内容:
 // - 商品列表获取
@@ -85,6 +85,20 @@ void main() {
         'blockchain_hash': '0x1234567890abcdef',
         'is_welfare': false,
         'material_verify': '天然A货',
+        'craft_highlights': '• 手工抛光\n• 弹力绳穿制',
+        'craft_highlights_en': ['Hand-polished', 'Elastic cord'],
+        'audience_tags': ['收藏', '礼赠'],
+        'audience_tags_en': ['Collecting', 'Gifting'],
+        'origin_story': '来自老坑料',
+        'origin_story_en': 'From old-mine material',
+        'flaw_notes': ['天然棉线'],
+        'flaw_notes_en': ['Natural cotton line'],
+        'certificate_authority': 'NGTC',
+        'certificate_authority_en': 'NGTC',
+        'certificate_image_url': 'https://example.com/cert.jpg',
+        'certificate_verify_url': 'https://example.com/verify',
+        'gallery_detail': ['https://example.com/detail.jpg'],
+        'gallery_hand': ['https://example.com/hand.jpg'],
       };
 
       final product = ProductModel.fromJson(json);
@@ -96,6 +110,20 @@ void main() {
       expect(product.category, '吊坠');
       expect(product.material, '缅甸翡翠');
       expect(product.blockchainHash, '0x1234567890abcdef');
+      expect(product.craftHighlights, ['手工抛光', '弹力绳穿制']);
+      expect(product.craftHighlightsEn, ['Hand-polished', 'Elastic cord']);
+      expect(product.audienceTags, ['收藏', '礼赠']);
+      expect(product.audienceTagsEn, ['Collecting', 'Gifting']);
+      expect(product.originStory, '来自老坑料');
+      expect(product.originStoryEn, 'From old-mine material');
+      expect(product.flawNotes, ['天然棉线']);
+      expect(product.flawNotesEn, ['Natural cotton line']);
+      expect(product.certificateAuthority, 'NGTC');
+      expect(product.certificateAuthorityEn, 'NGTC');
+      expect(product.certificateImageUrl, 'https://example.com/cert.jpg');
+      expect(product.certificateVerifyUrl, 'https://example.com/verify');
+      expect(product.galleryDetail, ['https://example.com/detail.jpg']);
+      expect(product.galleryHand, ['https://example.com/hand.jpg']);
     });
 
     test('ProductModel.toJson 应正确转换', () {
@@ -108,6 +136,20 @@ void main() {
         material: '和田玉',
         images: [],
         stock: 10,
+        craftHighlights: ['手工抛光', '弹力绳穿制'],
+        craftHighlightsEn: ['Hand-polished', 'Elastic cord'],
+        audienceTags: ['日常佩戴'],
+        audienceTagsEn: ['Daily wear'],
+        originStory: '精选料源',
+        originStoryEn: 'Selected material source',
+        flawNotes: ['无明显瑕疵'],
+        flawNotesEn: ['No visible flaw'],
+        certificateAuthority: 'NGTC',
+        certificateAuthorityEn: 'NGTC',
+        certificateImageUrl: 'https://example.com/cert.jpg',
+        certificateVerifyUrl: 'https://example.com/verify',
+        galleryDetail: ['https://example.com/detail.jpg'],
+        galleryHand: ['https://example.com/hand.jpg'],
       );
 
       final json = product.toJson();
@@ -116,6 +158,20 @@ void main() {
       expect(json['name'], '测试商品');
       expect(json['price'], 199.0);
       expect(json['category'], '手链');
+      expect(json['craft_highlights'], ['手工抛光', '弹力绳穿制']);
+      expect(json['craft_highlights_en'], ['Hand-polished', 'Elastic cord']);
+      expect(json['audience_tags'], ['日常佩戴']);
+      expect(json['audience_tags_en'], ['Daily wear']);
+      expect(json['origin_story'], '精选料源');
+      expect(json['origin_story_en'], 'Selected material source');
+      expect(json['flaw_notes'], ['无明显瑕疵']);
+      expect(json['flaw_notes_en'], ['No visible flaw']);
+      expect(json['certificate_authority'], 'NGTC');
+      expect(json['certificate_authority_en'], 'NGTC');
+      expect(json['certificate_image_url'], 'https://example.com/cert.jpg');
+      expect(json['certificate_verify_url'], 'https://example.com/verify');
+      expect(json['gallery_detail'], ['https://example.com/detail.jpg']);
+      expect(json['gallery_hand'], ['https://example.com/hand.jpg']);
     });
 
     test('discountRate 应正确计算折扣率', () {

@@ -1,7 +1,7 @@
-﻿/// HuiYuYuan internal inventory models.
+/// HuiYuYuan internal inventory models.
 library;
 
-import 'package:huiyuyuan/l10n/string_extension.dart';
+import '../l10n/translator_global.dart';
 
 import 'json_parsing.dart';
 
@@ -17,13 +17,16 @@ extension InventoryTxTypeExt on InventoryTxType {
   String get label {
     switch (this) {
       case InventoryTxType.stockIn:
-        return 'inventory_action_stock_in'.tr;
+        return TranslatorGlobal.instance.translate('inventory_action_stock_in');
       case InventoryTxType.stockOut:
-        return 'inventory_action_stock_out'.tr;
+        return TranslatorGlobal.instance
+            .translate('inventory_action_stock_out');
       case InventoryTxType.adjustment:
-        return 'inventory_action_adjustment'.tr;
+        return TranslatorGlobal.instance
+            .translate('inventory_action_adjustment');
       case InventoryTxType.returnIn:
-        return 'inventory_action_return_in'.tr;
+        return TranslatorGlobal.instance
+            .translate('inventory_action_return_in');
     }
   }
 

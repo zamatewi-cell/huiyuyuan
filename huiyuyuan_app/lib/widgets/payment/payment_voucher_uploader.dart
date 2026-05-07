@@ -4,13 +4,13 @@
 library;
 
 import 'dart:typed_data';
+import '../../l10n/translator_global.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../config/api_config.dart';
-import '../../l10n/string_extension.dart';
 import '../../themes/colors.dart';
 import '../common/glassmorphic_card.dart';
 import '../common/resilient_network_image.dart';
@@ -68,7 +68,8 @@ class _PaymentVoucherUploaderState
         });
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('payment_voucher_uploaded'.tr),
+            content: Text(TranslatorGlobal.instance
+                .translate('payment_voucher_uploaded')),
             backgroundColor: JewelryColors.emeraldShadow,
           ),
         );
@@ -79,7 +80,9 @@ class _PaymentVoucherUploaderState
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              'payment_voucher_upload_failed'.trArgs({'error': e.toString()}),
+              TranslatorGlobal.instance.translate(
+                  'payment_voucher_upload_failed',
+                  params: {'error': e.toString()}),
             ),
             backgroundColor: JewelryColors.error,
           ),
@@ -95,7 +98,7 @@ class _PaymentVoucherUploaderState
         backgroundColor: JewelryColors.deepJade,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         title: Text(
-          'payment_voucher_pick_source'.tr,
+          TranslatorGlobal.instance.translate('payment_voucher_pick_source'),
           style: const TextStyle(
             color: JewelryColors.jadeMist,
             fontWeight: FontWeight.w900,
@@ -110,7 +113,7 @@ class _PaymentVoucherUploaderState
                 color: JewelryColors.emeraldGlow,
               ),
               title: Text(
-                'payment_voucher_gallery'.tr,
+                TranslatorGlobal.instance.translate('payment_voucher_gallery'),
                 style: const TextStyle(
                   color: JewelryColors.jadeMist,
                   fontWeight: FontWeight.w700,
@@ -127,7 +130,7 @@ class _PaymentVoucherUploaderState
                 color: JewelryColors.emeraldGlow,
               ),
               title: Text(
-                'payment_voucher_camera'.tr,
+                TranslatorGlobal.instance.translate('payment_voucher_camera'),
                 style: const TextStyle(
                   color: JewelryColors.jadeMist,
                   fontWeight: FontWeight.w700,
@@ -144,7 +147,7 @@ class _PaymentVoucherUploaderState
           TextButton(
             onPressed: () => Navigator.pop(ctx),
             child: Text(
-              'common_cancel'.tr,
+              TranslatorGlobal.instance.translate('common_cancel'),
               style: TextStyle(color: JewelryColors.jadeMist.withOpacity(0.58)),
             ),
           ),
@@ -191,7 +194,7 @@ class _PaymentVoucherUploaderState
               ),
               const SizedBox(width: 8),
               Text(
-                'payment_voucher_title'.tr,
+                TranslatorGlobal.instance.translate('payment_voucher_title'),
                 style: const TextStyle(
                   fontWeight: FontWeight.w900,
                   color: JewelryColors.jadeMist,
@@ -231,7 +234,8 @@ class _PaymentVoucherUploaderState
             ),
             const SizedBox(height: 8),
             Text(
-              'payment_voucher_uploaded_hint'.tr,
+              TranslatorGlobal.instance
+                  .translate('payment_voucher_uploaded_hint'),
               style: TextStyle(
                 fontSize: 12,
                 color: JewelryColors.jadeMist.withOpacity(0.58),
@@ -268,7 +272,8 @@ class _PaymentVoucherUploaderState
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            'payment_voucher_tap_to_upload'.tr,
+                            TranslatorGlobal.instance
+                                .translate('payment_voucher_tap_to_upload'),
                             style: TextStyle(
                               color: JewelryColors.jadeMist.withOpacity(0.68),
                               fontSize: 13,

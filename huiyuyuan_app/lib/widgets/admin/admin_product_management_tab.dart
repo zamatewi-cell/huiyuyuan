@@ -93,6 +93,7 @@ class AdminProductManagementTabState
 
   @override
   Widget build(BuildContext context) {
+    final lang = ref.watch(appSettingsProvider).language;
     final productCatalogState = ref.watch(productCatalogProvider);
     final products = productCatalogState.products;
     final normalizedQuery = _productSearchQuery.trim().toLowerCase();
@@ -101,10 +102,10 @@ class AdminProductManagementTabState
         : products.where((product) {
             final searchableText = <String>[
               product.id,
-              product.titleL10n,
-              product.descL10n,
-              product.catL10n,
-              product.matL10n,
+              product.localizedTitleFor(lang),
+              product.localizedDescriptionFor(lang),
+              product.localizedCategoryFor(lang),
+              product.localizedMaterialFor(lang),
             ].join(' ').toLowerCase();
             return searchableText.contains(normalizedQuery);
           }).toList(growable: false);
@@ -260,6 +261,7 @@ class AdminProductManagementTabState
   }
 
   Widget _buildProductItem(ProductModel product) {
+    final lang = ref.watch(appSettingsProvider).language;
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(14),
@@ -275,7 +277,7 @@ class AdminProductManagementTabState
             height: 60,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(10),
-              color: JewelryColors.getMaterialColor(product.matL10n)
+              color: JewelryColors.getMaterialColor(product.localizedMaterialFor(lang))
                   .withOpacity(0.2),
             ),
             clipBehavior: Clip.antiAlias,
@@ -289,15 +291,16 @@ class AdminProductManagementTabState
                         height: 20,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          color:
-                              JewelryColors.getMaterialColor(product.matL10n),
+                          color: JewelryColors.getMaterialColor(
+                              product.localizedMaterialFor(lang)),
                         ),
                       ),
                     ),
                     errorWidget: (context, url, error) => Center(
                       child: Icon(
                         Icons.diamond,
-                        color: JewelryColors.getMaterialColor(product.matL10n),
+                        color: JewelryColors.getMaterialColor(
+                            product.localizedMaterialFor(lang)),
                         size: 28,
                       ),
                     ),
@@ -305,7 +308,8 @@ class AdminProductManagementTabState
                 : Center(
                     child: Icon(
                       Icons.diamond,
-                      color: JewelryColors.getMaterialColor(product.matL10n),
+                      color: JewelryColors.getMaterialColor(
+                          product.localizedMaterialFor(lang)),
                       size: 28,
                     ),
                   ),
@@ -316,7 +320,7 @@ class AdminProductManagementTabState
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  product.titleL10n,
+                  product.localizedTitleFor(lang),
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 14,
@@ -334,15 +338,16 @@ class AdminProductManagementTabState
                         vertical: 2,
                       ),
                       decoration: BoxDecoration(
-                        color: JewelryColors.getMaterialColor(product.matL10n)
+                        color: JewelryColors.getMaterialColor(
+                                product.localizedMaterialFor(lang))
                             .withOpacity(0.2),
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Text(
-                        product.matL10n,
+                        product.localizedMaterialFor(lang),
                         style: TextStyle(
-                          color:
-                              JewelryColors.getMaterialColor(product.matL10n),
+                          color: JewelryColors.getMaterialColor(
+                              product.localizedMaterialFor(lang)),
                           fontSize: 10,
                         ),
                       ),
@@ -358,7 +363,7 @@ class AdminProductManagementTabState
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Text(
-                        product.catL10n,
+                        product.localizedCategoryFor(lang),
                         style: TextStyle(
                           color: Colors.white.withOpacity(0.5),
                           fontSize: 10,
@@ -761,12 +766,13 @@ class AdminProductManagementTabState
                         .read(productCatalogProvider.notifier)
                         .createProduct(request);
                     if (createdProduct != null && mounted) {
+                      final lang = ref.read(appSettingsProvider).language;
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text(
                             ref.tr(
                               'admin_product_added',
-                              params: {'name': createdProduct.titleL10n},
+                              params: {'name': createdProduct.localizedTitleFor(lang)},
                             ),
                           ),
                           backgroundColor: JewelryColors.success,
@@ -809,7 +815,8 @@ class AdminProductManagementTabState
   }
 
   Future<void> _showEditProductDialog(ProductModel product) async {
-    final nameController = TextEditingController(text: product.titleL10n);
+    final lang = ref.read(appSettingsProvider).language;
+    final nameController = TextEditingController(text: product.localizedTitleFor(lang));
     final priceController =
         TextEditingController(text: product.price.toStringAsFixed(0));
     final originalPriceController = TextEditingController(
@@ -817,7 +824,7 @@ class AdminProductManagementTabState
     );
     final stockController =
         TextEditingController(text: product.stock.toString());
-    final descController = TextEditingController(text: product.descL10n);
+    final descController = TextEditingController(text: product.localizedDescriptionFor(lang));
     var selectedCategory =
         ProductTranslator.canonicalCategory(product.category);
     var selectedMaterial =
@@ -944,12 +951,13 @@ class AdminProductManagementTabState
                         .read(productCatalogProvider.notifier)
                         .updateProduct(product.id, request);
                     if (updatedProduct != null && mounted) {
+                      final updatedLang = ref.read(appSettingsProvider).language;
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text(
                             ref.tr(
                               'admin_product_updated',
-                              params: {'name': updatedProduct.titleL10n},
+                              params: {'name': updatedProduct.localizedTitleFor(updatedLang)},
                             ),
                           ),
                           backgroundColor: JewelryColors.success,
@@ -991,6 +999,7 @@ class AdminProductManagementTabState
   }
 
   void _showDeleteConfirm(ProductModel product) {
+    final lang = ref.read(appSettingsProvider).language;
     showDialog<void>(
       context: context,
       builder: (dialogContext) => AlertDialog(
@@ -1003,7 +1012,7 @@ class AdminProductManagementTabState
         content: Text(
           ref.tr(
             'admin_delete_product_confirm',
-            params: {'name': product.titleL10n},
+            params: {'name': product.localizedTitleFor(lang)},
           ),
           style: TextStyle(color: Colors.white.withOpacity(0.7)),
         ),
@@ -1021,13 +1030,14 @@ class AdminProductManagementTabState
               final success = await ref
                   .read(productCatalogProvider.notifier)
                   .deleteProduct(product.id);
-              if (success && mounted) {
+                      if (success && mounted) {
+                final deletedLang = ref.read(appSettingsProvider).language;
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text(
                       ref.tr(
                         'admin_product_deleted',
-                        params: {'name': product.titleL10n},
+                        params: {'name': product.localizedTitleFor(deletedLang)},
                       ),
                     ),
                     backgroundColor: JewelryColors.error,

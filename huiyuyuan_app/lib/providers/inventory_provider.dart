@@ -43,13 +43,16 @@ bool _canWriteInventory(UserModel? user) {
   return user.hasPermission('inventory_write');
 }
 
-List<InventoryItem> _buildInventoryFromProducts(List<ProductModel> products) {
+List<InventoryItem> _buildInventoryFromProducts(
+  List<ProductModel> products,
+  AppLanguage language,
+) {
   return products.map((product) {
     final costRatio = 0.45 + (product.price % 3) * 0.05;
     return InventoryItem(
       productId: product.id,
-      productName: product.titleL10n,
-      category: product.catL10n,
+      productName: product.localizedTitleFor(language),
+      category: product.localizedCategoryFor(language),
       imageUrl: product.images.isNotEmpty ? product.images.first : null,
       currentStock: product.stock,
       minStock: product.stock > 100 ? 20 : (product.stock > 30 ? 10 : 5),
@@ -283,15 +286,16 @@ class InventoryNotifier extends StateNotifier<List<InventoryItem>> {
     ProductModel product,
     InventoryItem? existing,
   ) {
-    final seeded = _buildInventoryFromProducts([product]).single;
+    final language = _ref.read(appSettingsProvider).language;
+    final seeded = _buildInventoryFromProducts([product], language).single;
     if (existing == null) {
       return seeded;
     }
 
     return InventoryItem(
       productId: product.id,
-      productName: product.titleL10n,
-      category: product.catL10n,
+      productName: product.localizedTitleFor(language),
+      category: product.localizedCategoryFor(language),
       imageUrl: product.images.isNotEmpty ? product.images.first : null,
       currentStock: existing.currentStock,
       minStock: existing.minStock,

@@ -1,6 +1,6 @@
 # 汇玉源文档中心
 
-> 最后更新：2026-04-28
+> 最后更新：2026-05-01
 > 说明：所有当前有效的项目文档统一放在 `docs/` 下；`docs/reference/` 和 `docs/reference/archive/` 仅作历史参考。
 
 ---
@@ -9,6 +9,7 @@
 
 | 文档 | 说明 | 状态 |
 |------|------|------|
+| [Cursor 续开发交接与项目 Review](cursor_development_handoff_20260501.md) | Cursor 续开发所需的项目 Review、操作流、接口清单、MCP/Skills 建议和后续产品路线 | 当前必读 |
 | [项目状态总览 2026-04-28](project_status_20260428.md) | UI 重构上线后的真实状态、验证结果、风险和后续建议 | 当前权威 |
 | [当前状态速览](current_status_20260402.md) | 历史状态速览，已补充 2026-04-28 最新结论 | 当前可读 |
 | [生产部署指南](guides/deployment_guide_updated.md) | 服务器路径、部署命令、验证与排障 | 当前权威 |
@@ -24,6 +25,8 @@
 ```text
 docs/
 ├── project_status_20260428.md        # 最新项目状态总览
+├── cursor_development_handoff_20260501.md
+│                                        # Cursor 续开发交接与项目 Review
 ├── current_status_20260402.md        # 状态速览，含历史复盘
 ├── README.md                         # 文档入口
 ├── design/                           # 设计系统与 Figma 交接
@@ -59,6 +62,7 @@ docs/
 
 | 文档 | 用途 |
 |------|------|
+| [Cursor 续开发交接与项目 Review](cursor_development_handoff_20260501.md) | 在 Cursor 里继续开发前先读，包含接口、页面、流程、风险和 MCP/Skills 建议 |
 | [快速启动指南](guides/快速启动指南.md) | Windows / Chrome / Android 启动方式 |
 | [测试指南](guides/testing_guide.md) | 前后端测试命令与场景 |
 | [设备测试用例](guides/device_test_cases.md) | 真机与多端测试清单 |

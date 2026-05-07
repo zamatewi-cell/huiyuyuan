@@ -1,10 +1,9 @@
 library;
 
 import 'package:flutter/material.dart';
+import '../../l10n/translator_global.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:huiyuyuan/l10n/string_extension.dart';
 
-import '../../l10n/l10n_provider.dart';
 import '../../models/payment_models.dart';
 import '../../models/user_model.dart';
 import '../../providers/auth_provider.dart';
@@ -151,7 +150,7 @@ class _PaymentReconciliationWorkbenchScreenState
             ),
           ),
           child: Text(
-            ref.tr('payment_reconciliation_title'),
+            TranslatorGlobal.instance.translate('payment_reconciliation_title'),
             style: const TextStyle(
               color: JewelryColors.jadeMist,
               fontWeight: FontWeight.w900,
@@ -164,7 +163,7 @@ class _PaymentReconciliationWorkbenchScreenState
             onPressed: () =>
                 ref.read(paymentReconciliationProvider.notifier).loadRecords(),
             icon: const Icon(Icons.refresh_rounded),
-            tooltip: ref.tr('refresh'),
+            tooltip: TranslatorGlobal.instance.translate('refresh'),
           ),
         ],
       ),
@@ -204,16 +203,18 @@ class _PaymentReconciliationWorkbenchScreenState
                           state.records.isEmpty)
                         _buildEmptyCard(
                           icon: Icons.error_outline_rounded,
-                          title: ref.tr('error'),
+                          title: TranslatorGlobal.instance.translate('error'),
                           subtitle: state.errorMessage ??
-                              ref.tr('payment_reconciliation_load_failed'),
+                              TranslatorGlobal.instance.translate(
+                                  'payment_reconciliation_load_failed'),
                         )
                       else if (records.isEmpty)
                         _buildEmptyCard(
                           icon: Icons.fact_check_outlined,
-                          title: ref.tr('payment_reconciliation_empty_title'),
-                          subtitle:
-                              ref.tr('payment_reconciliation_empty_subtitle'),
+                          title: TranslatorGlobal.instance
+                              .translate('payment_reconciliation_empty_title'),
+                          subtitle: TranslatorGlobal.instance.translate(
+                              'payment_reconciliation_empty_subtitle'),
                         )
                       else
                         ...records.map(
@@ -319,7 +320,8 @@ class _PaymentReconciliationWorkbenchScreenState
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  ref.tr('payment_reconciliation_title'),
+                  TranslatorGlobal.instance
+                      .translate('payment_reconciliation_title'),
                   style: const TextStyle(
                     color: JewelryColors.jadeMist,
                     fontSize: 21,
@@ -328,7 +330,8 @@ class _PaymentReconciliationWorkbenchScreenState
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  ref.tr('payment_reconciliation_subtitle'),
+                  TranslatorGlobal.instance
+                      .translate('payment_reconciliation_subtitle'),
                   style: TextStyle(
                     color: JewelryColors.jadeMist.withOpacity(0.66),
                     height: 1.35,
@@ -347,28 +350,32 @@ class _PaymentReconciliationWorkbenchScreenState
   Widget _buildSummaryGrid(_PaymentReconciliationSummary summary) {
     final items = [
       (
-        label: ref.tr('payment_reconciliation_total'),
+        label:
+            TranslatorGlobal.instance.translate('payment_reconciliation_total'),
         count: summary.total,
         icon: Icons.receipt_long_rounded,
         color: JewelryColors.emeraldGlow,
         filter: _PaymentReconciliationFilter.all,
       ),
       (
-        label: ref.tr('payment_reconciliation_pending'),
+        label: TranslatorGlobal.instance
+            .translate('payment_reconciliation_pending'),
         count: summary.awaiting,
         icon: Icons.pending_actions_rounded,
         color: const Color(0xFFF59E0B),
         filter: _PaymentReconciliationFilter.awaiting,
       ),
       (
-        label: ref.tr('payment_reconciliation_exception'),
+        label: TranslatorGlobal.instance
+            .translate('payment_reconciliation_exception'),
         count: summary.disputed,
         icon: Icons.report_gmailerrorred_rounded,
         color: const Color(0xFFEF4444),
         filter: _PaymentReconciliationFilter.disputed,
       ),
       (
-        label: ref.tr('payment_reconciliation_confirmed'),
+        label: TranslatorGlobal.instance
+            .translate('payment_reconciliation_confirmed'),
         count: summary.confirmed,
         icon: Icons.verified_rounded,
         color: JewelryColors.emeraldLuster,
@@ -489,7 +496,7 @@ class _PaymentReconciliationWorkbenchScreenState
             children: [
               Expanded(
                 child: Text(
-                  '${ref.tr('payment_record_number')}: ${record.paymentId}',
+                  '${TranslatorGlobal.instance.translate('payment_record_number')}: ${record.paymentId}',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
@@ -512,7 +519,8 @@ class _PaymentReconciliationWorkbenchScreenState
             children: [
               _MetaChip(
                 icon: Icons.receipt_long_rounded,
-                text: '${ref.tr('order_number')}: ${record.orderId}',
+                text:
+                    '${TranslatorGlobal.instance.translate('order_number')}: ${record.orderId}',
               ),
               _MetaChip(
                 icon: Icons.payments_outlined,
@@ -522,24 +530,25 @@ class _PaymentReconciliationWorkbenchScreenState
               _MetaChip(
                 icon: Icons.wallet_rounded,
                 text:
-                    '${ref.tr('payment_method_title')}: ${record.method.label}',
+                    '${TranslatorGlobal.instance.translate('payment_method_title')}: ${record.method.label}',
               ),
               _MetaChip(
                 icon: Icons.schedule_rounded,
                 text:
-                    '${ref.tr('order_time')}: ${_formatDateTime(record.createdAt)}',
+                    '${TranslatorGlobal.instance.translate('order_time')}: ${_formatDateTime(record.createdAt)}',
               ),
               if (record.voucherUrl?.trim().isNotEmpty ?? false)
                 _MetaChip(
                   icon: Icons.image_outlined,
-                  text: ref.tr('payment_reconciliation_has_voucher'),
+                  text: TranslatorGlobal.instance
+                      .translate('payment_reconciliation_has_voucher'),
                   color: JewelryColors.emeraldGlow,
                 ),
               if (record.adminNote?.trim().isNotEmpty ?? false)
                 _MetaChip(
                   icon: Icons.sticky_note_2_outlined,
                   text:
-                      '${ref.tr('payment_admin_note_label')}: ${record.adminNote}',
+                      '${TranslatorGlobal.instance.translate('payment_admin_note_label')}: ${record.adminNote}',
                   color: const Color(0xFFEF4444),
                 ),
             ],
@@ -553,7 +562,8 @@ class _PaymentReconciliationWorkbenchScreenState
                 FilledButton.icon(
                   onPressed: () => _confirmPayment(record),
                   icon: const Icon(Icons.verified_rounded, size: 16),
-                  label: Text(ref.tr('order_confirm_payment')),
+                  label: Text(TranslatorGlobal.instance
+                      .translate('order_confirm_payment')),
                   style: FilledButton.styleFrom(
                     backgroundColor: const Color(0xFFF59E0B),
                     foregroundColor: JewelryColors.jadeBlack,
@@ -564,13 +574,15 @@ class _PaymentReconciliationWorkbenchScreenState
                   onPressed: () => _markPaymentException(record),
                   icon:
                       const Icon(Icons.report_gmailerrorred_rounded, size: 16),
-                  label: Text(ref.tr('payment_mark_exception')),
+                  label: Text(TranslatorGlobal.instance
+                      .translate('payment_mark_exception')),
                 ),
               if (!canReconcile && !canMarkException)
                 OutlinedButton.icon(
                   onPressed: null,
                   icon: const Icon(Icons.lock_outline_rounded, size: 16),
-                  label: Text(ref.tr('operator_permission_denied')),
+                  label: Text(TranslatorGlobal.instance
+                      .translate('operator_permission_denied')),
                 ),
             ],
           ),
@@ -633,7 +645,7 @@ class _PaymentReconciliationWorkbenchScreenState
             ),
             const SizedBox(height: 16),
             Text(
-              ref.tr('operator_permission_denied'),
+              TranslatorGlobal.instance.translate('operator_permission_denied'),
               textAlign: TextAlign.center,
               style: const TextStyle(
                 color: JewelryColors.jadeMist,
@@ -643,7 +655,8 @@ class _PaymentReconciliationWorkbenchScreenState
             ),
             const SizedBox(height: 8),
             Text(
-              ref.tr('payment_reconciliation_permission_hint'),
+              TranslatorGlobal.instance
+                  .translate('payment_reconciliation_permission_hint'),
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: JewelryColors.jadeMist.withOpacity(0.65),
@@ -662,13 +675,13 @@ class _PaymentReconciliationWorkbenchScreenState
   ) {
     switch (filter) {
       case _PaymentReconciliationFilter.all:
-        return '${ref.tr('order_all')} ${summary.total}';
+        return '${TranslatorGlobal.instance.translate('order_all')} ${summary.total}';
       case _PaymentReconciliationFilter.awaiting:
-        return '${ref.tr('payment_reconciliation_pending')} ${summary.awaiting}';
+        return '${TranslatorGlobal.instance.translate('payment_reconciliation_pending')} ${summary.awaiting}';
       case _PaymentReconciliationFilter.disputed:
-        return '${ref.tr('payment_reconciliation_exception')} ${summary.disputed}';
+        return '${TranslatorGlobal.instance.translate('payment_reconciliation_exception')} ${summary.disputed}';
       case _PaymentReconciliationFilter.confirmed:
-        return '${ref.tr('payment_reconciliation_confirmed')} ${summary.confirmed}';
+        return '${TranslatorGlobal.instance.translate('payment_reconciliation_confirmed')} ${summary.confirmed}';
     }
   }
 
@@ -708,14 +721,14 @@ class _PaymentReconciliationWorkbenchScreenState
         backgroundColor: JewelryColors.deepJade,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         title: Text(
-          ref.tr('order_confirm_payment'),
+          TranslatorGlobal.instance.translate('order_confirm_payment'),
           style: const TextStyle(
             color: JewelryColors.jadeMist,
             fontWeight: FontWeight.w900,
           ),
         ),
         content: Text(
-          ref.tr('order_confirm_payment_hint'),
+          TranslatorGlobal.instance.translate('order_confirm_payment_hint'),
           style: TextStyle(
             color: JewelryColors.jadeMist.withOpacity(0.66),
             height: 1.45,
@@ -725,7 +738,7 @@ class _PaymentReconciliationWorkbenchScreenState
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),
             child: Text(
-              ref.tr('cancel'),
+              TranslatorGlobal.instance.translate('cancel'),
               style: TextStyle(color: JewelryColors.jadeMist.withOpacity(0.58)),
             ),
           ),
@@ -738,7 +751,7 @@ class _PaymentReconciliationWorkbenchScreenState
                 borderRadius: BorderRadius.circular(14),
               ),
             ),
-            child: Text(ref.tr('confirm')),
+            child: Text(TranslatorGlobal.instance.translate('confirm')),
           ),
         ],
       ),
@@ -755,8 +768,8 @@ class _PaymentReconciliationWorkbenchScreenState
     }
     _showSnackBar(
       ok
-          ? ref.tr('order_confirm_payment_success')
-          : ref.tr('please_retry_later'),
+          ? TranslatorGlobal.instance.translate('order_confirm_payment_success')
+          : TranslatorGlobal.instance.translate('please_retry_later'),
     );
   }
 
@@ -768,7 +781,7 @@ class _PaymentReconciliationWorkbenchScreenState
         backgroundColor: JewelryColors.deepJade,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         title: Text(
-          ref.tr('payment_mark_exception'),
+          TranslatorGlobal.instance.translate('payment_mark_exception'),
           style: const TextStyle(
             color: JewelryColors.jadeMist,
             fontWeight: FontWeight.w900,
@@ -780,8 +793,10 @@ class _PaymentReconciliationWorkbenchScreenState
           maxLines: 3,
           style: const TextStyle(color: JewelryColors.jadeMist),
           decoration: InputDecoration(
-            labelText: ref.tr('payment_admin_note_label'),
-            hintText: ref.tr('payment_mark_exception_prompt'),
+            labelText:
+                TranslatorGlobal.instance.translate('payment_admin_note_label'),
+            hintText: TranslatorGlobal.instance
+                .translate('payment_mark_exception_prompt'),
             labelStyle: TextStyle(
               color: JewelryColors.jadeMist.withOpacity(0.62),
             ),
@@ -808,7 +823,7 @@ class _PaymentReconciliationWorkbenchScreenState
           TextButton(
             onPressed: () => Navigator.pop(dialogContext),
             child: Text(
-              ref.tr('cancel'),
+              TranslatorGlobal.instance.translate('cancel'),
               style: TextStyle(color: JewelryColors.jadeMist.withOpacity(0.58)),
             ),
           ),
@@ -821,7 +836,7 @@ class _PaymentReconciliationWorkbenchScreenState
                 borderRadius: BorderRadius.circular(14),
               ),
             ),
-            child: Text(ref.tr('confirm')),
+            child: Text(TranslatorGlobal.instance.translate('confirm')),
           ),
         ],
       ),
@@ -835,7 +850,8 @@ class _PaymentReconciliationWorkbenchScreenState
     }
     final trimmedReason = reason.trim();
     if (trimmedReason.isEmpty) {
-      _showSnackBar(ref.tr('payment_mark_exception_reason_required'));
+      _showSnackBar(TranslatorGlobal.instance
+          .translate('payment_mark_exception_reason_required'));
       return;
     }
 
@@ -849,8 +865,9 @@ class _PaymentReconciliationWorkbenchScreenState
     }
     _showSnackBar(
       ok
-          ? ref.tr('payment_mark_exception_success')
-          : ref.tr('please_retry_later'),
+          ? TranslatorGlobal.instance
+              .translate('payment_mark_exception_success')
+          : TranslatorGlobal.instance.translate('please_retry_later'),
     );
   }
 
@@ -946,7 +963,8 @@ class _HeroAmount extends StatelessWidget {
           ),
           const SizedBox(height: 2),
           Text(
-            'payment_reconciliation_pending_amount'.tr,
+            TranslatorGlobal.instance
+                .translate('payment_reconciliation_pending_amount'),
             style: TextStyle(
               color: JewelryColors.jadeMist.withOpacity(0.55),
               fontSize: 11,

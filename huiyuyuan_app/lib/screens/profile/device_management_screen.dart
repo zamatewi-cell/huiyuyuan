@@ -4,6 +4,7 @@
 library;
 
 import 'package:flutter/material.dart';
+import '../../l10n/translator_global.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../l10n/string_extension.dart';
@@ -54,16 +55,16 @@ class _DeviceManagementScreenState
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: JewelryColors.darkBackground,
-        title: Text('security_remove_device_confirm'.tr),
-        content: Text('security_remove_device_desc'.tr),
+        title: Text(TranslatorGlobal.instance.translate('security_remove_device_confirm')),
+        content: Text(TranslatorGlobal.instance.translate('security_remove_device_desc')),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: Text('common_cancel'.tr),
+            child: Text(TranslatorGlobal.instance.translate('common_cancel')),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: Text('common_confirm'.tr),
+            child: Text(TranslatorGlobal.instance.translate('common_confirm')),
           ),
         ],
       ),
@@ -83,16 +84,16 @@ class _DeviceManagementScreenState
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: JewelryColors.darkBackground,
-        title: Text('security_logout_others_confirm'.tr),
-        content: Text('security_logout_others_desc'.tr),
+        title: Text(TranslatorGlobal.instance.translate('security_logout_others_confirm')),
+        content: Text(TranslatorGlobal.instance.translate('security_logout_others_desc')),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: Text('common_cancel'.tr),
+            child: Text(TranslatorGlobal.instance.translate('common_cancel')),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: Text('common_confirm'.tr),
+            child: Text(TranslatorGlobal.instance.translate('common_confirm')),
           ),
         ],
       ),
@@ -131,14 +132,14 @@ class _DeviceManagementScreenState
     return Scaffold(
       backgroundColor: JewelryColors.darkBackground,
       appBar: AppBar(
-        title: Text('security_device_manage'.tr),
+        title: Text(TranslatorGlobal.instance.translate('security_device_manage')),
         backgroundColor: Colors.transparent,
         elevation: 0,
         foregroundColor: JewelryColors.gold,
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
-            tooltip: 'common_refresh'.tr,
+            tooltip: TranslatorGlobal.instance.translate('common_refresh'),
             onPressed: _loadDevices,
           ),
         ],
@@ -154,7 +155,7 @@ class _DeviceManagementScreenState
                           size: 64, color: JewelryColors.textSecondary),
                       const SizedBox(height: 16),
                       Text(
-                        'security_no_devices'.tr,
+                        TranslatorGlobal.instance.translate('security_no_devices'),
                         style:
                             const TextStyle(color: JewelryColors.textSecondary),
                       ),
@@ -187,10 +188,10 @@ class _DeviceManagementScreenState
                                 Expanded(
                                   child: Text(
                                     device['device_type'] == 'mobile'
-                                        ? 'security_device_mobile'.tr
+                                        ? TranslatorGlobal.instance.translate('security_device_mobile')
                                         : device['device_type'] == 'desktop'
-                                            ? 'security_device_desktop'.tr
-                                            : 'security_device_unknown'.tr,
+                                            ? TranslatorGlobal.instance.translate('security_device_desktop')
+                                            : TranslatorGlobal.instance.translate('security_device_unknown'),
                                   ),
                                 ),
                                 if (isCurrent)
@@ -203,7 +204,7 @@ class _DeviceManagementScreenState
                                       borderRadius: BorderRadius.circular(12),
                                     ),
                                     child: Text(
-                                      'security_device_current'.tr,
+                                      TranslatorGlobal.instance.translate('security_device_current'),
                                       style: const TextStyle(
                                         fontSize: 10,
                                         color: JewelryColors.primary,
@@ -221,7 +222,7 @@ class _DeviceManagementScreenState
                                       borderRadius: BorderRadius.circular(12),
                                     ),
                                     child: Text(
-                                      'security_new_device'.tr,
+                                      TranslatorGlobal.instance.translate('security_new_device'),
                                       style: const TextStyle(
                                         fontSize: 10,
                                         color: JewelryColors.warning,
@@ -244,7 +245,7 @@ class _DeviceManagementScreenState
                                   ),
                                 if (device['last_login'] != null)
                                   Text(
-                                    'security_device_last_login'.trArgs({
+                                    TranslatorGlobal.instance.translate('security_device_last_login', params: {
                                       'time':
                                           _formatTime(device['last_login_ts']),
                                     }),
@@ -262,7 +263,7 @@ class _DeviceManagementScreenState
                                     onPressed: () => _removeDevice(
                                         device['fingerprint']?.toString() ??
                                             ''),
-                                    tooltip: 'security_remove_device'.tr,
+                                    tooltip: TranslatorGlobal.instance.translate('security_remove_device'),
                                   ),
                           ),
                         ),
@@ -275,7 +276,7 @@ class _DeviceManagementScreenState
                         child: OutlinedButton.icon(
                           onPressed: _logoutOthers,
                           icon: const Icon(Icons.logout),
-                          label: Text('security_logout_others'.tr),
+                          label: Text(TranslatorGlobal.instance.translate('security_logout_others')),
                           style: OutlinedButton.styleFrom(
                             foregroundColor: JewelryColors.warning,
                             side:

@@ -6,8 +6,6 @@
 /// - load and filter order lists
 library;
 
-import 'package:huiyuyuan/l10n/string_extension.dart';
-
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/user_model.dart';
@@ -310,9 +308,10 @@ class OrderNotifier extends StateNotifier<List<OrderModel>> {
       shippedAt: now,
       logisticsEntries: [
         LogisticsEntry(
-          description: 'logistics_entry_shipped_in_transit'.trArgs({
-            'carrier': carrier,
-          }),
+          description: _t(
+            'logistics_entry_shipped_in_transit',
+            params: {'carrier': carrier},
+          ),
           time: now,
         ),
         LogisticsEntry(
@@ -362,7 +361,7 @@ class OrderNotifier extends StateNotifier<List<OrderModel>> {
       completedAt: now,
       logisticsEntries: [
         LogisticsEntry(
-          description: 'logistics_entry_delivered'.tr,
+          description: _t('logistics_entry_delivered'),
           time: now,
         ),
         ...existing,
@@ -456,7 +455,7 @@ class OrderNotifier extends StateNotifier<List<OrderModel>> {
         final result = await api.post<Map<String, dynamic>>(
           '${ApiConfig.orderDetail(orderId)}/refund',
           data: {
-            'reason': reason ?? 'order_refund_reason_buyer_request'.tr,
+            'reason': reason ?? _t('order_refund_reason_buyer_request'),
           },
         );
         // If the backend returns 404, keep the local fallback behavior.
@@ -473,7 +472,7 @@ class OrderNotifier extends StateNotifier<List<OrderModel>> {
     // 2. Update local state.
     final updatedOrder = state[index].copyWith(
       status: OrderStatus.refunding,
-      refundReason: reason ?? 'order_refund_reason_buyer_request'.tr,
+      refundReason: reason ?? _t('order_refund_reason_buyer_request'),
       refundAmount: state[index].totalPaid,
     );
     state = [
@@ -544,7 +543,7 @@ class OrderNotifier extends StateNotifier<List<OrderModel>> {
       OrderModel(
         id: 'ORD-MOCK-001',
         productId: 'HYY-HT001',
-        productName: 'mock_product_hotan_bracelet'.tr,
+        productName: _t('mock_product_hotan_bracelet'),
         quantity: 1,
         amount: 299,
         status: OrderStatus.pending,
@@ -553,7 +552,7 @@ class OrderNotifier extends StateNotifier<List<OrderModel>> {
       OrderModel(
         id: 'ORD-MOCK-002',
         productId: 'HYY-FC005',
-        productName: 'mock_product_jade_pendant'.tr,
+        productName: _t('mock_product_jade_pendant'),
         quantity: 1,
         amount: 3680,
         status: OrderStatus.paid,
@@ -563,7 +562,7 @@ class OrderNotifier extends StateNotifier<List<OrderModel>> {
       OrderModel(
         id: 'ORD-MOCK-003',
         productId: 'HYY-NH004',
-        productName: 'mock_product_nanhong_bracelet'.tr,
+        productName: _t('mock_product_nanhong_bracelet'),
         quantity: 2,
         amount: 1160,
         status: OrderStatus.shipped,
@@ -612,6 +611,10 @@ class OrderNotifier extends StateNotifier<List<OrderModel>> {
       remark: remark,
       operatorId: operatorId,
     );
+  }
+
+  String _t(String key, {Map<String, Object?> params = const {}}) {
+    return TranslatorGlobal.instance.translate(key, params: params);
   }
 }
 

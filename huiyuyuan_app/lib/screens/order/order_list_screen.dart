@@ -8,12 +8,12 @@ library;
 
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:huiyuyuan/l10n/string_extension.dart';
 import '../../l10n/l10n_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'dart:ui';
 import '../../themes/colors.dart';
 import '../../models/order_model.dart';
+import '../../providers/app_settings_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/order_service.dart';
 import '../../widgets/common/empty_state.dart';
@@ -470,6 +470,8 @@ class _OrderCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final language = ref.watch(appSettingsProvider).language;
+
     return GestureDetector(
       onTap: () {
         Navigator.push(
@@ -590,7 +592,7 @@ class _OrderCard extends ConsumerWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            order.localizedProductName,
+                            order.localizedProductNameFor(language),
                             style: const TextStyle(
                               fontSize: 15,
                               fontWeight: FontWeight.w900,
@@ -664,7 +666,8 @@ class _OrderCard extends ConsumerWidget {
       case OrderStatus.pending:
         if (isAdmin) {
           if (order.paymentId != null && order.paymentId!.isNotEmpty) {
-            buttons.add(_buildPrimaryButton('order_confirm_payment'.tr, () {
+            buttons
+                .add(_buildPrimaryButton(ref.tr('order_confirm_payment'), () {
               _showConfirmPaymentDialog(context, ref);
             }));
           } else {
@@ -842,7 +845,9 @@ class _OrderCard extends ConsumerWidget {
     final result = await ShippingDialog.show(
       context,
       orderId: order.id,
-      productName: order.localizedProductName,
+      productName: order.localizedProductNameFor(
+        ref.read(appSettingsProvider).language,
+      ),
     );
     if (result != null && context.mounted) {
       final ok = await ref.read(orderProvider.notifier).shipOrder(
@@ -862,8 +867,8 @@ class _OrderCard extends ConsumerWidget {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text('order_confirm_payment'.tr),
-        content: Text('order_confirm_payment_hint'.tr),
+        title: Text(ref.tr('order_confirm_payment')),
+        content: Text(ref.tr('order_confirm_payment_hint')),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
@@ -880,11 +885,12 @@ class _OrderCard extends ConsumerWidget {
               Navigator.pop(ctx);
               if (ok && context.mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('order_confirm_payment_success'.tr)),
+                  SnackBar(
+                      content: Text(ref.tr('order_confirm_payment_success'))),
                 );
               }
             },
-            child: Text('confirm'.tr),
+            child: Text(ref.tr('confirm')),
           ),
         ],
       ),

@@ -1,4 +1,4 @@
-﻿import 'package:huiyuyuan/l10n/string_extension.dart';
+import 'package:huiyuyuan/l10n/translator_global.dart';
 
 enum _PromptLanguage { zhCn, zhTw, en }
 
@@ -18,14 +18,14 @@ class AIPromptService {
 
   List<Map<String, String>> getQuickQuestions() {
     return [
-      {'label': 'ai_quick_1'.tr, 'icon': 'verified'},
-      {'label': 'ai_quick_2'.tr, 'icon': 'spa'},
-      {'label': 'ai_quick_3'.tr, 'icon': 'shopping_bag'},
-      {'label': 'ai_quick_4'.tr, 'icon': 'trending_up'},
-      {'label': 'ai_quick_5'.tr, 'icon': 'help'},
-      {'label': 'ai_quick_6'.tr, 'icon': 'watch'},
-      {'label': 'ai_quick_7'.tr, 'icon': 'diamond'},
-      {'label': 'ai_quick_8'.tr, 'icon': 'card_giftcard'},
+      {'label': _t('ai_quick_1'), 'icon': 'verified'},
+      {'label': _t('ai_quick_2'), 'icon': 'spa'},
+      {'label': _t('ai_quick_3'), 'icon': 'shopping_bag'},
+      {'label': _t('ai_quick_4'), 'icon': 'trending_up'},
+      {'label': _t('ai_quick_5'), 'icon': 'help'},
+      {'label': _t('ai_quick_6'), 'icon': 'watch'},
+      {'label': _t('ai_quick_7'), 'icon': 'diamond'},
+      {'label': _t('ai_quick_8'), 'icon': 'card_giftcard'},
     ];
   }
 
@@ -37,28 +37,28 @@ class AIPromptService {
     int? followers,
   }) {
     final buffer = StringBuffer()
-      ..writeln('ai_business_prompt_intro'.tr)
+      ..writeln(_t('ai_business_prompt_intro'))
       ..writeln()
       ..writeln(
-        'ai_business_prompt_shop_name'.trArgs({'shopName': shopName}),
+        _t('ai_business_prompt_shop_name', params: {'shopName': shopName}),
       )
       ..writeln(
-        'ai_business_prompt_category'.trArgs({'category': category}),
+        _t('ai_business_prompt_category', params: {'category': category}),
       )
       ..writeln(
-        'ai_business_prompt_rating'.trArgs({
+        _t('ai_business_prompt_rating', params: {
           'rating': rating.toStringAsFixed(1),
         }),
       );
 
     if (platform != null && platform.isNotEmpty) {
       buffer.writeln(
-        'ai_business_prompt_platform'.trArgs({'platform': platform}),
+        _t('ai_business_prompt_platform', params: {'platform': platform}),
       );
     }
     if (followers != null) {
       buffer.writeln(
-        'ai_business_prompt_followers'.trArgs({
+        _t('ai_business_prompt_followers', params: {
           'followers': followers.toString(),
         }),
       );
@@ -66,24 +66,24 @@ class AIPromptService {
 
     buffer
       ..writeln()
-      ..writeln('ai_business_prompt_requirements'.tr)
-      ..writeln('ai_business_prompt_requirement_1'.tr)
-      ..writeln('ai_business_prompt_requirement_2'.tr)
-      ..writeln('ai_business_prompt_requirement_3'.tr)
-      ..writeln('ai_business_prompt_requirement_4'.tr);
+      ..writeln(_t('ai_business_prompt_requirements'))
+      ..writeln(_t('ai_business_prompt_requirement_1'))
+      ..writeln(_t('ai_business_prompt_requirement_2'))
+      ..writeln(_t('ai_business_prompt_requirement_3'))
+      ..writeln(_t('ai_business_prompt_requirement_4'));
 
     return buffer.toString();
   }
 
   String get businessDialogueSystemPrompt =>
-      'ai_business_dialogue_system_prompt'.tr;
+      _t('ai_business_dialogue_system_prompt');
 
   String buildOfflineDialogue({
     required String shopName,
     required String category,
     required double rating,
   }) {
-    return 'ai_business_dialogue_offline'.trArgs({
+    return _t('ai_business_dialogue_offline', params: {
       'shopName': shopName,
       'category': category,
       'rating': rating.toStringAsFixed(1),
@@ -450,6 +450,10 @@ Tell me what you would like to know.''',
       }
     }
     return false;
+  }
+
+  String _t(String key, {Map<String, Object?> params = const {}}) {
+    return TranslatorGlobal.instance.translate(key, params: params);
   }
 }
 

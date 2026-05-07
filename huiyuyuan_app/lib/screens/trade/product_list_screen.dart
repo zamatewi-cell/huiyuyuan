@@ -40,22 +40,6 @@ List<ProductModel> _filterProductsByCategory(
   );
 }
 
-String _copyByLanguage(
-  AppLanguage language, {
-  required String zhCN,
-  required String en,
-  required String zhTW,
-}) {
-  switch (language) {
-    case AppLanguage.en:
-      return en;
-    case AppLanguage.zhTW:
-      return zhTW;
-    case AppLanguage.zhCN:
-      return zhCN;
-  }
-}
-
 class ProductListScreen extends ConsumerStatefulWidget {
   const ProductListScreen({super.key});
 
@@ -127,12 +111,7 @@ class _ProductListScreenState extends ConsumerState<ProductListScreen> {
                       ),
                     ),
                     Text(
-                      _copyByLanguage(
-                        language,
-                        zhCN: '私享甄选 · 今日入库',
-                        en: 'Private curation · today',
-                        zhTW: '私享甄選 · 今日入庫',
-                      ),
+                      ref.tr('product_list_subtitle'),
                       style: TextStyle(
                         color: JewelryColors.champagneGold.withOpacity(0.62),
                         fontSize: 11,
@@ -182,7 +161,11 @@ class _ProductListScreenState extends ConsumerState<ProductListScreen> {
                         }).length,
                         selectedCategory:
                             _translateCategory(selectedCategory, language),
-                        language: language,
+                        title: ref.tr('product_list_private_room_title'),
+                        description: ref.tr('product_list_private_room_desc'),
+                        searchHint: ref.tr('product_list_search_hint'),
+                        hotPicksLabel: ref.tr('product_list_hot_picks_metric'),
+                        catalogLabel: ref.tr('product_list_catalog_metric'),
                         onSearch: () => Navigator.push(
                           context,
                           MaterialPageRoute(
@@ -206,12 +189,7 @@ class _ProductListScreenState extends ConsumerState<ProductListScreen> {
                     ),
                     const SizedBox(height: 14),
                     _SectionHeader(
-                      eyebrow: _copyByLanguage(
-                        language,
-                        zhCN: 'CURATED SHELF',
-                        en: 'CURATED SHELF',
-                        zhTW: 'CURATED SHELF',
-                      ),
+                      eyebrow: ref.tr('product_list_curated_shelf'),
                       title: ref.tr('home_hot'),
                       action: '${ref.tr('view_all')} >',
                     ),
@@ -256,7 +234,8 @@ class _ProductListScreenState extends ConsumerState<ProductListScreen> {
                                 delay: Duration(
                                   milliseconds: index < 6 ? index * 50 : 0,
                                 ),
-                                child: _buildProductCard(products[index]),
+                                child: _buildProductCard(
+                                    products[index], language),
                               ),
                               childCount: products.length,
                             ),
@@ -306,7 +285,7 @@ class _ProductListScreenState extends ConsumerState<ProductListScreen> {
     );
   }
 
-  Widget _buildProductCard(ProductModel product) {
+  Widget _buildProductCard(ProductModel product, AppLanguage lang) {
     return GestureDetector(
       onTap: () => Navigator.push(
         context,
@@ -437,7 +416,7 @@ class _ProductListScreenState extends ConsumerState<ProductListScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            product.titleL10n,
+                            product.localizedTitleFor(lang),
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
@@ -462,7 +441,7 @@ class _ProductListScreenState extends ConsumerState<ProductListScreen> {
                               ),
                             ),
                             child: Text(
-                              product.matL10n,
+                              product.localizedMaterialFor(lang),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(
@@ -646,7 +625,11 @@ class _CurationHero extends StatelessWidget {
     required this.visibleCount,
     required this.hotCount,
     required this.selectedCategory,
-    required this.language,
+    required this.title,
+    required this.description,
+    required this.searchHint,
+    required this.hotPicksLabel,
+    required this.catalogLabel,
     required this.onSearch,
   });
 
@@ -654,7 +637,11 @@ class _CurationHero extends StatelessWidget {
   final int visibleCount;
   final int hotCount;
   final String selectedCategory;
-  final AppLanguage language;
+  final String title;
+  final String description;
+  final String searchHint;
+  final String hotPicksLabel;
+  final String catalogLabel;
   final VoidCallback onSearch;
 
   @override
@@ -717,12 +704,7 @@ class _CurationHero extends StatelessWidget {
                           ),
                           const SizedBox(height: 10),
                           Text(
-                            _copyByLanguage(
-                              language,
-                              zhCN: '为你开一间\n流动的珠宝私室',
-                              en: 'A private\njewelry room',
-                              zhTW: '為你開一間\n流動的珠寶私室',
-                            ),
+                            title,
                             style: const TextStyle(
                               color: JewelryColors.jadeMist,
                               fontSize: 28,
@@ -752,12 +734,7 @@ class _CurationHero extends StatelessWidget {
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  _copyByLanguage(
-                    language,
-                    zhCN: '从材质、来源、热度到成交安全，把每一件值得停留的玉石先筛出来。',
-                    en: 'Filtered by material, origin, signal and transaction safety before it reaches you.',
-                    zhTW: '從材質、來源、熱度到成交安全，把每一件值得停留的玉石先篩出來。',
-                  ),
+                  description,
                   style: TextStyle(
                     color: JewelryColors.jadeMist.withOpacity(0.66),
                     fontSize: 13,
@@ -789,12 +766,7 @@ class _CurationHero extends StatelessWidget {
                         const SizedBox(width: 10),
                         Expanded(
                           child: Text(
-                            _copyByLanguage(
-                              language,
-                              zhCN: '搜索材质、预算、礼赠场景',
-                              en: 'Search material, budget or gifting moment',
-                              zhTW: '搜尋材質、預算、禮贈場景',
-                            ),
+                            searchHint,
                             style: TextStyle(
                               color: JewelryColors.jadeMist.withOpacity(0.58),
                               fontSize: 13,
@@ -823,24 +795,14 @@ class _CurationHero extends StatelessWidget {
                     Expanded(
                       child: _CurationMetric(
                         value: '$hotCount',
-                        label: _copyByLanguage(
-                          language,
-                          zhCN: '热度藏品',
-                          en: 'hot picks',
-                          zhTW: '熱度藏品',
-                        ),
+                        label: hotPicksLabel,
                       ),
                     ),
                     const SizedBox(width: 10),
                     Expanded(
                       child: _CurationMetric(
                         value: '$totalCount',
-                        label: _copyByLanguage(
-                          language,
-                          zhCN: '在库总数',
-                          en: 'in catalog',
-                          zhTW: '在庫總數',
-                        ),
+                        label: catalogLabel,
                       ),
                     ),
                   ],

@@ -1,4 +1,3 @@
-import 'package:huiyuyuan/l10n/string_extension.dart';
 import 'package:huiyuyuan/l10n/translator_global.dart';
 import 'dart:ui';
 import 'package:flutter/foundation.dart';
@@ -35,20 +34,22 @@ class _AiConciergeBackdrop extends StatelessWidget {
       ),
       child: Stack(
         children: [
+          // AI distinctive visual: indigo/purple top-right orb (tech/intelligence)
           Positioned(
             top: -150,
             right: -120,
             child: _AiGlowOrb(
               size: 340,
-              color: JewelryColors.emeraldGlow.withOpacity(0.12),
+              color: const Color(0xFF7C3AED).withOpacity(0.14),
             ),
           ),
+          // Secondary azure glow (bottom-left — AI blue)
           Positioned(
             left: -130,
             top: 260,
             child: _AiGlowOrb(
               size: 300,
-              color: JewelryColors.champagneGold.withOpacity(0.12),
+              color: const Color(0xFF0EA5E9).withOpacity(0.10),
             ),
           ),
           Positioned.fill(
@@ -153,8 +154,40 @@ class _ConciergeCapability extends StatelessWidget {
 }
 
 /// AI assistant screen.
+///
+/// Optional parameters allow other screens to open the AI assistant with a
+/// pre-loaded product context so the user can immediately ask about a specific
+/// item without having to describe it manually.
+///
+/// Usage example (from product detail):
+/// ```dart
+/// Navigator.push(context, MaterialPageRoute(
+///   builder: (_) => AIAssistantScreen(
+///     productId: product.id,
+///     productName: product.localizedTitleFor(lang),
+///     initialContext: 'product_ai_consult_context',
+///   ),
+/// ));
+/// ```
 class AIAssistantScreen extends ConsumerStatefulWidget {
-  const AIAssistantScreen({super.key});
+  const AIAssistantScreen({
+    super.key,
+    this.productId,
+    this.productName,
+    this.initialContext,
+  });
+
+  /// When set, the AI is pre-briefed on this product so the user can ask
+  /// questions without re-describing the item.
+  final String? productId;
+
+  /// Display name of the product (localised). Used in the welcome message.
+  final String? productName;
+
+  /// An i18n key whose value is sent as the first user message (or used as
+  /// the initial input field pre-fill). When absent the normal welcome flow
+  /// runs.
+  final String? initialContext;
 
   @override
   ConsumerState<AIAssistantScreen> createState() => _AIAssistantScreenState();
@@ -218,6 +251,40 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen>
       isUser: false,
       timestamp: DateTime.now(),
     ));
+
+    // If the screen was opened from a product detail page, inject a
+    // product-context greeting so the AI knows what item to discuss.
+    if (widget.productId != null) {
+      Future.delayed(const Duration(milliseconds: 600), () {
+        if (!mounted) return;
+        final lang = ref.read(appSettingsProvider).language;
+        final productInfo = widget.productName ?? widget.productId ?? '';
+        final contextMsg = lang == AppLanguage.en
+            ? 'I\'d like to ask about this product: $productInfo (ID: ${widget.productId})'
+            : lang == AppLanguage.zhTW
+                ? '我想詢問這件商品：$productInfo（編號：${widget.productId}）'
+                : '我想咨询这件商品：$productInfo（编号：${widget.productId}）';
+        // Show a system-style greeting from the AI side.
+        final greeting = lang == AppLanguage.en
+            ? 'Hello! I can see you\'re interested in **$productInfo**. What would you like to know — quality, craftsmanship, certificate, or pricing advice?'
+            : lang == AppLanguage.zhTW
+                ? '您好！看到您對 **$productInfo** 感興趣。請問您想了解品質、工藝、鑑定證書，還是有其他問題？'
+                : '您好！看到您对 **$productInfo** 感兴趣。请问您想了解品质、工艺、鉴定证书，还是有其他问题？';
+        setState(() {
+          _messages.add(ChatMessage(
+            id: 'product_context_${widget.productId}',
+            content: greeting,
+            isUser: false,
+            timestamp: DateTime.now(),
+          ));
+        });
+        _scrollToBottom();
+        // Pre-fill the text field with context if initialContext provided.
+        if (widget.initialContext != null) {
+          _messageController.text = contextMsg;
+        }
+      });
+    }
 
     // Start the welcome animation.
     Future.delayed(const Duration(milliseconds: 200), () {
@@ -858,6 +925,7 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen>
     _ensureRecommendedProductLoaded(productId);
     final product = _recommendedProducts[productId];
     final isLoading = _loadingRecommendedProducts.contains(productId);
+    final lang = ref.watch(appSettingsProvider).language;
 
     if (product == null) {
       if (!isLoading && _recommendedProducts.containsKey(productId)) {
@@ -963,7 +1031,7 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      product.titleL10n,
+                      product.localizedTitleFor(lang),
                       style: const TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w900,
@@ -974,7 +1042,7 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen>
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      '${product.matL10n} · ${product.catL10n}',
+                      '${product.localizedMaterialFor(lang)} · ${product.localizedCategoryFor(lang)}',
                       style: TextStyle(
                         fontSize: 12,
                         color: JewelryColors.jadeMist.withOpacity(0.54),
@@ -1562,7 +1630,7 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen>
   String _formatAiFallbackMessage(String error) {
     final message = sanitizeUtf16(error.trim());
     if (message.isEmpty) {
-      return 'ai_fallback_offline'.tr;
+      return ref.tr('ai_fallback_offline');
     }
 
     final lowerMessage = message.toLowerCase();
@@ -1572,7 +1640,7 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen>
         lowerMessage.contains('connection refused') ||
         message.contains('网络') ||
         message.contains('網路')) {
-      return 'ai_fallback_network'.tr;
+      return ref.tr('ai_fallback_network');
     }
 
     if (lowerMessage.contains('dashscope') ||
@@ -1583,10 +1651,10 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen>
         message.contains('未配置') ||
         message.contains('未設定') ||
         lowerMessage.contains('missing')) {
-      return 'ai_fallback_offline'.tr;
+      return ref.tr('ai_fallback_offline');
     }
 
-    return 'ai_fallback_generic'.trArgs({'message': message});
+    return ref.tr('ai_fallback_generic', params: {'message': message});
   }
 
   void _scrollToBottom() {

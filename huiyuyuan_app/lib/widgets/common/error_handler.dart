@@ -1,4 +1,4 @@
-﻿/// HuiYuYuan error handling helpers.
+/// HuiYuYuan error handling helpers.
 ///
 /// Features:
 /// - unified error handling
@@ -7,8 +7,8 @@
 library;
 
 import 'package:flutter/material.dart';
+import '../../l10n/translator_global.dart';
 import 'package:flutter/foundation.dart';
-import 'package:huiyuyuan/l10n/string_extension.dart';
 
 /// Error type enum.
 enum ErrorType {
@@ -110,15 +110,16 @@ class AppError {
   String get userFriendlyMessage {
     switch (type) {
       case ErrorType.network:
-        return 'error_network_retry'.tr;
+        return TranslatorGlobal.instance.translate('error_network_retry');
       case ErrorType.auth:
-        return 'error_session_expired'.tr;
+        return TranslatorGlobal.instance.translate('error_session_expired');
       case ErrorType.validation:
         return message;
       case ErrorType.server:
-        return 'error_server_busy'.tr;
+        return TranslatorGlobal.instance.translate('error_server_busy');
       case ErrorType.unknown:
-        return 'error_operation_failed_retry'.tr;
+        return TranslatorGlobal.instance
+            .translate('error_operation_failed_retry');
     }
   }
 
@@ -175,7 +176,7 @@ class ErrorHandler {
           ),
           duration: const Duration(seconds: 3),
           action: SnackBarAction(
-            label: 'action_got_it'.tr,
+            label: TranslatorGlobal.instance.translate('action_got_it'),
             textColor: Colors.white,
             onPressed: () {
               ScaffoldMessenger.of(context).hideCurrentSnackBar();
@@ -206,14 +207,14 @@ class ErrorHandler {
           children: [
             Icon(appError.icon, color: _getErrorColor(appError.type)),
             const SizedBox(width: 8),
-            Text('common_notice'.tr),
+            Text(TranslatorGlobal.instance.translate('common_notice')),
           ],
         ),
         content: Text(appError.userFriendlyMessage),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text('confirm'.tr),
+            child: Text(TranslatorGlobal.instance.translate('confirm')),
           ),
         ],
       ),

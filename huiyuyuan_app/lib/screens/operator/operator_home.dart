@@ -763,12 +763,9 @@ class _OperatorHomeState extends ConsumerState<OperatorHome> {
                 JewelryColors.emeraldLuster, onTap: () {
               _openPaymentReconciliationWorkbench(user);
             }),
-            _buildFeatureButton(Icons.chat_bubble, ref.tr('work_import_chat'),
+            _buildFeatureButton(Icons.chat_bubble, ref.tr('work_ai_reply_draft'),
                 JewelryColors.emeraldGlow, onTap: () {
-              _showFeatureToast(
-                ref.tr('work_import_chat'),
-                ref.tr('work_import_chat_loading'),
-              );
+              _openAIDraftReply(user);
             }),
             _buildFeatureButton(
               Icons.notifications,
@@ -1067,6 +1064,33 @@ class _OperatorHomeState extends ConsumerState<OperatorHome> {
     Navigator.push(
       context,
       MaterialPageRoute(builder: (_) => const AIAssistantScreen()),
+    );
+  }
+
+  /// Opens AI assistant pre-loaded with a customer-service drafting context.
+  void _openAIDraftReply(UserModel? user) {
+    if (!_hasAnyPermission(user, const ['ai_assistant'])) {
+      _showFeatureToast(
+        ref.tr('work_ai_reply_draft'),
+        ref.tr('operator_permission_denied'),
+      );
+      return;
+    }
+    final lang = ref.read(appSettingsProvider).language;
+    final draftPrompt = lang == AppLanguage.en
+        ? 'Please help me draft a professional customer-service reply for a jewellery order inquiry. '
+            'I\'ll paste the customer\'s message and you suggest a warm, accurate response.'
+        : lang == AppLanguage.zhTW
+            ? '請幫我為珠寶訂單諮詢起草一條專業客服回覆。我會貼上客戶的訊息，請給出溫暖、準確的回覆建議。'
+            : '请帮我为珠宝订单咨询起草一条专业客服回复。我会粘贴客户的消息，请给出温暖、准确的回复建议。';
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => AIAssistantScreen(
+          initialContext: draftPrompt,
+        ),
+      ),
     );
   }
 

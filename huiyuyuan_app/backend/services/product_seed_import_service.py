@@ -25,6 +25,21 @@ SEED_METADATA_FIELDS = frozenset({
     "source_order",
 })
 
+PRODUCT_SEED_JSONB_FIELDS = frozenset({
+    "images",
+    "craft_highlights",
+    "craft_highlights_en",
+    "craft_highlights_zh_tw",
+    "audience_tags",
+    "audience_tags_en",
+    "audience_tags_zh_tw",
+    "flaw_notes",
+    "flaw_notes_en",
+    "flaw_notes_zh_tw",
+    "gallery_detail",
+    "gallery_hand",
+})
+
 DEFAULT_BACKEND_SEED_SOURCE = "backend_legacy"
 
 PRODUCT_SEED_UPSERT_SQL = """
@@ -47,7 +62,25 @@ INSERT INTO products (
     certificate,
     blockchain_hash,
     material_verify,
-    is_active
+    is_active,
+    name_en, name_zh_tw,
+    description_en, description_zh_tw,
+    category_en, category_zh_tw,
+    material_en, material_zh_tw,
+    origin_en, origin_zh_tw,
+    material_verify_en, material_verify_zh_tw,
+    appraisal_note, appraisal_note_en, appraisal_note_zh_tw,
+    craft_highlights, craft_highlights_en, craft_highlights_zh_tw,
+    weight_g,
+    dimensions,
+    audience_tags, audience_tags_en, audience_tags_zh_tw,
+    origin_story, origin_story_en, origin_story_zh_tw,
+    flaw_notes, flaw_notes_en, flaw_notes_zh_tw,
+    certificate_authority, certificate_authority_en, certificate_authority_zh_tw,
+    certificate_image_url,
+    certificate_verify_url,
+    gallery_detail,
+    gallery_hand
 ) VALUES (
     :id,
     :name,
@@ -67,7 +100,25 @@ INSERT INTO products (
     :certificate,
     :blockchain_hash,
     :material_verify,
-    :is_active
+    :is_active,
+    :name_en, :name_zh_tw,
+    :description_en, :description_zh_tw,
+    :category_en, :category_zh_tw,
+    :material_en, :material_zh_tw,
+    :origin_en, :origin_zh_tw,
+    :material_verify_en, :material_verify_zh_tw,
+    :appraisal_note, :appraisal_note_en, :appraisal_note_zh_tw,
+    CAST(:craft_highlights AS JSONB), CAST(:craft_highlights_en AS JSONB), CAST(:craft_highlights_zh_tw AS JSONB),
+    :weight_g,
+    :dimensions,
+    CAST(:audience_tags AS JSONB), CAST(:audience_tags_en AS JSONB), CAST(:audience_tags_zh_tw AS JSONB),
+    :origin_story, :origin_story_en, :origin_story_zh_tw,
+    CAST(:flaw_notes AS JSONB), CAST(:flaw_notes_en AS JSONB), CAST(:flaw_notes_zh_tw AS JSONB),
+    :certificate_authority, :certificate_authority_en, :certificate_authority_zh_tw,
+    :certificate_image_url,
+    :certificate_verify_url,
+    CAST(:gallery_detail AS JSONB),
+    CAST(:gallery_hand AS JSONB)
 )
 ON CONFLICT (id) DO UPDATE SET
     name = EXCLUDED.name,
@@ -88,6 +139,42 @@ ON CONFLICT (id) DO UPDATE SET
     blockchain_hash = COALESCE(EXCLUDED.blockchain_hash, products.blockchain_hash),
     material_verify = EXCLUDED.material_verify,
     is_active = EXCLUDED.is_active,
+    name_en = COALESCE(EXCLUDED.name_en, products.name_en),
+    name_zh_tw = COALESCE(EXCLUDED.name_zh_tw, products.name_zh_tw),
+    description_en = COALESCE(EXCLUDED.description_en, products.description_en),
+    description_zh_tw = COALESCE(EXCLUDED.description_zh_tw, products.description_zh_tw),
+    category_en = COALESCE(EXCLUDED.category_en, products.category_en),
+    category_zh_tw = COALESCE(EXCLUDED.category_zh_tw, products.category_zh_tw),
+    material_en = COALESCE(EXCLUDED.material_en, products.material_en),
+    material_zh_tw = COALESCE(EXCLUDED.material_zh_tw, products.material_zh_tw),
+    origin_en = COALESCE(EXCLUDED.origin_en, products.origin_en),
+    origin_zh_tw = COALESCE(EXCLUDED.origin_zh_tw, products.origin_zh_tw),
+    material_verify_en = COALESCE(EXCLUDED.material_verify_en, products.material_verify_en),
+    material_verify_zh_tw = COALESCE(EXCLUDED.material_verify_zh_tw, products.material_verify_zh_tw),
+    appraisal_note = COALESCE(EXCLUDED.appraisal_note, products.appraisal_note),
+    appraisal_note_en = COALESCE(EXCLUDED.appraisal_note_en, products.appraisal_note_en),
+    appraisal_note_zh_tw = COALESCE(EXCLUDED.appraisal_note_zh_tw, products.appraisal_note_zh_tw),
+    craft_highlights = COALESCE(EXCLUDED.craft_highlights, products.craft_highlights),
+    craft_highlights_en = COALESCE(EXCLUDED.craft_highlights_en, products.craft_highlights_en),
+    craft_highlights_zh_tw = COALESCE(EXCLUDED.craft_highlights_zh_tw, products.craft_highlights_zh_tw),
+    weight_g = COALESCE(EXCLUDED.weight_g, products.weight_g),
+    dimensions = COALESCE(EXCLUDED.dimensions, products.dimensions),
+    audience_tags = COALESCE(EXCLUDED.audience_tags, products.audience_tags),
+    audience_tags_en = COALESCE(EXCLUDED.audience_tags_en, products.audience_tags_en),
+    audience_tags_zh_tw = COALESCE(EXCLUDED.audience_tags_zh_tw, products.audience_tags_zh_tw),
+    origin_story = COALESCE(EXCLUDED.origin_story, products.origin_story),
+    origin_story_en = COALESCE(EXCLUDED.origin_story_en, products.origin_story_en),
+    origin_story_zh_tw = COALESCE(EXCLUDED.origin_story_zh_tw, products.origin_story_zh_tw),
+    flaw_notes = COALESCE(EXCLUDED.flaw_notes, products.flaw_notes),
+    flaw_notes_en = COALESCE(EXCLUDED.flaw_notes_en, products.flaw_notes_en),
+    flaw_notes_zh_tw = COALESCE(EXCLUDED.flaw_notes_zh_tw, products.flaw_notes_zh_tw),
+    certificate_authority = COALESCE(EXCLUDED.certificate_authority, products.certificate_authority),
+    certificate_authority_en = COALESCE(EXCLUDED.certificate_authority_en, products.certificate_authority_en),
+    certificate_authority_zh_tw = COALESCE(EXCLUDED.certificate_authority_zh_tw, products.certificate_authority_zh_tw),
+    certificate_image_url = COALESCE(EXCLUDED.certificate_image_url, products.certificate_image_url),
+    certificate_verify_url = COALESCE(EXCLUDED.certificate_verify_url, products.certificate_verify_url),
+    gallery_detail = COALESCE(EXCLUDED.gallery_detail, products.gallery_detail),
+    gallery_hand = COALESCE(EXCLUDED.gallery_hand, products.gallery_hand),
     updated_at = NOW()
 """
 
@@ -160,11 +247,26 @@ def prepare_upsert_rows(
             payload,
             ensure_blockchain_hash=True,
         )
-        rows.append({
-            **normalized,
-            "images": json.dumps(normalized["images"], ensure_ascii=False),
-        })
+        row = dict(normalized)
+        for field in PRODUCT_SEED_JSONB_FIELDS:
+            row[field] = _serialize_jsonb_param(
+                row.get(field),
+                empty_list_when_none=field == "images",
+            )
+        rows.append(row)
     return rows
+
+
+def _serialize_jsonb_param(
+    value: Any,
+    *,
+    empty_list_when_none: bool = False,
+) -> str | None:
+    if value is None:
+        if empty_list_when_none:
+            return json.dumps([], ensure_ascii=False)
+        return None
+    return json.dumps(value, ensure_ascii=False)
 
 
 def upsert_seed_products(

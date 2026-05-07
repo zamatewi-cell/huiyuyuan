@@ -4,7 +4,7 @@
 library;
 
 import 'json_parsing.dart';
-import 'package:huiyuyuan/l10n/string_extension.dart';
+import '../l10n/translator_global.dart';
 
 /// Review model.
 class ReviewModel {
@@ -56,7 +56,7 @@ class ReviewModel {
       if (userName.length >= 2) {
         return '${userName[0]}***';
       }
-      return 'review_anonymous_user'.tr;
+      return TranslatorGlobal.instance.translate('review_anonymous_user');
     }
     return userName;
   }
@@ -81,17 +81,17 @@ class ReviewModel {
   String get ratingText {
     switch (rating) {
       case 5:
-        return 'review_rating_excellent'.tr;
+        return TranslatorGlobal.instance.translate('review_rating_excellent');
       case 4:
-        return 'review_rating_good'.tr;
+        return TranslatorGlobal.instance.translate('review_rating_good');
       case 3:
-        return 'review_rating_average'.tr;
+        return TranslatorGlobal.instance.translate('review_rating_average');
       case 2:
-        return 'review_rating_poor'.tr;
+        return TranslatorGlobal.instance.translate('review_rating_poor');
       case 1:
-        return 'review_rating_terrible'.tr;
+        return TranslatorGlobal.instance.translate('review_rating_terrible');
       default:
-        return 'product_unknown'.tr;
+        return TranslatorGlobal.instance.translate('product_unknown');
     }
   }
 

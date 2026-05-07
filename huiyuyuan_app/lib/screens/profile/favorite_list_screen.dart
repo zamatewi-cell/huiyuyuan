@@ -9,6 +9,7 @@ library;
 import 'package:flutter/material.dart';
 import '../../l10n/l10n_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../providers/app_settings_provider.dart';
 import 'dart:ui';
 import '../../models/product_model.dart';
 import '../../themes/colors.dart';
@@ -332,9 +333,10 @@ class _FavoriteCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final lang = ref.watch(appSettingsProvider).language;
     final imageUrl = product.images.isEmpty ? null : product.images.first;
-    final name = product.titleL10n;
-    final material = product.matL10n;
+    final name = product.localizedTitleFor(lang);
+    final material = product.localizedMaterialFor(lang);
     final price = product.price.toStringAsFixed(0);
     final originalPrice = product.originalPrice?.toStringAsFixed(0);
     return GlassmorphicCard(

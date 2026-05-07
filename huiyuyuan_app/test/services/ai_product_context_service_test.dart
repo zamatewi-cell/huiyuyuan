@@ -10,6 +10,9 @@ void main() {
     required String category,
     required double price,
     String? origin,
+    List<String>? audienceTags,
+    String? originStory,
+    List<String>? flawNotes,
   }) {
     return ProductModel(
       id: id,
@@ -21,6 +24,9 @@ void main() {
       images: const ['https://example.com/product.png'],
       stock: 10,
       origin: origin,
+      audienceTags: audienceTags,
+      originStory: originStory,
+      flawNotes: flawNotes,
     );
   }
 
@@ -35,6 +41,9 @@ void main() {
             category: '手链',
             price: 299,
             origin: '新疆',
+            audienceTags: const ['自戴', '礼赠'],
+            originStory: '精选新疆和田老料，保留自然温润质感。',
+            flawNotes: const ['天然棉线'],
           ),
           buildProduct(
             id: 'HYY-FC002',
@@ -57,6 +66,9 @@ void main() {
       expect(context, contains('和田玉手链'));
       expect(context, contains('编号:HYY-HT001'));
       expect(context, contains('¥299'));
+      expect(context, contains('适合：自戴/礼赠'));
+      expect(context, contains('来源：精选新疆和田老料'));
+      expect(context, contains('特征：天然棉线'));
     });
 
     test('商品加载失败时应返回空字符串', () async {
